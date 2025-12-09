@@ -1821,6 +1821,82 @@ func ReadUUIDArray(r io.Reader) ([]uuid.UUID, error) {
 	return items, nil
 }
 
+// EncodeBoolArray encodes an array of bool values.
+func EncodeBoolArray(items []bool) []byte {
+	if items == nil {
+		return EncodeInt32(-1)
+	}
+	buf := EncodeInt32(int32(len(items)))
+	for _, item := range items {
+		buf = append(buf, EncodeBool(item)...)
+	}
+	return buf
+}
+
+// DecodeBoolArray decodes an array of bool values.
+func DecodeBoolArray(data []byte) ([]bool, int, error) {
+	if len(data) < 4 {
+		return nil, 0, ErrInsufficientData
+	}
+	length, err := DecodeInt32(data[:4])
+	if err != nil {
+		return nil, 0, err
+	}
+	if length == -1 {
+		return nil, 4, nil
+	}
+	if length < 0 {
+		return nil, 0, errors.New("invalid array length")
+	}
+	items := make([]bool, length)
+	offset := 4
+	for i := int32(0); i < length; i++ {
+		if offset >= len(data) {
+			return nil, 0, ErrInsufficientData
+		}
+		val, err := DecodeBool(data[offset:])
+		if err != nil {
+			return nil, 0, err
+		}
+		items[i] = val
+		offset++
+	}
+	return items, offset, nil
+}
+
+// WriteBoolArray writes an array of bool values to an io.Writer.
+func WriteBoolArray(w io.Writer, items []bool) error {
+	_, err := w.Write(EncodeBoolArray(items))
+	return err
+}
+
+// ReadBoolArray reads an array of bool values from an io.Reader.
+func ReadBoolArray(r io.Reader) ([]bool, error) {
+	lengthBuf := make([]byte, 4)
+	if _, err := io.ReadFull(r, lengthBuf); err != nil {
+		return nil, err
+	}
+	length, err := DecodeInt32(lengthBuf)
+	if err != nil {
+		return nil, err
+	}
+	if length == -1 {
+		return nil, nil
+	}
+	if length < 0 {
+		return nil, errors.New("invalid array length")
+	}
+	items := make([]bool, length)
+	for i := int32(0); i < length; i++ {
+		val, err := ReadBool(r)
+		if err != nil {
+			return nil, err
+		}
+		items[i] = val
+	}
+	return items, nil
+}
+
 // ============================================================================
 // Typed Compact Array Helpers - Convenience methods for primitive types
 // ============================================================================
@@ -2462,6 +2538,78 @@ func ReadCompactUUIDArray(r io.Reader) ([]uuid.UUID, error) {
 	items := make([]uuid.UUID, length)
 	for i := uint32(0); i < length; i++ {
 		val, err := ReadUUID(r)
+		if err != nil {
+			return nil, err
+		}
+		items[i] = val
+	}
+	return items, nil
+}
+
+// EncodeCompactBoolArray encodes a compact array of bool values.
+func EncodeCompactBoolArray(items []bool) []byte {
+	if items == nil {
+		return encodeVaruint32(0)
+	}
+	length := uint32(len(items) + 1)
+	buf := encodeVaruint32(length)
+	for _, item := range items {
+		buf = append(buf, EncodeBool(item)...)
+	}
+	return buf
+}
+
+// DecodeCompactBoolArray decodes a compact array of bool values.
+func DecodeCompactBoolArray(data []byte) ([]bool, int, error) {
+	length, n, err := decodeVaruint32(data)
+	if err != nil {
+		return nil, 0, err
+	}
+	if length == 0 {
+		return nil, n, nil
+	}
+	if length < 1 {
+		return nil, 0, errors.New("invalid compact array length")
+	}
+	length--
+	items := make([]bool, length)
+	offset := n
+	for i := uint32(0); i < length; i++ {
+		if offset >= len(data) {
+			return nil, 0, ErrInsufficientData
+		}
+		val, err := DecodeBool(data[offset:])
+		if err != nil {
+			return nil, 0, err
+		}
+		items[i] = val
+		offset++
+	}
+	return items, offset, nil
+}
+
+// WriteCompactBoolArray writes a compact array of bool values to an io.Writer.
+func WriteCompactBoolArray(w io.Writer, items []bool) error {
+	_, err := w.Write(EncodeCompactBoolArray(items))
+	return err
+}
+
+// ReadCompactBoolArray reads a compact array of bool values from an io.Reader.
+func ReadCompactBoolArray(r io.Reader) ([]bool, error) {
+	length, err := ReadVaruint32(r)
+	if err != nil {
+		return nil, err
+	}
+	if length == 0 {
+		return nil, nil
+	}
+	if length < 1 {
+		return nil, errors.New("invalid compact array length")
+	}
+	length--
+	items := make([]bool, length)
+	for i := uint32(0); i < length; i++ {
+		val, err := ReadBool(r)
 		if err != nil {
 			return nil, err
 		}

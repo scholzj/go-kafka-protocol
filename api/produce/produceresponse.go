@@ -52,106 +52,107 @@ func (m *ProduceResponse) Write(w io.Writer, version int16) error {
 
 	// Responses
 	if version >= 0 && version <= 999 {
-		if isFlexible {
-			length := uint32(len(m.Responses) + 1)
-			if err := protocol.WriteVaruint32(w, length); err != nil {
-				return err
+		// Encode array using ArrayEncoder
+		encoder := func(item interface{}) ([]byte, error) {
+			if item == nil {
+				return nil, nil
 			}
-		} else {
-			if err := protocol.WriteInt32(w, int32(len(m.Responses))); err != nil {
-				return err
+			structItem, ok := item.(ProduceResponseTopicProduceResponse)
+			if !ok {
+				return nil, errors.New("invalid type for array element")
 			}
-		}
-		for i := range m.Responses {
+			var elemBuf bytes.Buffer
+			// Temporarily use elemBuf as writer
+			elemW := &elemBuf
 			// Name
 			if version >= 0 && version <= 12 {
 				if isFlexible {
-					if err := protocol.WriteCompactString(w, m.Responses[i].Name); err != nil {
-						return err
+					if err := protocol.WriteCompactString(elemW, structItem.Name); err != nil {
+						return nil, err
 					}
 				} else {
-					if err := protocol.WriteString(w, m.Responses[i].Name); err != nil {
-						return err
+					if err := protocol.WriteString(elemW, structItem.Name); err != nil {
+						return nil, err
 					}
 				}
 			}
 			// TopicId
 			if version >= 13 && version <= 999 {
-				if err := protocol.WriteUUID(w, m.Responses[i].TopicId); err != nil {
-					return err
+				if err := protocol.WriteUUID(elemW, structItem.TopicId); err != nil {
+					return nil, err
 				}
 			}
 			// PartitionResponses
 			if version >= 0 && version <= 999 {
 				if isFlexible {
-					length := uint32(len(m.Responses[i].PartitionResponses) + 1)
-					if err := protocol.WriteVaruint32(w, length); err != nil {
-						return err
+					length := uint32(len(structItem.PartitionResponses) + 1)
+					if err := protocol.WriteVaruint32(elemW, length); err != nil {
+						return nil, err
 					}
 				} else {
-					if err := protocol.WriteInt32(w, int32(len(m.Responses[i].PartitionResponses))); err != nil {
-						return err
+					if err := protocol.WriteInt32(elemW, int32(len(structItem.PartitionResponses))); err != nil {
+						return nil, err
 					}
 				}
-				for i := range m.Responses[i].PartitionResponses {
+				for i := range structItem.PartitionResponses {
 					// Index
 					if version >= 0 && version <= 999 {
-						if err := protocol.WriteInt32(w, m.Responses[i].PartitionResponses[i].Index); err != nil {
-							return err
+						if err := protocol.WriteInt32(elemW, structItem.PartitionResponses[i].Index); err != nil {
+							return nil, err
 						}
 					}
 					// ErrorCode
 					if version >= 0 && version <= 999 {
-						if err := protocol.WriteInt16(w, m.Responses[i].PartitionResponses[i].ErrorCode); err != nil {
-							return err
+						if err := protocol.WriteInt16(elemW, structItem.PartitionResponses[i].ErrorCode); err != nil {
+							return nil, err
 						}
 					}
 					// BaseOffset
 					if version >= 0 && version <= 999 {
-						if err := protocol.WriteInt64(w, m.Responses[i].PartitionResponses[i].BaseOffset); err != nil {
-							return err
+						if err := protocol.WriteInt64(elemW, structItem.PartitionResponses[i].BaseOffset); err != nil {
+							return nil, err
 						}
 					}
 					// LogAppendTimeMs
 					if version >= 2 && version <= 999 {
-						if err := protocol.WriteInt64(w, m.Responses[i].PartitionResponses[i].LogAppendTimeMs); err != nil {
-							return err
+						if err := protocol.WriteInt64(elemW, structItem.PartitionResponses[i].LogAppendTimeMs); err != nil {
+							return nil, err
 						}
 					}
 					// LogStartOffset
 					if version >= 5 && version <= 999 {
-						if err := protocol.WriteInt64(w, m.Responses[i].PartitionResponses[i].LogStartOffset); err != nil {
-							return err
+						if err := protocol.WriteInt64(elemW, structItem.PartitionResponses[i].LogStartOffset); err != nil {
+							return nil, err
 						}
 					}
 					// RecordErrors
 					if version >= 8 && version <= 999 {
 						if isFlexible {
-							length := uint32(len(m.Responses[i].PartitionResponses[i].RecordErrors) + 1)
-							if err := protocol.WriteVaruint32(w, length); err != nil {
-								return err
+							length := uint32(len(structItem.PartitionResponses[i].RecordErrors) + 1)
+							if err := protocol.WriteVaruint32(elemW, length); err != nil {
+								return nil, err
 							}
 						} else {
-							if err := protocol.WriteInt32(w, int32(len(m.Responses[i].PartitionResponses[i].RecordErrors))); err != nil {
-								return err
+							if err := protocol.WriteInt32(elemW, int32(len(structItem.PartitionResponses[i].RecordErrors))); err != nil {
+								return nil, err
 							}
 						}
-						for i := range m.Responses[i].PartitionResponses[i].RecordErrors {
+						for i := range structItem.PartitionResponses[i].RecordErrors {
 							// BatchIndex
 							if version >= 8 && version <= 999 {
-								if err := protocol.WriteInt32(w, m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndex); err != nil {
-									return err
+								if err := protocol.WriteInt32(elemW, structItem.PartitionResponses[i].RecordErrors[i].BatchIndex); err != nil {
+									return nil, err
 								}
 							}
 							// BatchIndexErrorMessage
 							if version >= 8 && version <= 999 {
 								if isFlexible {
-									if err := protocol.WriteCompactNullableString(w, m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndexErrorMessage); err != nil {
-										return err
+									if err := protocol.WriteCompactNullableString(elemW, structItem.PartitionResponses[i].RecordErrors[i].BatchIndexErrorMessage); err != nil {
+										return nil, err
 									}
 								} else {
-									if err := protocol.WriteNullableString(w, m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndexErrorMessage); err != nil {
-										return err
+									if err := protocol.WriteNullableString(elemW, structItem.PartitionResponses[i].RecordErrors[i].BatchIndexErrorMessage); err != nil {
+										return nil, err
 									}
 								}
 							}
@@ -160,12 +161,12 @@ func (m *ProduceResponse) Write(w io.Writer, version int16) error {
 					// ErrorMessage
 					if version >= 8 && version <= 999 {
 						if isFlexible {
-							if err := protocol.WriteCompactNullableString(w, m.Responses[i].PartitionResponses[i].ErrorMessage); err != nil {
-								return err
+							if err := protocol.WriteCompactNullableString(elemW, structItem.PartitionResponses[i].ErrorMessage); err != nil {
+								return nil, err
 							}
 						} else {
-							if err := protocol.WriteNullableString(w, m.Responses[i].PartitionResponses[i].ErrorMessage); err != nil {
-								return err
+							if err := protocol.WriteNullableString(elemW, structItem.PartitionResponses[i].ErrorMessage); err != nil {
+								return nil, err
 							}
 						}
 					}
@@ -173,6 +174,26 @@ func (m *ProduceResponse) Write(w io.Writer, version int16) error {
 					if version >= 10 && version <= 999 {
 					}
 				}
+			}
+			// Write tagged fields if flexible
+			if isFlexible {
+				if err := structItem.writeTaggedFields(elemW, version); err != nil {
+					return nil, err
+				}
+			}
+			return elemBuf.Bytes(), nil
+		}
+		items := make([]interface{}, len(m.Responses))
+		for i := range m.Responses {
+			items[i] = m.Responses[i]
+		}
+		if isFlexible {
+			if err := protocol.WriteCompactArray(w, items, encoder); err != nil {
+				return err
+			}
+		} else {
+			if err := protocol.WriteArray(w, items, encoder); err != nil {
+				return err
 			}
 		}
 	}
@@ -207,9 +228,49 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 
 	// Responses
 	if version >= 0 && version <= 999 {
-		var length int32
+		// Decode array using ArrayDecoder
+		decoder := func(data []byte) (interface{}, int, error) {
+			var elem ProduceResponseTopicProduceResponse
+			elemR := bytes.NewReader(data)
+			// Name
+			if version >= 0 && version <= 12 {
+				if isFlexible {
+					val, err := protocol.ReadCompactString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.Name = val
+				} else {
+					val, err := protocol.ReadString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.Name = val
+				}
+			}
+			// TopicId
+			if version >= 13 && version <= 999 {
+				val, err := protocol.ReadUUID(elemR)
+				if err != nil {
+					return nil, 0, err
+				}
+				elem.TopicId = val
+			}
+			// PartitionResponses
+			if version >= 0 && version <= 999 {
+				// Nested array in decoder - manual handling needed
+				return nil, 0, errors.New("nested arrays in decoder not fully supported")
+			}
+			// Read tagged fields if flexible
+			if isFlexible {
+				if err := elem.readTaggedFields(elemR, version); err != nil {
+					return nil, 0, err
+				}
+			}
+			consumed := len(data) - elemR.Len()
+			return elem, consumed, nil
+		}
 		if isFlexible {
-			var lengthUint uint32
 			lengthUint, err := protocol.ReadVaruint32(r)
 			if err != nil {
 				return err
@@ -217,9 +278,14 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 			if lengthUint < 1 {
 				return errors.New("invalid compact array length")
 			}
-			length = int32(lengthUint - 1)
-			m.Responses = make([]ProduceResponseTopicProduceResponse, length)
+			length := int32(lengthUint - 1)
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
 			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem ProduceResponseTopicProduceResponse
 				// Name
 				if version >= 0 && version <= 12 {
 					if isFlexible {
@@ -227,13 +293,13 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 						if err != nil {
 							return err
 						}
-						m.Responses[i].Name = val
+						tempElem.Name = val
 					} else {
 						val, err := protocol.ReadString(r)
 						if err != nil {
 							return err
 						}
-						m.Responses[i].Name = val
+						tempElem.Name = val
 					}
 				}
 				// TopicId
@@ -242,13 +308,82 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 					if err != nil {
 						return err
 					}
-					m.Responses[i].TopicId = val
+					tempElem.TopicId = val
 				}
 				// PartitionResponses
 				if version >= 0 && version <= 999 {
-					var length int32
+					// Decode array using ArrayDecoder
+					decoder := func(data []byte) (interface{}, int, error) {
+						var elem ProduceResponsePartitionProduceResponse
+						elemR := bytes.NewReader(data)
+						// Index
+						if version >= 0 && version <= 999 {
+							val, err := protocol.ReadInt32(elemR)
+							if err != nil {
+								return nil, 0, err
+							}
+							elem.Index = val
+						}
+						// ErrorCode
+						if version >= 0 && version <= 999 {
+							val, err := protocol.ReadInt16(elemR)
+							if err != nil {
+								return nil, 0, err
+							}
+							elem.ErrorCode = val
+						}
+						// BaseOffset
+						if version >= 0 && version <= 999 {
+							val, err := protocol.ReadInt64(elemR)
+							if err != nil {
+								return nil, 0, err
+							}
+							elem.BaseOffset = val
+						}
+						// LogAppendTimeMs
+						if version >= 2 && version <= 999 {
+							val, err := protocol.ReadInt64(elemR)
+							if err != nil {
+								return nil, 0, err
+							}
+							elem.LogAppendTimeMs = val
+						}
+						// LogStartOffset
+						if version >= 5 && version <= 999 {
+							val, err := protocol.ReadInt64(elemR)
+							if err != nil {
+								return nil, 0, err
+							}
+							elem.LogStartOffset = val
+						}
+						// RecordErrors
+						if version >= 8 && version <= 999 {
+							// Nested array in decoder - manual handling needed
+							return nil, 0, errors.New("nested arrays in decoder not fully supported")
+						}
+						// ErrorMessage
+						if version >= 8 && version <= 999 {
+							if isFlexible {
+								val, err := protocol.ReadCompactNullableString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.ErrorMessage = val
+							} else {
+								val, err := protocol.ReadNullableString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.ErrorMessage = val
+							}
+						}
+						// CurrentLeader
+						if version >= 10 && version <= 999 {
+						}
+						consumed := len(data) - elemR.Len()
+						return elem, consumed, nil
+					}
 					if isFlexible {
-						var lengthUint uint32
 						lengthUint, err := protocol.ReadVaruint32(r)
 						if err != nil {
 							return err
@@ -256,16 +391,21 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 						if lengthUint < 1 {
 							return errors.New("invalid compact array length")
 						}
-						length = int32(lengthUint - 1)
-						m.Responses[i].PartitionResponses = make([]ProduceResponsePartitionProduceResponse, length)
+						length := int32(lengthUint - 1)
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
 						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem ProduceResponsePartitionProduceResponse
 							// Index
 							if version >= 0 && version <= 999 {
 								val, err := protocol.ReadInt32(r)
 								if err != nil {
 									return err
 								}
-								m.Responses[i].PartitionResponses[i].Index = val
+								tempElem.Index = val
 							}
 							// ErrorCode
 							if version >= 0 && version <= 999 {
@@ -273,7 +413,7 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 								if err != nil {
 									return err
 								}
-								m.Responses[i].PartitionResponses[i].ErrorCode = val
+								tempElem.ErrorCode = val
 							}
 							// BaseOffset
 							if version >= 0 && version <= 999 {
@@ -281,7 +421,7 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 								if err != nil {
 									return err
 								}
-								m.Responses[i].PartitionResponses[i].BaseOffset = val
+								tempElem.BaseOffset = val
 							}
 							// LogAppendTimeMs
 							if version >= 2 && version <= 999 {
@@ -289,7 +429,7 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 								if err != nil {
 									return err
 								}
-								m.Responses[i].PartitionResponses[i].LogAppendTimeMs = val
+								tempElem.LogAppendTimeMs = val
 							}
 							// LogStartOffset
 							if version >= 5 && version <= 999 {
@@ -297,13 +437,42 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 								if err != nil {
 									return err
 								}
-								m.Responses[i].PartitionResponses[i].LogStartOffset = val
+								tempElem.LogStartOffset = val
 							}
 							// RecordErrors
 							if version >= 8 && version <= 999 {
-								var length int32
+								// Decode array using ArrayDecoder
+								decoder := func(data []byte) (interface{}, int, error) {
+									var elem ProduceResponseBatchIndexAndErrorMessage
+									elemR := bytes.NewReader(data)
+									// BatchIndex
+									if version >= 8 && version <= 999 {
+										val, err := protocol.ReadInt32(elemR)
+										if err != nil {
+											return nil, 0, err
+										}
+										elem.BatchIndex = val
+									}
+									// BatchIndexErrorMessage
+									if version >= 8 && version <= 999 {
+										if isFlexible {
+											val, err := protocol.ReadCompactNullableString(elemR)
+											if err != nil {
+												return nil, 0, err
+											}
+											elem.BatchIndexErrorMessage = val
+										} else {
+											val, err := protocol.ReadNullableString(elemR)
+											if err != nil {
+												return nil, 0, err
+											}
+											elem.BatchIndexErrorMessage = val
+										}
+									}
+									consumed := len(data) - elemR.Len()
+									return elem, consumed, nil
+								}
 								if isFlexible {
-									var lengthUint uint32
 									lengthUint, err := protocol.ReadVaruint32(r)
 									if err != nil {
 										return err
@@ -311,16 +480,21 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 									if lengthUint < 1 {
 										return errors.New("invalid compact array length")
 									}
-									length = int32(lengthUint - 1)
-									m.Responses[i].PartitionResponses[i].RecordErrors = make([]ProduceResponseBatchIndexAndErrorMessage, length)
+									length := int32(lengthUint - 1)
+									// Collect all array elements into a buffer
+									var arrayBuf bytes.Buffer
 									for i := int32(0); i < length; i++ {
+										// Read element into struct and encode to buffer
+										var elemBuf bytes.Buffer
+										elemW := &elemBuf
+										var tempElem ProduceResponseBatchIndexAndErrorMessage
 										// BatchIndex
 										if version >= 8 && version <= 999 {
 											val, err := protocol.ReadInt32(r)
 											if err != nil {
 												return err
 											}
-											m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndex = val
+											tempElem.BatchIndex = val
 										}
 										// BatchIndexErrorMessage
 										if version >= 8 && version <= 999 {
@@ -329,31 +503,67 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 												if err != nil {
 													return err
 												}
-												m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndexErrorMessage = val
+												tempElem.BatchIndexErrorMessage = val
 											} else {
 												val, err := protocol.ReadNullableString(r)
 												if err != nil {
 													return err
 												}
-												m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndexErrorMessage = val
+												tempElem.BatchIndexErrorMessage = val
 											}
 										}
+										// BatchIndex
+										if version >= 8 && version <= 999 {
+											if err := protocol.WriteInt32(elemW, tempElem.BatchIndex); err != nil {
+												return err
+											}
+										}
+										// BatchIndexErrorMessage
+										if version >= 8 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactNullableString(elemW, tempElem.BatchIndexErrorMessage); err != nil {
+													return err
+												}
+											} else {
+												if err := protocol.WriteNullableString(elemW, tempElem.BatchIndexErrorMessage); err != nil {
+													return err
+												}
+											}
+										}
+										// Append to array buffer
+										arrayBuf.Write(elemBuf.Bytes())
 									}
-								} else {
-									var err error
-									length, err = protocol.ReadInt32(r)
+									// Prepend length and decode using DecodeCompactArray
+									lengthBytes := protocol.EncodeVaruint32(lengthUint)
+									fullData := append(lengthBytes, arrayBuf.Bytes()...)
+									decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
 									if err != nil {
 										return err
 									}
-									m.Responses[i].PartitionResponses[i].RecordErrors = make([]ProduceResponseBatchIndexAndErrorMessage, length)
+									// Convert []interface{} to typed slice
+									tempElem.RecordErrors = make([]ProduceResponseBatchIndexAndErrorMessage, len(decoded))
+									for i, item := range decoded {
+										tempElem.RecordErrors[i] = item.(ProduceResponseBatchIndexAndErrorMessage)
+									}
+								} else {
+									length, err := protocol.ReadInt32(r)
+									if err != nil {
+										return err
+									}
+									// Collect all array elements into a buffer
+									var arrayBuf bytes.Buffer
 									for i := int32(0); i < length; i++ {
+										// Read element into struct and encode to buffer
+										var elemBuf bytes.Buffer
+										elemW := &elemBuf
+										var tempElem ProduceResponseBatchIndexAndErrorMessage
 										// BatchIndex
 										if version >= 8 && version <= 999 {
 											val, err := protocol.ReadInt32(r)
 											if err != nil {
 												return err
 											}
-											m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndex = val
+											tempElem.BatchIndex = val
 										}
 										// BatchIndexErrorMessage
 										if version >= 8 && version <= 999 {
@@ -362,15 +572,47 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 												if err != nil {
 													return err
 												}
-												m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndexErrorMessage = val
+												tempElem.BatchIndexErrorMessage = val
 											} else {
 												val, err := protocol.ReadNullableString(r)
 												if err != nil {
 													return err
 												}
-												m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndexErrorMessage = val
+												tempElem.BatchIndexErrorMessage = val
 											}
 										}
+										// BatchIndex
+										if version >= 8 && version <= 999 {
+											if err := protocol.WriteInt32(elemW, tempElem.BatchIndex); err != nil {
+												return err
+											}
+										}
+										// BatchIndexErrorMessage
+										if version >= 8 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactNullableString(elemW, tempElem.BatchIndexErrorMessage); err != nil {
+													return err
+												}
+											} else {
+												if err := protocol.WriteNullableString(elemW, tempElem.BatchIndexErrorMessage); err != nil {
+													return err
+												}
+											}
+										}
+										// Append to array buffer
+										arrayBuf.Write(elemBuf.Bytes())
+									}
+									// Prepend length and decode using DecodeArray
+									lengthBytes := protocol.EncodeInt32(length)
+									fullData := append(lengthBytes, arrayBuf.Bytes()...)
+									decoded, _, err := protocol.DecodeArray(fullData, decoder)
+									if err != nil {
+										return err
+									}
+									// Convert []interface{} to typed slice
+									tempElem.RecordErrors = make([]ProduceResponseBatchIndexAndErrorMessage, len(decoded))
+									for i, item := range decoded {
+										tempElem.RecordErrors[i] = item.(ProduceResponseBatchIndexAndErrorMessage)
 									}
 								}
 							}
@@ -381,34 +623,130 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 									if err != nil {
 										return err
 									}
-									m.Responses[i].PartitionResponses[i].ErrorMessage = val
+									tempElem.ErrorMessage = val
 								} else {
 									val, err := protocol.ReadNullableString(r)
 									if err != nil {
 										return err
 									}
-									m.Responses[i].PartitionResponses[i].ErrorMessage = val
+									tempElem.ErrorMessage = val
 								}
 							}
 							// CurrentLeader
 							if version >= 10 && version <= 999 {
 							}
+							// Index
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt32(elemW, tempElem.Index); err != nil {
+									return err
+								}
+							}
+							// ErrorCode
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt16(elemW, tempElem.ErrorCode); err != nil {
+									return err
+								}
+							}
+							// BaseOffset
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt64(elemW, tempElem.BaseOffset); err != nil {
+									return err
+								}
+							}
+							// LogAppendTimeMs
+							if version >= 2 && version <= 999 {
+								if err := protocol.WriteInt64(elemW, tempElem.LogAppendTimeMs); err != nil {
+									return err
+								}
+							}
+							// LogStartOffset
+							if version >= 5 && version <= 999 {
+								if err := protocol.WriteInt64(elemW, tempElem.LogStartOffset); err != nil {
+									return err
+								}
+							}
+							// RecordErrors
+							if version >= 8 && version <= 999 {
+								if isFlexible {
+									length := uint32(len(tempElem.RecordErrors) + 1)
+									if err := protocol.WriteVaruint32(elemW, length); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt32(elemW, int32(len(tempElem.RecordErrors))); err != nil {
+										return err
+									}
+								}
+								for i := range tempElem.RecordErrors {
+									// BatchIndex
+									if version >= 8 && version <= 999 {
+										if err := protocol.WriteInt32(elemW, tempElem.RecordErrors[i].BatchIndex); err != nil {
+											return err
+										}
+									}
+									// BatchIndexErrorMessage
+									if version >= 8 && version <= 999 {
+										if isFlexible {
+											if err := protocol.WriteCompactNullableString(elemW, tempElem.RecordErrors[i].BatchIndexErrorMessage); err != nil {
+												return err
+											}
+										} else {
+											if err := protocol.WriteNullableString(elemW, tempElem.RecordErrors[i].BatchIndexErrorMessage); err != nil {
+												return err
+											}
+										}
+									}
+								}
+							}
+							// ErrorMessage
+							if version >= 8 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactNullableString(elemW, tempElem.ErrorMessage); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteNullableString(elemW, tempElem.ErrorMessage); err != nil {
+										return err
+									}
+								}
+							}
+							// CurrentLeader
+							if version >= 10 && version <= 999 {
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
 						}
-					} else {
-						var err error
-						length, err = protocol.ReadInt32(r)
+						// Prepend length and decode using DecodeCompactArray
+						lengthBytes := protocol.EncodeVaruint32(lengthUint)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
 						if err != nil {
 							return err
 						}
-						m.Responses[i].PartitionResponses = make([]ProduceResponsePartitionProduceResponse, length)
+						// Convert []interface{} to typed slice
+						tempElem.PartitionResponses = make([]ProduceResponsePartitionProduceResponse, len(decoded))
+						for i, item := range decoded {
+							tempElem.PartitionResponses[i] = item.(ProduceResponsePartitionProduceResponse)
+						}
+					} else {
+						length, err := protocol.ReadInt32(r)
+						if err != nil {
+							return err
+						}
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
 						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem ProduceResponsePartitionProduceResponse
 							// Index
 							if version >= 0 && version <= 999 {
 								val, err := protocol.ReadInt32(r)
 								if err != nil {
 									return err
 								}
-								m.Responses[i].PartitionResponses[i].Index = val
+								tempElem.Index = val
 							}
 							// ErrorCode
 							if version >= 0 && version <= 999 {
@@ -416,7 +754,7 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 								if err != nil {
 									return err
 								}
-								m.Responses[i].PartitionResponses[i].ErrorCode = val
+								tempElem.ErrorCode = val
 							}
 							// BaseOffset
 							if version >= 0 && version <= 999 {
@@ -424,7 +762,7 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 								if err != nil {
 									return err
 								}
-								m.Responses[i].PartitionResponses[i].BaseOffset = val
+								tempElem.BaseOffset = val
 							}
 							// LogAppendTimeMs
 							if version >= 2 && version <= 999 {
@@ -432,7 +770,7 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 								if err != nil {
 									return err
 								}
-								m.Responses[i].PartitionResponses[i].LogAppendTimeMs = val
+								tempElem.LogAppendTimeMs = val
 							}
 							// LogStartOffset
 							if version >= 5 && version <= 999 {
@@ -440,13 +778,42 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 								if err != nil {
 									return err
 								}
-								m.Responses[i].PartitionResponses[i].LogStartOffset = val
+								tempElem.LogStartOffset = val
 							}
 							// RecordErrors
 							if version >= 8 && version <= 999 {
-								var length int32
+								// Decode array using ArrayDecoder
+								decoder := func(data []byte) (interface{}, int, error) {
+									var elem ProduceResponseBatchIndexAndErrorMessage
+									elemR := bytes.NewReader(data)
+									// BatchIndex
+									if version >= 8 && version <= 999 {
+										val, err := protocol.ReadInt32(elemR)
+										if err != nil {
+											return nil, 0, err
+										}
+										elem.BatchIndex = val
+									}
+									// BatchIndexErrorMessage
+									if version >= 8 && version <= 999 {
+										if isFlexible {
+											val, err := protocol.ReadCompactNullableString(elemR)
+											if err != nil {
+												return nil, 0, err
+											}
+											elem.BatchIndexErrorMessage = val
+										} else {
+											val, err := protocol.ReadNullableString(elemR)
+											if err != nil {
+												return nil, 0, err
+											}
+											elem.BatchIndexErrorMessage = val
+										}
+									}
+									consumed := len(data) - elemR.Len()
+									return elem, consumed, nil
+								}
 								if isFlexible {
-									var lengthUint uint32
 									lengthUint, err := protocol.ReadVaruint32(r)
 									if err != nil {
 										return err
@@ -454,16 +821,21 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 									if lengthUint < 1 {
 										return errors.New("invalid compact array length")
 									}
-									length = int32(lengthUint - 1)
-									m.Responses[i].PartitionResponses[i].RecordErrors = make([]ProduceResponseBatchIndexAndErrorMessage, length)
+									length := int32(lengthUint - 1)
+									// Collect all array elements into a buffer
+									var arrayBuf bytes.Buffer
 									for i := int32(0); i < length; i++ {
+										// Read element into struct and encode to buffer
+										var elemBuf bytes.Buffer
+										elemW := &elemBuf
+										var tempElem ProduceResponseBatchIndexAndErrorMessage
 										// BatchIndex
 										if version >= 8 && version <= 999 {
 											val, err := protocol.ReadInt32(r)
 											if err != nil {
 												return err
 											}
-											m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndex = val
+											tempElem.BatchIndex = val
 										}
 										// BatchIndexErrorMessage
 										if version >= 8 && version <= 999 {
@@ -472,31 +844,67 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 												if err != nil {
 													return err
 												}
-												m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndexErrorMessage = val
+												tempElem.BatchIndexErrorMessage = val
 											} else {
 												val, err := protocol.ReadNullableString(r)
 												if err != nil {
 													return err
 												}
-												m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndexErrorMessage = val
+												tempElem.BatchIndexErrorMessage = val
 											}
 										}
+										// BatchIndex
+										if version >= 8 && version <= 999 {
+											if err := protocol.WriteInt32(elemW, tempElem.BatchIndex); err != nil {
+												return err
+											}
+										}
+										// BatchIndexErrorMessage
+										if version >= 8 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactNullableString(elemW, tempElem.BatchIndexErrorMessage); err != nil {
+													return err
+												}
+											} else {
+												if err := protocol.WriteNullableString(elemW, tempElem.BatchIndexErrorMessage); err != nil {
+													return err
+												}
+											}
+										}
+										// Append to array buffer
+										arrayBuf.Write(elemBuf.Bytes())
 									}
-								} else {
-									var err error
-									length, err = protocol.ReadInt32(r)
+									// Prepend length and decode using DecodeCompactArray
+									lengthBytes := protocol.EncodeVaruint32(lengthUint)
+									fullData := append(lengthBytes, arrayBuf.Bytes()...)
+									decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
 									if err != nil {
 										return err
 									}
-									m.Responses[i].PartitionResponses[i].RecordErrors = make([]ProduceResponseBatchIndexAndErrorMessage, length)
+									// Convert []interface{} to typed slice
+									tempElem.RecordErrors = make([]ProduceResponseBatchIndexAndErrorMessage, len(decoded))
+									for i, item := range decoded {
+										tempElem.RecordErrors[i] = item.(ProduceResponseBatchIndexAndErrorMessage)
+									}
+								} else {
+									length, err := protocol.ReadInt32(r)
+									if err != nil {
+										return err
+									}
+									// Collect all array elements into a buffer
+									var arrayBuf bytes.Buffer
 									for i := int32(0); i < length; i++ {
+										// Read element into struct and encode to buffer
+										var elemBuf bytes.Buffer
+										elemW := &elemBuf
+										var tempElem ProduceResponseBatchIndexAndErrorMessage
 										// BatchIndex
 										if version >= 8 && version <= 999 {
 											val, err := protocol.ReadInt32(r)
 											if err != nil {
 												return err
 											}
-											m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndex = val
+											tempElem.BatchIndex = val
 										}
 										// BatchIndexErrorMessage
 										if version >= 8 && version <= 999 {
@@ -505,15 +913,47 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 												if err != nil {
 													return err
 												}
-												m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndexErrorMessage = val
+												tempElem.BatchIndexErrorMessage = val
 											} else {
 												val, err := protocol.ReadNullableString(r)
 												if err != nil {
 													return err
 												}
-												m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndexErrorMessage = val
+												tempElem.BatchIndexErrorMessage = val
 											}
 										}
+										// BatchIndex
+										if version >= 8 && version <= 999 {
+											if err := protocol.WriteInt32(elemW, tempElem.BatchIndex); err != nil {
+												return err
+											}
+										}
+										// BatchIndexErrorMessage
+										if version >= 8 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactNullableString(elemW, tempElem.BatchIndexErrorMessage); err != nil {
+													return err
+												}
+											} else {
+												if err := protocol.WriteNullableString(elemW, tempElem.BatchIndexErrorMessage); err != nil {
+													return err
+												}
+											}
+										}
+										// Append to array buffer
+										arrayBuf.Write(elemBuf.Bytes())
+									}
+									// Prepend length and decode using DecodeArray
+									lengthBytes := protocol.EncodeInt32(length)
+									fullData := append(lengthBytes, arrayBuf.Bytes()...)
+									decoded, _, err := protocol.DecodeArray(fullData, decoder)
+									if err != nil {
+										return err
+									}
+									// Convert []interface{} to typed slice
+									tempElem.RecordErrors = make([]ProduceResponseBatchIndexAndErrorMessage, len(decoded))
+									for i, item := range decoded {
+										tempElem.RecordErrors[i] = item.(ProduceResponseBatchIndexAndErrorMessage)
 									}
 								}
 							}
@@ -524,30 +964,251 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 									if err != nil {
 										return err
 									}
-									m.Responses[i].PartitionResponses[i].ErrorMessage = val
+									tempElem.ErrorMessage = val
 								} else {
 									val, err := protocol.ReadNullableString(r)
 									if err != nil {
 										return err
 									}
-									m.Responses[i].PartitionResponses[i].ErrorMessage = val
+									tempElem.ErrorMessage = val
 								}
 							}
 							// CurrentLeader
 							if version >= 10 && version <= 999 {
 							}
+							// Index
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt32(elemW, tempElem.Index); err != nil {
+									return err
+								}
+							}
+							// ErrorCode
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt16(elemW, tempElem.ErrorCode); err != nil {
+									return err
+								}
+							}
+							// BaseOffset
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt64(elemW, tempElem.BaseOffset); err != nil {
+									return err
+								}
+							}
+							// LogAppendTimeMs
+							if version >= 2 && version <= 999 {
+								if err := protocol.WriteInt64(elemW, tempElem.LogAppendTimeMs); err != nil {
+									return err
+								}
+							}
+							// LogStartOffset
+							if version >= 5 && version <= 999 {
+								if err := protocol.WriteInt64(elemW, tempElem.LogStartOffset); err != nil {
+									return err
+								}
+							}
+							// RecordErrors
+							if version >= 8 && version <= 999 {
+								if isFlexible {
+									length := uint32(len(tempElem.RecordErrors) + 1)
+									if err := protocol.WriteVaruint32(elemW, length); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt32(elemW, int32(len(tempElem.RecordErrors))); err != nil {
+										return err
+									}
+								}
+								for i := range tempElem.RecordErrors {
+									// BatchIndex
+									if version >= 8 && version <= 999 {
+										if err := protocol.WriteInt32(elemW, tempElem.RecordErrors[i].BatchIndex); err != nil {
+											return err
+										}
+									}
+									// BatchIndexErrorMessage
+									if version >= 8 && version <= 999 {
+										if isFlexible {
+											if err := protocol.WriteCompactNullableString(elemW, tempElem.RecordErrors[i].BatchIndexErrorMessage); err != nil {
+												return err
+											}
+										} else {
+											if err := protocol.WriteNullableString(elemW, tempElem.RecordErrors[i].BatchIndexErrorMessage); err != nil {
+												return err
+											}
+										}
+									}
+								}
+							}
+							// ErrorMessage
+							if version >= 8 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactNullableString(elemW, tempElem.ErrorMessage); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteNullableString(elemW, tempElem.ErrorMessage); err != nil {
+										return err
+									}
+								}
+							}
+							// CurrentLeader
+							if version >= 10 && version <= 999 {
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
+						}
+						// Prepend length and decode using DecodeArray
+						lengthBytes := protocol.EncodeInt32(length)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeArray(fullData, decoder)
+						if err != nil {
+							return err
+						}
+						// Convert []interface{} to typed slice
+						tempElem.PartitionResponses = make([]ProduceResponsePartitionProduceResponse, len(decoded))
+						for i, item := range decoded {
+							tempElem.PartitionResponses[i] = item.(ProduceResponsePartitionProduceResponse)
 						}
 					}
 				}
+				// Name
+				if version >= 0 && version <= 12 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.Name); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.Name); err != nil {
+							return err
+						}
+					}
+				}
+				// TopicId
+				if version >= 13 && version <= 999 {
+					if err := protocol.WriteUUID(elemW, tempElem.TopicId); err != nil {
+						return err
+					}
+				}
+				// PartitionResponses
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						length := uint32(len(tempElem.PartitionResponses) + 1)
+						if err := protocol.WriteVaruint32(elemW, length); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32(elemW, int32(len(tempElem.PartitionResponses))); err != nil {
+							return err
+						}
+					}
+					for i := range tempElem.PartitionResponses {
+						// Index
+						if version >= 0 && version <= 999 {
+							if err := protocol.WriteInt32(elemW, tempElem.PartitionResponses[i].Index); err != nil {
+								return err
+							}
+						}
+						// ErrorCode
+						if version >= 0 && version <= 999 {
+							if err := protocol.WriteInt16(elemW, tempElem.PartitionResponses[i].ErrorCode); err != nil {
+								return err
+							}
+						}
+						// BaseOffset
+						if version >= 0 && version <= 999 {
+							if err := protocol.WriteInt64(elemW, tempElem.PartitionResponses[i].BaseOffset); err != nil {
+								return err
+							}
+						}
+						// LogAppendTimeMs
+						if version >= 2 && version <= 999 {
+							if err := protocol.WriteInt64(elemW, tempElem.PartitionResponses[i].LogAppendTimeMs); err != nil {
+								return err
+							}
+						}
+						// LogStartOffset
+						if version >= 5 && version <= 999 {
+							if err := protocol.WriteInt64(elemW, tempElem.PartitionResponses[i].LogStartOffset); err != nil {
+								return err
+							}
+						}
+						// RecordErrors
+						if version >= 8 && version <= 999 {
+							if isFlexible {
+								length := uint32(len(tempElem.PartitionResponses[i].RecordErrors) + 1)
+								if err := protocol.WriteVaruint32(elemW, length); err != nil {
+									return err
+								}
+							} else {
+								if err := protocol.WriteInt32(elemW, int32(len(tempElem.PartitionResponses[i].RecordErrors))); err != nil {
+									return err
+								}
+							}
+							for i := range tempElem.PartitionResponses[i].RecordErrors {
+								// BatchIndex
+								if version >= 8 && version <= 999 {
+									if err := protocol.WriteInt32(elemW, tempElem.PartitionResponses[i].RecordErrors[i].BatchIndex); err != nil {
+										return err
+									}
+								}
+								// BatchIndexErrorMessage
+								if version >= 8 && version <= 999 {
+									if isFlexible {
+										if err := protocol.WriteCompactNullableString(elemW, tempElem.PartitionResponses[i].RecordErrors[i].BatchIndexErrorMessage); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteNullableString(elemW, tempElem.PartitionResponses[i].RecordErrors[i].BatchIndexErrorMessage); err != nil {
+											return err
+										}
+									}
+								}
+							}
+						}
+						// ErrorMessage
+						if version >= 8 && version <= 999 {
+							if isFlexible {
+								if err := protocol.WriteCompactNullableString(elemW, tempElem.PartitionResponses[i].ErrorMessage); err != nil {
+									return err
+								}
+							} else {
+								if err := protocol.WriteNullableString(elemW, tempElem.PartitionResponses[i].ErrorMessage); err != nil {
+									return err
+								}
+							}
+						}
+						// CurrentLeader
+						if version >= 10 && version <= 999 {
+						}
+					}
+				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
 			}
-		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			// Prepend length and decode using DecodeCompactArray
+			lengthBytes := protocol.EncodeVaruint32(lengthUint)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
 			if err != nil {
 				return err
 			}
-			m.Responses = make([]ProduceResponseTopicProduceResponse, length)
+			// Convert []interface{} to typed slice
+			m.Responses = make([]ProduceResponseTopicProduceResponse, len(decoded))
+			for i, item := range decoded {
+				m.Responses[i] = item.(ProduceResponseTopicProduceResponse)
+			}
+		} else {
+			length, err := protocol.ReadInt32(r)
+			if err != nil {
+				return err
+			}
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
 			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem ProduceResponseTopicProduceResponse
 				// Name
 				if version >= 0 && version <= 12 {
 					if isFlexible {
@@ -555,13 +1216,13 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 						if err != nil {
 							return err
 						}
-						m.Responses[i].Name = val
+						tempElem.Name = val
 					} else {
 						val, err := protocol.ReadString(r)
 						if err != nil {
 							return err
 						}
-						m.Responses[i].Name = val
+						tempElem.Name = val
 					}
 				}
 				// TopicId
@@ -570,13 +1231,82 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 					if err != nil {
 						return err
 					}
-					m.Responses[i].TopicId = val
+					tempElem.TopicId = val
 				}
 				// PartitionResponses
 				if version >= 0 && version <= 999 {
-					var length int32
+					// Decode array using ArrayDecoder
+					decoder := func(data []byte) (interface{}, int, error) {
+						var elem ProduceResponsePartitionProduceResponse
+						elemR := bytes.NewReader(data)
+						// Index
+						if version >= 0 && version <= 999 {
+							val, err := protocol.ReadInt32(elemR)
+							if err != nil {
+								return nil, 0, err
+							}
+							elem.Index = val
+						}
+						// ErrorCode
+						if version >= 0 && version <= 999 {
+							val, err := protocol.ReadInt16(elemR)
+							if err != nil {
+								return nil, 0, err
+							}
+							elem.ErrorCode = val
+						}
+						// BaseOffset
+						if version >= 0 && version <= 999 {
+							val, err := protocol.ReadInt64(elemR)
+							if err != nil {
+								return nil, 0, err
+							}
+							elem.BaseOffset = val
+						}
+						// LogAppendTimeMs
+						if version >= 2 && version <= 999 {
+							val, err := protocol.ReadInt64(elemR)
+							if err != nil {
+								return nil, 0, err
+							}
+							elem.LogAppendTimeMs = val
+						}
+						// LogStartOffset
+						if version >= 5 && version <= 999 {
+							val, err := protocol.ReadInt64(elemR)
+							if err != nil {
+								return nil, 0, err
+							}
+							elem.LogStartOffset = val
+						}
+						// RecordErrors
+						if version >= 8 && version <= 999 {
+							// Nested array in decoder - manual handling needed
+							return nil, 0, errors.New("nested arrays in decoder not fully supported")
+						}
+						// ErrorMessage
+						if version >= 8 && version <= 999 {
+							if isFlexible {
+								val, err := protocol.ReadCompactNullableString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.ErrorMessage = val
+							} else {
+								val, err := protocol.ReadNullableString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.ErrorMessage = val
+							}
+						}
+						// CurrentLeader
+						if version >= 10 && version <= 999 {
+						}
+						consumed := len(data) - elemR.Len()
+						return elem, consumed, nil
+					}
 					if isFlexible {
-						var lengthUint uint32
 						lengthUint, err := protocol.ReadVaruint32(r)
 						if err != nil {
 							return err
@@ -584,16 +1314,21 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 						if lengthUint < 1 {
 							return errors.New("invalid compact array length")
 						}
-						length = int32(lengthUint - 1)
-						m.Responses[i].PartitionResponses = make([]ProduceResponsePartitionProduceResponse, length)
+						length := int32(lengthUint - 1)
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
 						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem ProduceResponsePartitionProduceResponse
 							// Index
 							if version >= 0 && version <= 999 {
 								val, err := protocol.ReadInt32(r)
 								if err != nil {
 									return err
 								}
-								m.Responses[i].PartitionResponses[i].Index = val
+								tempElem.Index = val
 							}
 							// ErrorCode
 							if version >= 0 && version <= 999 {
@@ -601,7 +1336,7 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 								if err != nil {
 									return err
 								}
-								m.Responses[i].PartitionResponses[i].ErrorCode = val
+								tempElem.ErrorCode = val
 							}
 							// BaseOffset
 							if version >= 0 && version <= 999 {
@@ -609,7 +1344,7 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 								if err != nil {
 									return err
 								}
-								m.Responses[i].PartitionResponses[i].BaseOffset = val
+								tempElem.BaseOffset = val
 							}
 							// LogAppendTimeMs
 							if version >= 2 && version <= 999 {
@@ -617,7 +1352,7 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 								if err != nil {
 									return err
 								}
-								m.Responses[i].PartitionResponses[i].LogAppendTimeMs = val
+								tempElem.LogAppendTimeMs = val
 							}
 							// LogStartOffset
 							if version >= 5 && version <= 999 {
@@ -625,13 +1360,42 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 								if err != nil {
 									return err
 								}
-								m.Responses[i].PartitionResponses[i].LogStartOffset = val
+								tempElem.LogStartOffset = val
 							}
 							// RecordErrors
 							if version >= 8 && version <= 999 {
-								var length int32
+								// Decode array using ArrayDecoder
+								decoder := func(data []byte) (interface{}, int, error) {
+									var elem ProduceResponseBatchIndexAndErrorMessage
+									elemR := bytes.NewReader(data)
+									// BatchIndex
+									if version >= 8 && version <= 999 {
+										val, err := protocol.ReadInt32(elemR)
+										if err != nil {
+											return nil, 0, err
+										}
+										elem.BatchIndex = val
+									}
+									// BatchIndexErrorMessage
+									if version >= 8 && version <= 999 {
+										if isFlexible {
+											val, err := protocol.ReadCompactNullableString(elemR)
+											if err != nil {
+												return nil, 0, err
+											}
+											elem.BatchIndexErrorMessage = val
+										} else {
+											val, err := protocol.ReadNullableString(elemR)
+											if err != nil {
+												return nil, 0, err
+											}
+											elem.BatchIndexErrorMessage = val
+										}
+									}
+									consumed := len(data) - elemR.Len()
+									return elem, consumed, nil
+								}
 								if isFlexible {
-									var lengthUint uint32
 									lengthUint, err := protocol.ReadVaruint32(r)
 									if err != nil {
 										return err
@@ -639,16 +1403,21 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 									if lengthUint < 1 {
 										return errors.New("invalid compact array length")
 									}
-									length = int32(lengthUint - 1)
-									m.Responses[i].PartitionResponses[i].RecordErrors = make([]ProduceResponseBatchIndexAndErrorMessage, length)
+									length := int32(lengthUint - 1)
+									// Collect all array elements into a buffer
+									var arrayBuf bytes.Buffer
 									for i := int32(0); i < length; i++ {
+										// Read element into struct and encode to buffer
+										var elemBuf bytes.Buffer
+										elemW := &elemBuf
+										var tempElem ProduceResponseBatchIndexAndErrorMessage
 										// BatchIndex
 										if version >= 8 && version <= 999 {
 											val, err := protocol.ReadInt32(r)
 											if err != nil {
 												return err
 											}
-											m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndex = val
+											tempElem.BatchIndex = val
 										}
 										// BatchIndexErrorMessage
 										if version >= 8 && version <= 999 {
@@ -657,31 +1426,67 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 												if err != nil {
 													return err
 												}
-												m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndexErrorMessage = val
+												tempElem.BatchIndexErrorMessage = val
 											} else {
 												val, err := protocol.ReadNullableString(r)
 												if err != nil {
 													return err
 												}
-												m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndexErrorMessage = val
+												tempElem.BatchIndexErrorMessage = val
 											}
 										}
+										// BatchIndex
+										if version >= 8 && version <= 999 {
+											if err := protocol.WriteInt32(elemW, tempElem.BatchIndex); err != nil {
+												return err
+											}
+										}
+										// BatchIndexErrorMessage
+										if version >= 8 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactNullableString(elemW, tempElem.BatchIndexErrorMessage); err != nil {
+													return err
+												}
+											} else {
+												if err := protocol.WriteNullableString(elemW, tempElem.BatchIndexErrorMessage); err != nil {
+													return err
+												}
+											}
+										}
+										// Append to array buffer
+										arrayBuf.Write(elemBuf.Bytes())
 									}
-								} else {
-									var err error
-									length, err = protocol.ReadInt32(r)
+									// Prepend length and decode using DecodeCompactArray
+									lengthBytes := protocol.EncodeVaruint32(lengthUint)
+									fullData := append(lengthBytes, arrayBuf.Bytes()...)
+									decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
 									if err != nil {
 										return err
 									}
-									m.Responses[i].PartitionResponses[i].RecordErrors = make([]ProduceResponseBatchIndexAndErrorMessage, length)
+									// Convert []interface{} to typed slice
+									tempElem.RecordErrors = make([]ProduceResponseBatchIndexAndErrorMessage, len(decoded))
+									for i, item := range decoded {
+										tempElem.RecordErrors[i] = item.(ProduceResponseBatchIndexAndErrorMessage)
+									}
+								} else {
+									length, err := protocol.ReadInt32(r)
+									if err != nil {
+										return err
+									}
+									// Collect all array elements into a buffer
+									var arrayBuf bytes.Buffer
 									for i := int32(0); i < length; i++ {
+										// Read element into struct and encode to buffer
+										var elemBuf bytes.Buffer
+										elemW := &elemBuf
+										var tempElem ProduceResponseBatchIndexAndErrorMessage
 										// BatchIndex
 										if version >= 8 && version <= 999 {
 											val, err := protocol.ReadInt32(r)
 											if err != nil {
 												return err
 											}
-											m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndex = val
+											tempElem.BatchIndex = val
 										}
 										// BatchIndexErrorMessage
 										if version >= 8 && version <= 999 {
@@ -690,15 +1495,47 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 												if err != nil {
 													return err
 												}
-												m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndexErrorMessage = val
+												tempElem.BatchIndexErrorMessage = val
 											} else {
 												val, err := protocol.ReadNullableString(r)
 												if err != nil {
 													return err
 												}
-												m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndexErrorMessage = val
+												tempElem.BatchIndexErrorMessage = val
 											}
 										}
+										// BatchIndex
+										if version >= 8 && version <= 999 {
+											if err := protocol.WriteInt32(elemW, tempElem.BatchIndex); err != nil {
+												return err
+											}
+										}
+										// BatchIndexErrorMessage
+										if version >= 8 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactNullableString(elemW, tempElem.BatchIndexErrorMessage); err != nil {
+													return err
+												}
+											} else {
+												if err := protocol.WriteNullableString(elemW, tempElem.BatchIndexErrorMessage); err != nil {
+													return err
+												}
+											}
+										}
+										// Append to array buffer
+										arrayBuf.Write(elemBuf.Bytes())
+									}
+									// Prepend length and decode using DecodeArray
+									lengthBytes := protocol.EncodeInt32(length)
+									fullData := append(lengthBytes, arrayBuf.Bytes()...)
+									decoded, _, err := protocol.DecodeArray(fullData, decoder)
+									if err != nil {
+										return err
+									}
+									// Convert []interface{} to typed slice
+									tempElem.RecordErrors = make([]ProduceResponseBatchIndexAndErrorMessage, len(decoded))
+									for i, item := range decoded {
+										tempElem.RecordErrors[i] = item.(ProduceResponseBatchIndexAndErrorMessage)
 									}
 								}
 							}
@@ -709,34 +1546,130 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 									if err != nil {
 										return err
 									}
-									m.Responses[i].PartitionResponses[i].ErrorMessage = val
+									tempElem.ErrorMessage = val
 								} else {
 									val, err := protocol.ReadNullableString(r)
 									if err != nil {
 										return err
 									}
-									m.Responses[i].PartitionResponses[i].ErrorMessage = val
+									tempElem.ErrorMessage = val
 								}
 							}
 							// CurrentLeader
 							if version >= 10 && version <= 999 {
 							}
+							// Index
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt32(elemW, tempElem.Index); err != nil {
+									return err
+								}
+							}
+							// ErrorCode
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt16(elemW, tempElem.ErrorCode); err != nil {
+									return err
+								}
+							}
+							// BaseOffset
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt64(elemW, tempElem.BaseOffset); err != nil {
+									return err
+								}
+							}
+							// LogAppendTimeMs
+							if version >= 2 && version <= 999 {
+								if err := protocol.WriteInt64(elemW, tempElem.LogAppendTimeMs); err != nil {
+									return err
+								}
+							}
+							// LogStartOffset
+							if version >= 5 && version <= 999 {
+								if err := protocol.WriteInt64(elemW, tempElem.LogStartOffset); err != nil {
+									return err
+								}
+							}
+							// RecordErrors
+							if version >= 8 && version <= 999 {
+								if isFlexible {
+									length := uint32(len(tempElem.RecordErrors) + 1)
+									if err := protocol.WriteVaruint32(elemW, length); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt32(elemW, int32(len(tempElem.RecordErrors))); err != nil {
+										return err
+									}
+								}
+								for i := range tempElem.RecordErrors {
+									// BatchIndex
+									if version >= 8 && version <= 999 {
+										if err := protocol.WriteInt32(elemW, tempElem.RecordErrors[i].BatchIndex); err != nil {
+											return err
+										}
+									}
+									// BatchIndexErrorMessage
+									if version >= 8 && version <= 999 {
+										if isFlexible {
+											if err := protocol.WriteCompactNullableString(elemW, tempElem.RecordErrors[i].BatchIndexErrorMessage); err != nil {
+												return err
+											}
+										} else {
+											if err := protocol.WriteNullableString(elemW, tempElem.RecordErrors[i].BatchIndexErrorMessage); err != nil {
+												return err
+											}
+										}
+									}
+								}
+							}
+							// ErrorMessage
+							if version >= 8 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactNullableString(elemW, tempElem.ErrorMessage); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteNullableString(elemW, tempElem.ErrorMessage); err != nil {
+										return err
+									}
+								}
+							}
+							// CurrentLeader
+							if version >= 10 && version <= 999 {
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
 						}
-					} else {
-						var err error
-						length, err = protocol.ReadInt32(r)
+						// Prepend length and decode using DecodeCompactArray
+						lengthBytes := protocol.EncodeVaruint32(lengthUint)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
 						if err != nil {
 							return err
 						}
-						m.Responses[i].PartitionResponses = make([]ProduceResponsePartitionProduceResponse, length)
+						// Convert []interface{} to typed slice
+						tempElem.PartitionResponses = make([]ProduceResponsePartitionProduceResponse, len(decoded))
+						for i, item := range decoded {
+							tempElem.PartitionResponses[i] = item.(ProduceResponsePartitionProduceResponse)
+						}
+					} else {
+						length, err := protocol.ReadInt32(r)
+						if err != nil {
+							return err
+						}
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
 						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem ProduceResponsePartitionProduceResponse
 							// Index
 							if version >= 0 && version <= 999 {
 								val, err := protocol.ReadInt32(r)
 								if err != nil {
 									return err
 								}
-								m.Responses[i].PartitionResponses[i].Index = val
+								tempElem.Index = val
 							}
 							// ErrorCode
 							if version >= 0 && version <= 999 {
@@ -744,7 +1677,7 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 								if err != nil {
 									return err
 								}
-								m.Responses[i].PartitionResponses[i].ErrorCode = val
+								tempElem.ErrorCode = val
 							}
 							// BaseOffset
 							if version >= 0 && version <= 999 {
@@ -752,7 +1685,7 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 								if err != nil {
 									return err
 								}
-								m.Responses[i].PartitionResponses[i].BaseOffset = val
+								tempElem.BaseOffset = val
 							}
 							// LogAppendTimeMs
 							if version >= 2 && version <= 999 {
@@ -760,7 +1693,7 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 								if err != nil {
 									return err
 								}
-								m.Responses[i].PartitionResponses[i].LogAppendTimeMs = val
+								tempElem.LogAppendTimeMs = val
 							}
 							// LogStartOffset
 							if version >= 5 && version <= 999 {
@@ -768,13 +1701,42 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 								if err != nil {
 									return err
 								}
-								m.Responses[i].PartitionResponses[i].LogStartOffset = val
+								tempElem.LogStartOffset = val
 							}
 							// RecordErrors
 							if version >= 8 && version <= 999 {
-								var length int32
+								// Decode array using ArrayDecoder
+								decoder := func(data []byte) (interface{}, int, error) {
+									var elem ProduceResponseBatchIndexAndErrorMessage
+									elemR := bytes.NewReader(data)
+									// BatchIndex
+									if version >= 8 && version <= 999 {
+										val, err := protocol.ReadInt32(elemR)
+										if err != nil {
+											return nil, 0, err
+										}
+										elem.BatchIndex = val
+									}
+									// BatchIndexErrorMessage
+									if version >= 8 && version <= 999 {
+										if isFlexible {
+											val, err := protocol.ReadCompactNullableString(elemR)
+											if err != nil {
+												return nil, 0, err
+											}
+											elem.BatchIndexErrorMessage = val
+										} else {
+											val, err := protocol.ReadNullableString(elemR)
+											if err != nil {
+												return nil, 0, err
+											}
+											elem.BatchIndexErrorMessage = val
+										}
+									}
+									consumed := len(data) - elemR.Len()
+									return elem, consumed, nil
+								}
 								if isFlexible {
-									var lengthUint uint32
 									lengthUint, err := protocol.ReadVaruint32(r)
 									if err != nil {
 										return err
@@ -782,16 +1744,21 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 									if lengthUint < 1 {
 										return errors.New("invalid compact array length")
 									}
-									length = int32(lengthUint - 1)
-									m.Responses[i].PartitionResponses[i].RecordErrors = make([]ProduceResponseBatchIndexAndErrorMessage, length)
+									length := int32(lengthUint - 1)
+									// Collect all array elements into a buffer
+									var arrayBuf bytes.Buffer
 									for i := int32(0); i < length; i++ {
+										// Read element into struct and encode to buffer
+										var elemBuf bytes.Buffer
+										elemW := &elemBuf
+										var tempElem ProduceResponseBatchIndexAndErrorMessage
 										// BatchIndex
 										if version >= 8 && version <= 999 {
 											val, err := protocol.ReadInt32(r)
 											if err != nil {
 												return err
 											}
-											m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndex = val
+											tempElem.BatchIndex = val
 										}
 										// BatchIndexErrorMessage
 										if version >= 8 && version <= 999 {
@@ -800,31 +1767,67 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 												if err != nil {
 													return err
 												}
-												m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndexErrorMessage = val
+												tempElem.BatchIndexErrorMessage = val
 											} else {
 												val, err := protocol.ReadNullableString(r)
 												if err != nil {
 													return err
 												}
-												m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndexErrorMessage = val
+												tempElem.BatchIndexErrorMessage = val
 											}
 										}
+										// BatchIndex
+										if version >= 8 && version <= 999 {
+											if err := protocol.WriteInt32(elemW, tempElem.BatchIndex); err != nil {
+												return err
+											}
+										}
+										// BatchIndexErrorMessage
+										if version >= 8 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactNullableString(elemW, tempElem.BatchIndexErrorMessage); err != nil {
+													return err
+												}
+											} else {
+												if err := protocol.WriteNullableString(elemW, tempElem.BatchIndexErrorMessage); err != nil {
+													return err
+												}
+											}
+										}
+										// Append to array buffer
+										arrayBuf.Write(elemBuf.Bytes())
 									}
-								} else {
-									var err error
-									length, err = protocol.ReadInt32(r)
+									// Prepend length and decode using DecodeCompactArray
+									lengthBytes := protocol.EncodeVaruint32(lengthUint)
+									fullData := append(lengthBytes, arrayBuf.Bytes()...)
+									decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
 									if err != nil {
 										return err
 									}
-									m.Responses[i].PartitionResponses[i].RecordErrors = make([]ProduceResponseBatchIndexAndErrorMessage, length)
+									// Convert []interface{} to typed slice
+									tempElem.RecordErrors = make([]ProduceResponseBatchIndexAndErrorMessage, len(decoded))
+									for i, item := range decoded {
+										tempElem.RecordErrors[i] = item.(ProduceResponseBatchIndexAndErrorMessage)
+									}
+								} else {
+									length, err := protocol.ReadInt32(r)
+									if err != nil {
+										return err
+									}
+									// Collect all array elements into a buffer
+									var arrayBuf bytes.Buffer
 									for i := int32(0); i < length; i++ {
+										// Read element into struct and encode to buffer
+										var elemBuf bytes.Buffer
+										elemW := &elemBuf
+										var tempElem ProduceResponseBatchIndexAndErrorMessage
 										// BatchIndex
 										if version >= 8 && version <= 999 {
 											val, err := protocol.ReadInt32(r)
 											if err != nil {
 												return err
 											}
-											m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndex = val
+											tempElem.BatchIndex = val
 										}
 										// BatchIndexErrorMessage
 										if version >= 8 && version <= 999 {
@@ -833,15 +1836,47 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 												if err != nil {
 													return err
 												}
-												m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndexErrorMessage = val
+												tempElem.BatchIndexErrorMessage = val
 											} else {
 												val, err := protocol.ReadNullableString(r)
 												if err != nil {
 													return err
 												}
-												m.Responses[i].PartitionResponses[i].RecordErrors[i].BatchIndexErrorMessage = val
+												tempElem.BatchIndexErrorMessage = val
 											}
 										}
+										// BatchIndex
+										if version >= 8 && version <= 999 {
+											if err := protocol.WriteInt32(elemW, tempElem.BatchIndex); err != nil {
+												return err
+											}
+										}
+										// BatchIndexErrorMessage
+										if version >= 8 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactNullableString(elemW, tempElem.BatchIndexErrorMessage); err != nil {
+													return err
+												}
+											} else {
+												if err := protocol.WriteNullableString(elemW, tempElem.BatchIndexErrorMessage); err != nil {
+													return err
+												}
+											}
+										}
+										// Append to array buffer
+										arrayBuf.Write(elemBuf.Bytes())
+									}
+									// Prepend length and decode using DecodeArray
+									lengthBytes := protocol.EncodeInt32(length)
+									fullData := append(lengthBytes, arrayBuf.Bytes()...)
+									decoded, _, err := protocol.DecodeArray(fullData, decoder)
+									if err != nil {
+										return err
+									}
+									// Convert []interface{} to typed slice
+									tempElem.RecordErrors = make([]ProduceResponseBatchIndexAndErrorMessage, len(decoded))
+									for i, item := range decoded {
+										tempElem.RecordErrors[i] = item.(ProduceResponseBatchIndexAndErrorMessage)
 									}
 								}
 							}
@@ -852,21 +1887,238 @@ func (m *ProduceResponse) Read(r io.Reader, version int16) error {
 									if err != nil {
 										return err
 									}
-									m.Responses[i].PartitionResponses[i].ErrorMessage = val
+									tempElem.ErrorMessage = val
 								} else {
 									val, err := protocol.ReadNullableString(r)
 									if err != nil {
 										return err
 									}
-									m.Responses[i].PartitionResponses[i].ErrorMessage = val
+									tempElem.ErrorMessage = val
 								}
 							}
 							// CurrentLeader
 							if version >= 10 && version <= 999 {
 							}
+							// Index
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt32(elemW, tempElem.Index); err != nil {
+									return err
+								}
+							}
+							// ErrorCode
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt16(elemW, tempElem.ErrorCode); err != nil {
+									return err
+								}
+							}
+							// BaseOffset
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt64(elemW, tempElem.BaseOffset); err != nil {
+									return err
+								}
+							}
+							// LogAppendTimeMs
+							if version >= 2 && version <= 999 {
+								if err := protocol.WriteInt64(elemW, tempElem.LogAppendTimeMs); err != nil {
+									return err
+								}
+							}
+							// LogStartOffset
+							if version >= 5 && version <= 999 {
+								if err := protocol.WriteInt64(elemW, tempElem.LogStartOffset); err != nil {
+									return err
+								}
+							}
+							// RecordErrors
+							if version >= 8 && version <= 999 {
+								if isFlexible {
+									length := uint32(len(tempElem.RecordErrors) + 1)
+									if err := protocol.WriteVaruint32(elemW, length); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt32(elemW, int32(len(tempElem.RecordErrors))); err != nil {
+										return err
+									}
+								}
+								for i := range tempElem.RecordErrors {
+									// BatchIndex
+									if version >= 8 && version <= 999 {
+										if err := protocol.WriteInt32(elemW, tempElem.RecordErrors[i].BatchIndex); err != nil {
+											return err
+										}
+									}
+									// BatchIndexErrorMessage
+									if version >= 8 && version <= 999 {
+										if isFlexible {
+											if err := protocol.WriteCompactNullableString(elemW, tempElem.RecordErrors[i].BatchIndexErrorMessage); err != nil {
+												return err
+											}
+										} else {
+											if err := protocol.WriteNullableString(elemW, tempElem.RecordErrors[i].BatchIndexErrorMessage); err != nil {
+												return err
+											}
+										}
+									}
+								}
+							}
+							// ErrorMessage
+							if version >= 8 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactNullableString(elemW, tempElem.ErrorMessage); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteNullableString(elemW, tempElem.ErrorMessage); err != nil {
+										return err
+									}
+								}
+							}
+							// CurrentLeader
+							if version >= 10 && version <= 999 {
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
+						}
+						// Prepend length and decode using DecodeArray
+						lengthBytes := protocol.EncodeInt32(length)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeArray(fullData, decoder)
+						if err != nil {
+							return err
+						}
+						// Convert []interface{} to typed slice
+						tempElem.PartitionResponses = make([]ProduceResponsePartitionProduceResponse, len(decoded))
+						for i, item := range decoded {
+							tempElem.PartitionResponses[i] = item.(ProduceResponsePartitionProduceResponse)
 						}
 					}
 				}
+				// Name
+				if version >= 0 && version <= 12 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.Name); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.Name); err != nil {
+							return err
+						}
+					}
+				}
+				// TopicId
+				if version >= 13 && version <= 999 {
+					if err := protocol.WriteUUID(elemW, tempElem.TopicId); err != nil {
+						return err
+					}
+				}
+				// PartitionResponses
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						length := uint32(len(tempElem.PartitionResponses) + 1)
+						if err := protocol.WriteVaruint32(elemW, length); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32(elemW, int32(len(tempElem.PartitionResponses))); err != nil {
+							return err
+						}
+					}
+					for i := range tempElem.PartitionResponses {
+						// Index
+						if version >= 0 && version <= 999 {
+							if err := protocol.WriteInt32(elemW, tempElem.PartitionResponses[i].Index); err != nil {
+								return err
+							}
+						}
+						// ErrorCode
+						if version >= 0 && version <= 999 {
+							if err := protocol.WriteInt16(elemW, tempElem.PartitionResponses[i].ErrorCode); err != nil {
+								return err
+							}
+						}
+						// BaseOffset
+						if version >= 0 && version <= 999 {
+							if err := protocol.WriteInt64(elemW, tempElem.PartitionResponses[i].BaseOffset); err != nil {
+								return err
+							}
+						}
+						// LogAppendTimeMs
+						if version >= 2 && version <= 999 {
+							if err := protocol.WriteInt64(elemW, tempElem.PartitionResponses[i].LogAppendTimeMs); err != nil {
+								return err
+							}
+						}
+						// LogStartOffset
+						if version >= 5 && version <= 999 {
+							if err := protocol.WriteInt64(elemW, tempElem.PartitionResponses[i].LogStartOffset); err != nil {
+								return err
+							}
+						}
+						// RecordErrors
+						if version >= 8 && version <= 999 {
+							if isFlexible {
+								length := uint32(len(tempElem.PartitionResponses[i].RecordErrors) + 1)
+								if err := protocol.WriteVaruint32(elemW, length); err != nil {
+									return err
+								}
+							} else {
+								if err := protocol.WriteInt32(elemW, int32(len(tempElem.PartitionResponses[i].RecordErrors))); err != nil {
+									return err
+								}
+							}
+							for i := range tempElem.PartitionResponses[i].RecordErrors {
+								// BatchIndex
+								if version >= 8 && version <= 999 {
+									if err := protocol.WriteInt32(elemW, tempElem.PartitionResponses[i].RecordErrors[i].BatchIndex); err != nil {
+										return err
+									}
+								}
+								// BatchIndexErrorMessage
+								if version >= 8 && version <= 999 {
+									if isFlexible {
+										if err := protocol.WriteCompactNullableString(elemW, tempElem.PartitionResponses[i].RecordErrors[i].BatchIndexErrorMessage); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteNullableString(elemW, tempElem.PartitionResponses[i].RecordErrors[i].BatchIndexErrorMessage); err != nil {
+											return err
+										}
+									}
+								}
+							}
+						}
+						// ErrorMessage
+						if version >= 8 && version <= 999 {
+							if isFlexible {
+								if err := protocol.WriteCompactNullableString(elemW, tempElem.PartitionResponses[i].ErrorMessage); err != nil {
+									return err
+								}
+							} else {
+								if err := protocol.WriteNullableString(elemW, tempElem.PartitionResponses[i].ErrorMessage); err != nil {
+									return err
+								}
+							}
+						}
+						// CurrentLeader
+						if version >= 10 && version <= 999 {
+						}
+					}
+				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeArray
+			lengthBytes := protocol.EncodeInt32(length)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.Responses = make([]ProduceResponseTopicProduceResponse, len(decoded))
+			for i, item := range decoded {
+				m.Responses[i] = item.(ProduceResponseTopicProduceResponse)
 			}
 		}
 	}
@@ -898,6 +2150,56 @@ type ProduceResponseTopicProduceResponse struct {
 	TopicId uuid.UUID `json:"topicid" versions:"13-999"`
 	// Each partition that we produced to within the topic.
 	PartitionResponses []ProduceResponsePartitionProduceResponse `json:"partitionresponses" versions:"0-999"`
+	// Tagged fields (for flexible versions)
+	_tagged_fields map[uint32]interface{} `json:"-"`
+}
+
+// writeTaggedFields writes tagged fields for ProduceResponseTopicProduceResponse.
+func (m *ProduceResponseTopicProduceResponse) writeTaggedFields(w io.Writer, version int16) error {
+	var taggedFieldsCount int
+	var taggedFieldsBuf bytes.Buffer
+
+	// Write tagged fields count
+	if err := protocol.WriteVaruint32(w, uint32(taggedFieldsCount)); err != nil {
+		return err
+	}
+
+	// Write tagged fields data
+	if taggedFieldsCount > 0 {
+		if _, err := w.Write(taggedFieldsBuf.Bytes()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// readTaggedFields reads tagged fields for ProduceResponseTopicProduceResponse.
+func (m *ProduceResponseTopicProduceResponse) readTaggedFields(r io.Reader, version int16) error {
+	// Read tagged fields count
+	count, err := protocol.ReadVaruint32(r)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	// Read tagged fields
+	for i := uint32(0); i < count; i++ {
+		tag, err := protocol.ReadVaruint32(r)
+		if err != nil {
+			return err
+		}
+
+		switch tag {
+		default:
+			// Unknown tag, skip it
+		}
+	}
+
+	return nil
 }
 
 // ProduceResponsePartitionProduceResponse represents Each partition that we produced to within the topic..
@@ -918,6 +2220,97 @@ type ProduceResponsePartitionProduceResponse struct {
 	ErrorMessage *string `json:"errormessage" versions:"8-999"`
 	// The leader broker that the producer should use for future requests.
 	CurrentLeader ProduceResponseLeaderIdAndEpoch `json:"currentleader" versions:"10-999" tag:"0"`
+	// Tagged fields (for flexible versions)
+	_tagged_fields map[uint32]interface{} `json:"-"`
+}
+
+// writeTaggedFields writes tagged fields for ProduceResponsePartitionProduceResponse.
+func (m *ProduceResponsePartitionProduceResponse) writeTaggedFields(w io.Writer, version int16) error {
+	var taggedFieldsCount int
+	var taggedFieldsBuf bytes.Buffer
+
+	// CurrentLeader (tag 0)
+	if version >= 10 {
+		if true {
+			if err := protocol.WriteVaruint32(&taggedFieldsBuf, uint32(0)); err != nil {
+				return err
+			}
+			// LeaderId
+			if version >= 10 && version <= 999 {
+				if err := protocol.WriteInt32(w, m.CurrentLeader.LeaderId); err != nil {
+					return err
+				}
+			}
+			// LeaderEpoch
+			if version >= 10 && version <= 999 {
+				if err := protocol.WriteInt32(w, m.CurrentLeader.LeaderEpoch); err != nil {
+					return err
+				}
+			}
+			taggedFieldsCount++
+		}
+	}
+
+	// Write tagged fields count
+	if err := protocol.WriteVaruint32(w, uint32(taggedFieldsCount)); err != nil {
+		return err
+	}
+
+	// Write tagged fields data
+	if taggedFieldsCount > 0 {
+		if _, err := w.Write(taggedFieldsBuf.Bytes()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// readTaggedFields reads tagged fields for ProduceResponsePartitionProduceResponse.
+func (m *ProduceResponsePartitionProduceResponse) readTaggedFields(r io.Reader, version int16) error {
+	// Read tagged fields count
+	count, err := protocol.ReadVaruint32(r)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	// Read tagged fields
+	for i := uint32(0); i < count; i++ {
+		tag, err := protocol.ReadVaruint32(r)
+		if err != nil {
+			return err
+		}
+
+		switch tag {
+		case 0: // CurrentLeader
+			if version >= 10 {
+				// LeaderId
+				if version >= 10 && version <= 999 {
+					val, err := protocol.ReadInt32(r)
+					if err != nil {
+						return err
+					}
+					m.CurrentLeader.LeaderId = val
+				}
+				// LeaderEpoch
+				if version >= 10 && version <= 999 {
+					val, err := protocol.ReadInt32(r)
+					if err != nil {
+						return err
+					}
+					m.CurrentLeader.LeaderEpoch = val
+				}
+			}
+		default:
+			// Unknown tag, skip it
+		}
+	}
+
+	return nil
 }
 
 // ProduceResponseBatchIndexAndErrorMessage represents The batch indices of records that caused the batch to be dropped..
@@ -926,6 +2319,56 @@ type ProduceResponseBatchIndexAndErrorMessage struct {
 	BatchIndex int32 `json:"batchindex" versions:"8-999"`
 	// The error message of the record that caused the batch to be dropped.
 	BatchIndexErrorMessage *string `json:"batchindexerrormessage" versions:"8-999"`
+	// Tagged fields (for flexible versions)
+	_tagged_fields map[uint32]interface{} `json:"-"`
+}
+
+// writeTaggedFields writes tagged fields for ProduceResponseBatchIndexAndErrorMessage.
+func (m *ProduceResponseBatchIndexAndErrorMessage) writeTaggedFields(w io.Writer, version int16) error {
+	var taggedFieldsCount int
+	var taggedFieldsBuf bytes.Buffer
+
+	// Write tagged fields count
+	if err := protocol.WriteVaruint32(w, uint32(taggedFieldsCount)); err != nil {
+		return err
+	}
+
+	// Write tagged fields data
+	if taggedFieldsCount > 0 {
+		if _, err := w.Write(taggedFieldsBuf.Bytes()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// readTaggedFields reads tagged fields for ProduceResponseBatchIndexAndErrorMessage.
+func (m *ProduceResponseBatchIndexAndErrorMessage) readTaggedFields(r io.Reader, version int16) error {
+	// Read tagged fields count
+	count, err := protocol.ReadVaruint32(r)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	// Read tagged fields
+	for i := uint32(0); i < count; i++ {
+		tag, err := protocol.ReadVaruint32(r)
+		if err != nil {
+			return err
+		}
+
+		switch tag {
+		default:
+			// Unknown tag, skip it
+		}
+	}
+
+	return nil
 }
 
 // ProduceResponseLeaderIdAndEpoch represents The leader broker that the producer should use for future requests..
@@ -934,6 +2377,56 @@ type ProduceResponseLeaderIdAndEpoch struct {
 	LeaderId int32 `json:"leaderid" versions:"10-999"`
 	// The latest known leader epoch.
 	LeaderEpoch int32 `json:"leaderepoch" versions:"10-999"`
+	// Tagged fields (for flexible versions)
+	_tagged_fields map[uint32]interface{} `json:"-"`
+}
+
+// writeTaggedFields writes tagged fields for ProduceResponseLeaderIdAndEpoch.
+func (m *ProduceResponseLeaderIdAndEpoch) writeTaggedFields(w io.Writer, version int16) error {
+	var taggedFieldsCount int
+	var taggedFieldsBuf bytes.Buffer
+
+	// Write tagged fields count
+	if err := protocol.WriteVaruint32(w, uint32(taggedFieldsCount)); err != nil {
+		return err
+	}
+
+	// Write tagged fields data
+	if taggedFieldsCount > 0 {
+		if _, err := w.Write(taggedFieldsBuf.Bytes()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// readTaggedFields reads tagged fields for ProduceResponseLeaderIdAndEpoch.
+func (m *ProduceResponseLeaderIdAndEpoch) readTaggedFields(r io.Reader, version int16) error {
+	// Read tagged fields count
+	count, err := protocol.ReadVaruint32(r)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	// Read tagged fields
+	for i := uint32(0); i < count; i++ {
+		tag, err := protocol.ReadVaruint32(r)
+		if err != nil {
+			return err
+		}
+
+		switch tag {
+		default:
+			// Unknown tag, skip it
+		}
+	}
+
+	return nil
 }
 
 // ProduceResponseNodeEndpoint represents Endpoints for all current-leaders enumerated in PartitionProduceResponses, with errors NOT_LEADER_OR_FOLLOWER..
@@ -946,6 +2439,56 @@ type ProduceResponseNodeEndpoint struct {
 	Port int32 `json:"port" versions:"10-999"`
 	// The rack of the node, or null if it has not been assigned to a rack.
 	Rack *string `json:"rack" versions:"10-999"`
+	// Tagged fields (for flexible versions)
+	_tagged_fields map[uint32]interface{} `json:"-"`
+}
+
+// writeTaggedFields writes tagged fields for ProduceResponseNodeEndpoint.
+func (m *ProduceResponseNodeEndpoint) writeTaggedFields(w io.Writer, version int16) error {
+	var taggedFieldsCount int
+	var taggedFieldsBuf bytes.Buffer
+
+	// Write tagged fields count
+	if err := protocol.WriteVaruint32(w, uint32(taggedFieldsCount)); err != nil {
+		return err
+	}
+
+	// Write tagged fields data
+	if taggedFieldsCount > 0 {
+		if _, err := w.Write(taggedFieldsBuf.Bytes()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// readTaggedFields reads tagged fields for ProduceResponseNodeEndpoint.
+func (m *ProduceResponseNodeEndpoint) readTaggedFields(r io.Reader, version int16) error {
+	// Read tagged fields count
+	count, err := protocol.ReadVaruint32(r)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	// Read tagged fields
+	for i := uint32(0); i < count; i++ {
+		tag, err := protocol.ReadVaruint32(r)
+		if err != nil {
+			return err
+		}
+
+		switch tag {
+		default:
+			// Unknown tag, skip it
+		}
+	}
+
+	return nil
 }
 
 // writeTaggedFields writes tagged fields for ProduceResponse.

@@ -55,116 +55,130 @@ func (m *DescribeTransactionsResponse) Write(w io.Writer, version int16) error {
 	}
 	// TransactionStates
 	if version >= 0 && version <= 999 {
-		if isFlexible {
-			length := uint32(len(m.TransactionStates) + 1)
-			if err := protocol.WriteVaruint32(w, length); err != nil {
-				return err
+		// Encode array using ArrayEncoder
+		encoder := func(item interface{}) ([]byte, error) {
+			if item == nil {
+				return nil, nil
 			}
-		} else {
-			if err := protocol.WriteInt32(w, int32(len(m.TransactionStates))); err != nil {
-				return err
+			structItem, ok := item.(DescribeTransactionsResponseTransactionState)
+			if !ok {
+				return nil, errors.New("invalid type for array element")
 			}
-		}
-		for i := range m.TransactionStates {
+			var elemBuf bytes.Buffer
+			// Temporarily use elemBuf as writer
+			elemW := &elemBuf
 			// ErrorCode
 			if version >= 0 && version <= 999 {
-				if err := protocol.WriteInt16(w, m.TransactionStates[i].ErrorCode); err != nil {
-					return err
+				if err := protocol.WriteInt16(elemW, structItem.ErrorCode); err != nil {
+					return nil, err
 				}
 			}
 			// TransactionalId
 			if version >= 0 && version <= 999 {
 				if isFlexible {
-					if err := protocol.WriteCompactString(w, m.TransactionStates[i].TransactionalId); err != nil {
-						return err
+					if err := protocol.WriteCompactString(elemW, structItem.TransactionalId); err != nil {
+						return nil, err
 					}
 				} else {
-					if err := protocol.WriteString(w, m.TransactionStates[i].TransactionalId); err != nil {
-						return err
+					if err := protocol.WriteString(elemW, structItem.TransactionalId); err != nil {
+						return nil, err
 					}
 				}
 			}
 			// TransactionState
 			if version >= 0 && version <= 999 {
 				if isFlexible {
-					if err := protocol.WriteCompactString(w, m.TransactionStates[i].TransactionState); err != nil {
-						return err
+					if err := protocol.WriteCompactString(elemW, structItem.TransactionState); err != nil {
+						return nil, err
 					}
 				} else {
-					if err := protocol.WriteString(w, m.TransactionStates[i].TransactionState); err != nil {
-						return err
+					if err := protocol.WriteString(elemW, structItem.TransactionState); err != nil {
+						return nil, err
 					}
 				}
 			}
 			// TransactionTimeoutMs
 			if version >= 0 && version <= 999 {
-				if err := protocol.WriteInt32(w, m.TransactionStates[i].TransactionTimeoutMs); err != nil {
-					return err
+				if err := protocol.WriteInt32(elemW, structItem.TransactionTimeoutMs); err != nil {
+					return nil, err
 				}
 			}
 			// TransactionStartTimeMs
 			if version >= 0 && version <= 999 {
-				if err := protocol.WriteInt64(w, m.TransactionStates[i].TransactionStartTimeMs); err != nil {
-					return err
+				if err := protocol.WriteInt64(elemW, structItem.TransactionStartTimeMs); err != nil {
+					return nil, err
 				}
 			}
 			// ProducerId
 			if version >= 0 && version <= 999 {
-				if err := protocol.WriteInt64(w, m.TransactionStates[i].ProducerId); err != nil {
-					return err
+				if err := protocol.WriteInt64(elemW, structItem.ProducerId); err != nil {
+					return nil, err
 				}
 			}
 			// ProducerEpoch
 			if version >= 0 && version <= 999 {
-				if err := protocol.WriteInt16(w, m.TransactionStates[i].ProducerEpoch); err != nil {
-					return err
+				if err := protocol.WriteInt16(elemW, structItem.ProducerEpoch); err != nil {
+					return nil, err
 				}
 			}
 			// Topics
 			if version >= 0 && version <= 999 {
 				if isFlexible {
-					length := uint32(len(m.TransactionStates[i].Topics) + 1)
-					if err := protocol.WriteVaruint32(w, length); err != nil {
-						return err
+					length := uint32(len(structItem.Topics) + 1)
+					if err := protocol.WriteVaruint32(elemW, length); err != nil {
+						return nil, err
 					}
 				} else {
-					if err := protocol.WriteInt32(w, int32(len(m.TransactionStates[i].Topics))); err != nil {
-						return err
+					if err := protocol.WriteInt32(elemW, int32(len(structItem.Topics))); err != nil {
+						return nil, err
 					}
 				}
-				for i := range m.TransactionStates[i].Topics {
+				for i := range structItem.Topics {
 					// Topic
 					if version >= 0 && version <= 999 {
 						if isFlexible {
-							if err := protocol.WriteCompactString(w, m.TransactionStates[i].Topics[i].Topic); err != nil {
-								return err
+							if err := protocol.WriteCompactString(elemW, structItem.Topics[i].Topic); err != nil {
+								return nil, err
 							}
 						} else {
-							if err := protocol.WriteString(w, m.TransactionStates[i].Topics[i].Topic); err != nil {
-								return err
+							if err := protocol.WriteString(elemW, structItem.Topics[i].Topic); err != nil {
+								return nil, err
 							}
 						}
 					}
 					// Partitions
 					if version >= 0 && version <= 999 {
 						if isFlexible {
-							length := uint32(len(m.TransactionStates[i].Topics[i].Partitions) + 1)
-							if err := protocol.WriteVaruint32(w, length); err != nil {
-								return err
+							if err := protocol.WriteCompactInt32Array(elemW, structItem.Topics[i].Partitions); err != nil {
+								return nil, err
 							}
 						} else {
-							if err := protocol.WriteInt32(w, int32(len(m.TransactionStates[i].Topics[i].Partitions))); err != nil {
-								return err
+							if err := protocol.WriteInt32Array(elemW, structItem.Topics[i].Partitions); err != nil {
+								return nil, err
 							}
-						}
-						for i := range m.TransactionStates[i].Topics[i].Partitions {
-							if err := protocol.WriteInt32(w, m.TransactionStates[i].Topics[i].Partitions[i]); err != nil {
-								return err
-							}
-							_ = i
 						}
 					}
 				}
+			}
+			// Write tagged fields if flexible
+			if isFlexible {
+				if err := structItem.writeTaggedFields(elemW, version); err != nil {
+					return nil, err
+				}
+			}
+			return elemBuf.Bytes(), nil
+		}
+		items := make([]interface{}, len(m.TransactionStates))
+		for i := range m.TransactionStates {
+			items[i] = m.TransactionStates[i]
+		}
+		if isFlexible {
+			if err := protocol.WriteCompactArray(w, items, encoder); err != nil {
+				return err
+			}
+		} else {
+			if err := protocol.WriteArray(w, items, encoder); err != nil {
+				return err
 			}
 		}
 	}
@@ -198,9 +212,97 @@ func (m *DescribeTransactionsResponse) Read(r io.Reader, version int16) error {
 	}
 	// TransactionStates
 	if version >= 0 && version <= 999 {
-		var length int32
+		// Decode array using ArrayDecoder
+		decoder := func(data []byte) (interface{}, int, error) {
+			var elem DescribeTransactionsResponseTransactionState
+			elemR := bytes.NewReader(data)
+			// ErrorCode
+			if version >= 0 && version <= 999 {
+				val, err := protocol.ReadInt16(elemR)
+				if err != nil {
+					return nil, 0, err
+				}
+				elem.ErrorCode = val
+			}
+			// TransactionalId
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					val, err := protocol.ReadCompactString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.TransactionalId = val
+				} else {
+					val, err := protocol.ReadString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.TransactionalId = val
+				}
+			}
+			// TransactionState
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					val, err := protocol.ReadCompactString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.TransactionState = val
+				} else {
+					val, err := protocol.ReadString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.TransactionState = val
+				}
+			}
+			// TransactionTimeoutMs
+			if version >= 0 && version <= 999 {
+				val, err := protocol.ReadInt32(elemR)
+				if err != nil {
+					return nil, 0, err
+				}
+				elem.TransactionTimeoutMs = val
+			}
+			// TransactionStartTimeMs
+			if version >= 0 && version <= 999 {
+				val, err := protocol.ReadInt64(elemR)
+				if err != nil {
+					return nil, 0, err
+				}
+				elem.TransactionStartTimeMs = val
+			}
+			// ProducerId
+			if version >= 0 && version <= 999 {
+				val, err := protocol.ReadInt64(elemR)
+				if err != nil {
+					return nil, 0, err
+				}
+				elem.ProducerId = val
+			}
+			// ProducerEpoch
+			if version >= 0 && version <= 999 {
+				val, err := protocol.ReadInt16(elemR)
+				if err != nil {
+					return nil, 0, err
+				}
+				elem.ProducerEpoch = val
+			}
+			// Topics
+			if version >= 0 && version <= 999 {
+				// Nested array in decoder - manual handling needed
+				return nil, 0, errors.New("nested arrays in decoder not fully supported")
+			}
+			// Read tagged fields if flexible
+			if isFlexible {
+				if err := elem.readTaggedFields(elemR, version); err != nil {
+					return nil, 0, err
+				}
+			}
+			consumed := len(data) - elemR.Len()
+			return elem, consumed, nil
+		}
 		if isFlexible {
-			var lengthUint uint32
 			lengthUint, err := protocol.ReadVaruint32(r)
 			if err != nil {
 				return err
@@ -208,16 +310,21 @@ func (m *DescribeTransactionsResponse) Read(r io.Reader, version int16) error {
 			if lengthUint < 1 {
 				return errors.New("invalid compact array length")
 			}
-			length = int32(lengthUint - 1)
-			m.TransactionStates = make([]DescribeTransactionsResponseTransactionState, length)
+			length := int32(lengthUint - 1)
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
 			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem DescribeTransactionsResponseTransactionState
 				// ErrorCode
 				if version >= 0 && version <= 999 {
 					val, err := protocol.ReadInt16(r)
 					if err != nil {
 						return err
 					}
-					m.TransactionStates[i].ErrorCode = val
+					tempElem.ErrorCode = val
 				}
 				// TransactionalId
 				if version >= 0 && version <= 999 {
@@ -226,13 +333,13 @@ func (m *DescribeTransactionsResponse) Read(r io.Reader, version int16) error {
 						if err != nil {
 							return err
 						}
-						m.TransactionStates[i].TransactionalId = val
+						tempElem.TransactionalId = val
 					} else {
 						val, err := protocol.ReadString(r)
 						if err != nil {
 							return err
 						}
-						m.TransactionStates[i].TransactionalId = val
+						tempElem.TransactionalId = val
 					}
 				}
 				// TransactionState
@@ -242,13 +349,13 @@ func (m *DescribeTransactionsResponse) Read(r io.Reader, version int16) error {
 						if err != nil {
 							return err
 						}
-						m.TransactionStates[i].TransactionState = val
+						tempElem.TransactionState = val
 					} else {
 						val, err := protocol.ReadString(r)
 						if err != nil {
 							return err
 						}
-						m.TransactionStates[i].TransactionState = val
+						tempElem.TransactionState = val
 					}
 				}
 				// TransactionTimeoutMs
@@ -257,7 +364,7 @@ func (m *DescribeTransactionsResponse) Read(r io.Reader, version int16) error {
 					if err != nil {
 						return err
 					}
-					m.TransactionStates[i].TransactionTimeoutMs = val
+					tempElem.TransactionTimeoutMs = val
 				}
 				// TransactionStartTimeMs
 				if version >= 0 && version <= 999 {
@@ -265,7 +372,7 @@ func (m *DescribeTransactionsResponse) Read(r io.Reader, version int16) error {
 					if err != nil {
 						return err
 					}
-					m.TransactionStates[i].TransactionStartTimeMs = val
+					tempElem.TransactionStartTimeMs = val
 				}
 				// ProducerId
 				if version >= 0 && version <= 999 {
@@ -273,7 +380,7 @@ func (m *DescribeTransactionsResponse) Read(r io.Reader, version int16) error {
 					if err != nil {
 						return err
 					}
-					m.TransactionStates[i].ProducerId = val
+					tempElem.ProducerId = val
 				}
 				// ProducerEpoch
 				if version >= 0 && version <= 999 {
@@ -281,13 +388,50 @@ func (m *DescribeTransactionsResponse) Read(r io.Reader, version int16) error {
 					if err != nil {
 						return err
 					}
-					m.TransactionStates[i].ProducerEpoch = val
+					tempElem.ProducerEpoch = val
 				}
 				// Topics
 				if version >= 0 && version <= 999 {
-					var length int32
+					// Decode array using ArrayDecoder
+					decoder := func(data []byte) (interface{}, int, error) {
+						var elem DescribeTransactionsResponseTopicData
+						elemR := bytes.NewReader(data)
+						// Topic
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								val, err := protocol.ReadCompactString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Topic = val
+							} else {
+								val, err := protocol.ReadString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Topic = val
+							}
+						}
+						// Partitions
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								val, err := protocol.ReadCompactInt32Array(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Partitions = val
+							} else {
+								val, err := protocol.ReadInt32Array(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Partitions = val
+							}
+						}
+						consumed := len(data) - elemR.Len()
+						return elem, consumed, nil
+					}
 					if isFlexible {
-						var lengthUint uint32
 						lengthUint, err := protocol.ReadVaruint32(r)
 						if err != nil {
 							return err
@@ -295,9 +439,14 @@ func (m *DescribeTransactionsResponse) Read(r io.Reader, version int16) error {
 						if lengthUint < 1 {
 							return errors.New("invalid compact array length")
 						}
-						length = int32(lengthUint - 1)
-						m.TransactionStates[i].Topics = make([]DescribeTransactionsResponseTopicData, length)
+						length := int32(lengthUint - 1)
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
 						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem DescribeTransactionsResponseTopicData
 							// Topic
 							if version >= 0 && version <= 999 {
 								if isFlexible {
@@ -305,61 +454,82 @@ func (m *DescribeTransactionsResponse) Read(r io.Reader, version int16) error {
 									if err != nil {
 										return err
 									}
-									m.TransactionStates[i].Topics[i].Topic = val
+									tempElem.Topic = val
 								} else {
 									val, err := protocol.ReadString(r)
 									if err != nil {
 										return err
 									}
-									m.TransactionStates[i].Topics[i].Topic = val
+									tempElem.Topic = val
 								}
 							}
 							// Partitions
 							if version >= 0 && version <= 999 {
-								var length int32
 								if isFlexible {
-									var lengthUint uint32
-									lengthUint, err := protocol.ReadVaruint32(r)
+									val, err := protocol.ReadCompactInt32Array(r)
 									if err != nil {
 										return err
 									}
-									if lengthUint < 1 {
-										return errors.New("invalid compact array length")
+									tempElem.Partitions = val
+								} else {
+									val, err := protocol.ReadInt32Array(r)
+									if err != nil {
+										return err
 									}
-									length = int32(lengthUint - 1)
-									m.TransactionStates[i].Topics[i].Partitions = make([]int32, length)
-									for i := int32(0); i < length; i++ {
-										val, err := protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.TransactionStates[i].Topics[i].Partitions[i] = val
+									tempElem.Partitions = val
+								}
+							}
+							// Topic
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactString(elemW, tempElem.Topic); err != nil {
+										return err
 									}
 								} else {
-									var err error
-									length, err = protocol.ReadInt32(r)
-									if err != nil {
+									if err := protocol.WriteString(elemW, tempElem.Topic); err != nil {
 										return err
-									}
-									m.TransactionStates[i].Topics[i].Partitions = make([]int32, length)
-									for i := int32(0); i < length; i++ {
-										val, err := protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.TransactionStates[i].Topics[i].Partitions[i] = val
 									}
 								}
 							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactInt32Array(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt32Array(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								}
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
 						}
-					} else {
-						var err error
-						length, err = protocol.ReadInt32(r)
+						// Prepend length and decode using DecodeCompactArray
+						lengthBytes := protocol.EncodeVaruint32(lengthUint)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
 						if err != nil {
 							return err
 						}
-						m.TransactionStates[i].Topics = make([]DescribeTransactionsResponseTopicData, length)
+						// Convert []interface{} to typed slice
+						tempElem.Topics = make([]DescribeTransactionsResponseTopicData, len(decoded))
+						for i, item := range decoded {
+							tempElem.Topics[i] = item.(DescribeTransactionsResponseTopicData)
+						}
+					} else {
+						length, err := protocol.ReadInt32(r)
+						if err != nil {
+							return err
+						}
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
 						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem DescribeTransactionsResponseTopicData
 							// Topic
 							if version >= 0 && version <= 999 {
 								if isFlexible {
@@ -367,71 +537,199 @@ func (m *DescribeTransactionsResponse) Read(r io.Reader, version int16) error {
 									if err != nil {
 										return err
 									}
-									m.TransactionStates[i].Topics[i].Topic = val
+									tempElem.Topic = val
 								} else {
 									val, err := protocol.ReadString(r)
 									if err != nil {
 										return err
 									}
-									m.TransactionStates[i].Topics[i].Topic = val
+									tempElem.Topic = val
 								}
 							}
 							// Partitions
 							if version >= 0 && version <= 999 {
-								var length int32
 								if isFlexible {
-									var lengthUint uint32
-									lengthUint, err := protocol.ReadVaruint32(r)
+									val, err := protocol.ReadCompactInt32Array(r)
 									if err != nil {
 										return err
 									}
-									if lengthUint < 1 {
-										return errors.New("invalid compact array length")
+									tempElem.Partitions = val
+								} else {
+									val, err := protocol.ReadInt32Array(r)
+									if err != nil {
+										return err
 									}
-									length = int32(lengthUint - 1)
-									m.TransactionStates[i].Topics[i].Partitions = make([]int32, length)
-									for i := int32(0); i < length; i++ {
-										val, err := protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.TransactionStates[i].Topics[i].Partitions[i] = val
+									tempElem.Partitions = val
+								}
+							}
+							// Topic
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactString(elemW, tempElem.Topic); err != nil {
+										return err
 									}
 								} else {
-									var err error
-									length, err = protocol.ReadInt32(r)
-									if err != nil {
+									if err := protocol.WriteString(elemW, tempElem.Topic); err != nil {
 										return err
 									}
-									m.TransactionStates[i].Topics[i].Partitions = make([]int32, length)
-									for i := int32(0); i < length; i++ {
-										val, err := protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.TransactionStates[i].Topics[i].Partitions[i] = val
+								}
+							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactInt32Array(elemW, tempElem.Partitions); err != nil {
+										return err
 									}
+								} else {
+									if err := protocol.WriteInt32Array(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								}
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
+						}
+						// Prepend length and decode using DecodeArray
+						lengthBytes := protocol.EncodeInt32(length)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeArray(fullData, decoder)
+						if err != nil {
+							return err
+						}
+						// Convert []interface{} to typed slice
+						tempElem.Topics = make([]DescribeTransactionsResponseTopicData, len(decoded))
+						for i, item := range decoded {
+							tempElem.Topics[i] = item.(DescribeTransactionsResponseTopicData)
+						}
+					}
+				}
+				// ErrorCode
+				if version >= 0 && version <= 999 {
+					if err := protocol.WriteInt16(elemW, tempElem.ErrorCode); err != nil {
+						return err
+					}
+				}
+				// TransactionalId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.TransactionalId); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.TransactionalId); err != nil {
+							return err
+						}
+					}
+				}
+				// TransactionState
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.TransactionState); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.TransactionState); err != nil {
+							return err
+						}
+					}
+				}
+				// TransactionTimeoutMs
+				if version >= 0 && version <= 999 {
+					if err := protocol.WriteInt32(elemW, tempElem.TransactionTimeoutMs); err != nil {
+						return err
+					}
+				}
+				// TransactionStartTimeMs
+				if version >= 0 && version <= 999 {
+					if err := protocol.WriteInt64(elemW, tempElem.TransactionStartTimeMs); err != nil {
+						return err
+					}
+				}
+				// ProducerId
+				if version >= 0 && version <= 999 {
+					if err := protocol.WriteInt64(elemW, tempElem.ProducerId); err != nil {
+						return err
+					}
+				}
+				// ProducerEpoch
+				if version >= 0 && version <= 999 {
+					if err := protocol.WriteInt16(elemW, tempElem.ProducerEpoch); err != nil {
+						return err
+					}
+				}
+				// Topics
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						length := uint32(len(tempElem.Topics) + 1)
+						if err := protocol.WriteVaruint32(elemW, length); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32(elemW, int32(len(tempElem.Topics))); err != nil {
+							return err
+						}
+					}
+					for i := range tempElem.Topics {
+						// Topic
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								if err := protocol.WriteCompactString(elemW, tempElem.Topics[i].Topic); err != nil {
+									return err
+								}
+							} else {
+								if err := protocol.WriteString(elemW, tempElem.Topics[i].Topic); err != nil {
+									return err
+								}
+							}
+						}
+						// Partitions
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								if err := protocol.WriteCompactInt32Array(elemW, tempElem.Topics[i].Partitions); err != nil {
+									return err
+								}
+							} else {
+								if err := protocol.WriteInt32Array(elemW, tempElem.Topics[i].Partitions); err != nil {
+									return err
 								}
 							}
 						}
 					}
 				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
 			}
-		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			// Prepend length and decode using DecodeCompactArray
+			lengthBytes := protocol.EncodeVaruint32(lengthUint)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
 			if err != nil {
 				return err
 			}
-			m.TransactionStates = make([]DescribeTransactionsResponseTransactionState, length)
+			// Convert []interface{} to typed slice
+			m.TransactionStates = make([]DescribeTransactionsResponseTransactionState, len(decoded))
+			for i, item := range decoded {
+				m.TransactionStates[i] = item.(DescribeTransactionsResponseTransactionState)
+			}
+		} else {
+			length, err := protocol.ReadInt32(r)
+			if err != nil {
+				return err
+			}
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
 			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem DescribeTransactionsResponseTransactionState
 				// ErrorCode
 				if version >= 0 && version <= 999 {
 					val, err := protocol.ReadInt16(r)
 					if err != nil {
 						return err
 					}
-					m.TransactionStates[i].ErrorCode = val
+					tempElem.ErrorCode = val
 				}
 				// TransactionalId
 				if version >= 0 && version <= 999 {
@@ -440,13 +738,13 @@ func (m *DescribeTransactionsResponse) Read(r io.Reader, version int16) error {
 						if err != nil {
 							return err
 						}
-						m.TransactionStates[i].TransactionalId = val
+						tempElem.TransactionalId = val
 					} else {
 						val, err := protocol.ReadString(r)
 						if err != nil {
 							return err
 						}
-						m.TransactionStates[i].TransactionalId = val
+						tempElem.TransactionalId = val
 					}
 				}
 				// TransactionState
@@ -456,13 +754,13 @@ func (m *DescribeTransactionsResponse) Read(r io.Reader, version int16) error {
 						if err != nil {
 							return err
 						}
-						m.TransactionStates[i].TransactionState = val
+						tempElem.TransactionState = val
 					} else {
 						val, err := protocol.ReadString(r)
 						if err != nil {
 							return err
 						}
-						m.TransactionStates[i].TransactionState = val
+						tempElem.TransactionState = val
 					}
 				}
 				// TransactionTimeoutMs
@@ -471,7 +769,7 @@ func (m *DescribeTransactionsResponse) Read(r io.Reader, version int16) error {
 					if err != nil {
 						return err
 					}
-					m.TransactionStates[i].TransactionTimeoutMs = val
+					tempElem.TransactionTimeoutMs = val
 				}
 				// TransactionStartTimeMs
 				if version >= 0 && version <= 999 {
@@ -479,7 +777,7 @@ func (m *DescribeTransactionsResponse) Read(r io.Reader, version int16) error {
 					if err != nil {
 						return err
 					}
-					m.TransactionStates[i].TransactionStartTimeMs = val
+					tempElem.TransactionStartTimeMs = val
 				}
 				// ProducerId
 				if version >= 0 && version <= 999 {
@@ -487,7 +785,7 @@ func (m *DescribeTransactionsResponse) Read(r io.Reader, version int16) error {
 					if err != nil {
 						return err
 					}
-					m.TransactionStates[i].ProducerId = val
+					tempElem.ProducerId = val
 				}
 				// ProducerEpoch
 				if version >= 0 && version <= 999 {
@@ -495,13 +793,50 @@ func (m *DescribeTransactionsResponse) Read(r io.Reader, version int16) error {
 					if err != nil {
 						return err
 					}
-					m.TransactionStates[i].ProducerEpoch = val
+					tempElem.ProducerEpoch = val
 				}
 				// Topics
 				if version >= 0 && version <= 999 {
-					var length int32
+					// Decode array using ArrayDecoder
+					decoder := func(data []byte) (interface{}, int, error) {
+						var elem DescribeTransactionsResponseTopicData
+						elemR := bytes.NewReader(data)
+						// Topic
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								val, err := protocol.ReadCompactString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Topic = val
+							} else {
+								val, err := protocol.ReadString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Topic = val
+							}
+						}
+						// Partitions
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								val, err := protocol.ReadCompactInt32Array(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Partitions = val
+							} else {
+								val, err := protocol.ReadInt32Array(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Partitions = val
+							}
+						}
+						consumed := len(data) - elemR.Len()
+						return elem, consumed, nil
+					}
 					if isFlexible {
-						var lengthUint uint32
 						lengthUint, err := protocol.ReadVaruint32(r)
 						if err != nil {
 							return err
@@ -509,9 +844,14 @@ func (m *DescribeTransactionsResponse) Read(r io.Reader, version int16) error {
 						if lengthUint < 1 {
 							return errors.New("invalid compact array length")
 						}
-						length = int32(lengthUint - 1)
-						m.TransactionStates[i].Topics = make([]DescribeTransactionsResponseTopicData, length)
+						length := int32(lengthUint - 1)
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
 						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem DescribeTransactionsResponseTopicData
 							// Topic
 							if version >= 0 && version <= 999 {
 								if isFlexible {
@@ -519,61 +859,82 @@ func (m *DescribeTransactionsResponse) Read(r io.Reader, version int16) error {
 									if err != nil {
 										return err
 									}
-									m.TransactionStates[i].Topics[i].Topic = val
+									tempElem.Topic = val
 								} else {
 									val, err := protocol.ReadString(r)
 									if err != nil {
 										return err
 									}
-									m.TransactionStates[i].Topics[i].Topic = val
+									tempElem.Topic = val
 								}
 							}
 							// Partitions
 							if version >= 0 && version <= 999 {
-								var length int32
 								if isFlexible {
-									var lengthUint uint32
-									lengthUint, err := protocol.ReadVaruint32(r)
+									val, err := protocol.ReadCompactInt32Array(r)
 									if err != nil {
 										return err
 									}
-									if lengthUint < 1 {
-										return errors.New("invalid compact array length")
+									tempElem.Partitions = val
+								} else {
+									val, err := protocol.ReadInt32Array(r)
+									if err != nil {
+										return err
 									}
-									length = int32(lengthUint - 1)
-									m.TransactionStates[i].Topics[i].Partitions = make([]int32, length)
-									for i := int32(0); i < length; i++ {
-										val, err := protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.TransactionStates[i].Topics[i].Partitions[i] = val
+									tempElem.Partitions = val
+								}
+							}
+							// Topic
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactString(elemW, tempElem.Topic); err != nil {
+										return err
 									}
 								} else {
-									var err error
-									length, err = protocol.ReadInt32(r)
-									if err != nil {
+									if err := protocol.WriteString(elemW, tempElem.Topic); err != nil {
 										return err
-									}
-									m.TransactionStates[i].Topics[i].Partitions = make([]int32, length)
-									for i := int32(0); i < length; i++ {
-										val, err := protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.TransactionStates[i].Topics[i].Partitions[i] = val
 									}
 								}
 							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactInt32Array(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt32Array(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								}
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
 						}
-					} else {
-						var err error
-						length, err = protocol.ReadInt32(r)
+						// Prepend length and decode using DecodeCompactArray
+						lengthBytes := protocol.EncodeVaruint32(lengthUint)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
 						if err != nil {
 							return err
 						}
-						m.TransactionStates[i].Topics = make([]DescribeTransactionsResponseTopicData, length)
+						// Convert []interface{} to typed slice
+						tempElem.Topics = make([]DescribeTransactionsResponseTopicData, len(decoded))
+						for i, item := range decoded {
+							tempElem.Topics[i] = item.(DescribeTransactionsResponseTopicData)
+						}
+					} else {
+						length, err := protocol.ReadInt32(r)
+						if err != nil {
+							return err
+						}
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
 						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem DescribeTransactionsResponseTopicData
 							// Topic
 							if version >= 0 && version <= 999 {
 								if isFlexible {
@@ -581,55 +942,179 @@ func (m *DescribeTransactionsResponse) Read(r io.Reader, version int16) error {
 									if err != nil {
 										return err
 									}
-									m.TransactionStates[i].Topics[i].Topic = val
+									tempElem.Topic = val
 								} else {
 									val, err := protocol.ReadString(r)
 									if err != nil {
 										return err
 									}
-									m.TransactionStates[i].Topics[i].Topic = val
+									tempElem.Topic = val
 								}
 							}
 							// Partitions
 							if version >= 0 && version <= 999 {
-								var length int32
 								if isFlexible {
-									var lengthUint uint32
-									lengthUint, err := protocol.ReadVaruint32(r)
+									val, err := protocol.ReadCompactInt32Array(r)
 									if err != nil {
 										return err
 									}
-									if lengthUint < 1 {
-										return errors.New("invalid compact array length")
+									tempElem.Partitions = val
+								} else {
+									val, err := protocol.ReadInt32Array(r)
+									if err != nil {
+										return err
 									}
-									length = int32(lengthUint - 1)
-									m.TransactionStates[i].Topics[i].Partitions = make([]int32, length)
-									for i := int32(0); i < length; i++ {
-										val, err := protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.TransactionStates[i].Topics[i].Partitions[i] = val
+									tempElem.Partitions = val
+								}
+							}
+							// Topic
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactString(elemW, tempElem.Topic); err != nil {
+										return err
 									}
 								} else {
-									var err error
-									length, err = protocol.ReadInt32(r)
-									if err != nil {
+									if err := protocol.WriteString(elemW, tempElem.Topic); err != nil {
 										return err
 									}
-									m.TransactionStates[i].Topics[i].Partitions = make([]int32, length)
-									for i := int32(0); i < length; i++ {
-										val, err := protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.TransactionStates[i].Topics[i].Partitions[i] = val
+								}
+							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactInt32Array(elemW, tempElem.Partitions); err != nil {
+										return err
 									}
+								} else {
+									if err := protocol.WriteInt32Array(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								}
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
+						}
+						// Prepend length and decode using DecodeArray
+						lengthBytes := protocol.EncodeInt32(length)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeArray(fullData, decoder)
+						if err != nil {
+							return err
+						}
+						// Convert []interface{} to typed slice
+						tempElem.Topics = make([]DescribeTransactionsResponseTopicData, len(decoded))
+						for i, item := range decoded {
+							tempElem.Topics[i] = item.(DescribeTransactionsResponseTopicData)
+						}
+					}
+				}
+				// ErrorCode
+				if version >= 0 && version <= 999 {
+					if err := protocol.WriteInt16(elemW, tempElem.ErrorCode); err != nil {
+						return err
+					}
+				}
+				// TransactionalId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.TransactionalId); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.TransactionalId); err != nil {
+							return err
+						}
+					}
+				}
+				// TransactionState
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.TransactionState); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.TransactionState); err != nil {
+							return err
+						}
+					}
+				}
+				// TransactionTimeoutMs
+				if version >= 0 && version <= 999 {
+					if err := protocol.WriteInt32(elemW, tempElem.TransactionTimeoutMs); err != nil {
+						return err
+					}
+				}
+				// TransactionStartTimeMs
+				if version >= 0 && version <= 999 {
+					if err := protocol.WriteInt64(elemW, tempElem.TransactionStartTimeMs); err != nil {
+						return err
+					}
+				}
+				// ProducerId
+				if version >= 0 && version <= 999 {
+					if err := protocol.WriteInt64(elemW, tempElem.ProducerId); err != nil {
+						return err
+					}
+				}
+				// ProducerEpoch
+				if version >= 0 && version <= 999 {
+					if err := protocol.WriteInt16(elemW, tempElem.ProducerEpoch); err != nil {
+						return err
+					}
+				}
+				// Topics
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						length := uint32(len(tempElem.Topics) + 1)
+						if err := protocol.WriteVaruint32(elemW, length); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32(elemW, int32(len(tempElem.Topics))); err != nil {
+							return err
+						}
+					}
+					for i := range tempElem.Topics {
+						// Topic
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								if err := protocol.WriteCompactString(elemW, tempElem.Topics[i].Topic); err != nil {
+									return err
+								}
+							} else {
+								if err := protocol.WriteString(elemW, tempElem.Topics[i].Topic); err != nil {
+									return err
+								}
+							}
+						}
+						// Partitions
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								if err := protocol.WriteCompactInt32Array(elemW, tempElem.Topics[i].Partitions); err != nil {
+									return err
+								}
+							} else {
+								if err := protocol.WriteInt32Array(elemW, tempElem.Topics[i].Partitions); err != nil {
+									return err
 								}
 							}
 						}
 					}
 				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeArray
+			lengthBytes := protocol.EncodeInt32(length)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.TransactionStates = make([]DescribeTransactionsResponseTransactionState, len(decoded))
+			for i, item := range decoded {
+				m.TransactionStates[i] = item.(DescribeTransactionsResponseTransactionState)
 			}
 		}
 	}
@@ -660,6 +1145,56 @@ type DescribeTransactionsResponseTransactionState struct {
 	ProducerEpoch int16 `json:"producerepoch" versions:"0-999"`
 	// The set of partitions included in the current transaction (if active). When a transaction is preparing to commit or abort, this will include only partitions which do not have markers.
 	Topics []DescribeTransactionsResponseTopicData `json:"topics" versions:"0-999"`
+	// Tagged fields (for flexible versions)
+	_tagged_fields map[uint32]interface{} `json:"-"`
+}
+
+// writeTaggedFields writes tagged fields for DescribeTransactionsResponseTransactionState.
+func (m *DescribeTransactionsResponseTransactionState) writeTaggedFields(w io.Writer, version int16) error {
+	var taggedFieldsCount int
+	var taggedFieldsBuf bytes.Buffer
+
+	// Write tagged fields count
+	if err := protocol.WriteVaruint32(w, uint32(taggedFieldsCount)); err != nil {
+		return err
+	}
+
+	// Write tagged fields data
+	if taggedFieldsCount > 0 {
+		if _, err := w.Write(taggedFieldsBuf.Bytes()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// readTaggedFields reads tagged fields for DescribeTransactionsResponseTransactionState.
+func (m *DescribeTransactionsResponseTransactionState) readTaggedFields(r io.Reader, version int16) error {
+	// Read tagged fields count
+	count, err := protocol.ReadVaruint32(r)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	// Read tagged fields
+	for i := uint32(0); i < count; i++ {
+		tag, err := protocol.ReadVaruint32(r)
+		if err != nil {
+			return err
+		}
+
+		switch tag {
+		default:
+			// Unknown tag, skip it
+		}
+	}
+
+	return nil
 }
 
 // DescribeTransactionsResponseTopicData represents The set of partitions included in the current transaction (if active). When a transaction is preparing to commit or abort, this will include only partitions which do not have markers..
@@ -668,6 +1203,56 @@ type DescribeTransactionsResponseTopicData struct {
 	Topic string `json:"topic" versions:"0-999"`
 	// The partition ids included in the current transaction.
 	Partitions []int32 `json:"partitions" versions:"0-999"`
+	// Tagged fields (for flexible versions)
+	_tagged_fields map[uint32]interface{} `json:"-"`
+}
+
+// writeTaggedFields writes tagged fields for DescribeTransactionsResponseTopicData.
+func (m *DescribeTransactionsResponseTopicData) writeTaggedFields(w io.Writer, version int16) error {
+	var taggedFieldsCount int
+	var taggedFieldsBuf bytes.Buffer
+
+	// Write tagged fields count
+	if err := protocol.WriteVaruint32(w, uint32(taggedFieldsCount)); err != nil {
+		return err
+	}
+
+	// Write tagged fields data
+	if taggedFieldsCount > 0 {
+		if _, err := w.Write(taggedFieldsBuf.Bytes()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// readTaggedFields reads tagged fields for DescribeTransactionsResponseTopicData.
+func (m *DescribeTransactionsResponseTopicData) readTaggedFields(r io.Reader, version int16) error {
+	// Read tagged fields count
+	count, err := protocol.ReadVaruint32(r)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	// Read tagged fields
+	for i := uint32(0); i < count; i++ {
+		tag, err := protocol.ReadVaruint32(r)
+		if err != nil {
+			return err
+		}
+
+		switch tag {
+		default:
+			// Unknown tag, skip it
+		}
+	}
+
+	return nil
 }
 
 // writeTaggedFields writes tagged fields for DescribeTransactionsResponse.

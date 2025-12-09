@@ -122,6 +122,56 @@ type UpdateRaftVoterResponseCurrentLeader struct {
 	Host string `json:"host" versions:"0-999"`
 	// The node's port.
 	Port int32 `json:"port" versions:"0-999"`
+	// Tagged fields (for flexible versions)
+	_tagged_fields map[uint32]interface{} `json:"-"`
+}
+
+// writeTaggedFields writes tagged fields for UpdateRaftVoterResponseCurrentLeader.
+func (m *UpdateRaftVoterResponseCurrentLeader) writeTaggedFields(w io.Writer, version int16) error {
+	var taggedFieldsCount int
+	var taggedFieldsBuf bytes.Buffer
+
+	// Write tagged fields count
+	if err := protocol.WriteVaruint32(w, uint32(taggedFieldsCount)); err != nil {
+		return err
+	}
+
+	// Write tagged fields data
+	if taggedFieldsCount > 0 {
+		if _, err := w.Write(taggedFieldsBuf.Bytes()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// readTaggedFields reads tagged fields for UpdateRaftVoterResponseCurrentLeader.
+func (m *UpdateRaftVoterResponseCurrentLeader) readTaggedFields(r io.Reader, version int16) error {
+	// Read tagged fields count
+	count, err := protocol.ReadVaruint32(r)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	// Read tagged fields
+	for i := uint32(0); i < count; i++ {
+		tag, err := protocol.ReadVaruint32(r)
+		if err != nil {
+			return err
+		}
+
+		switch tag {
+		default:
+			// Unknown tag, skip it
+		}
+	}
+
+	return nil
 }
 
 // writeTaggedFields writes tagged fields for UpdateRaftVoterResponse.

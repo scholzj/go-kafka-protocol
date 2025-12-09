@@ -110,26 +110,13 @@ func (m *ShareGroupHeartbeatRequest) Write(w io.Writer, version int16) error {
 			}
 		} else {
 			if isFlexible {
-				length := uint32(len(m.SubscribedTopicNames) + 1)
-				if err := protocol.WriteVaruint32(w, length); err != nil {
+				if err := protocol.WriteCompactStringArray(w, m.SubscribedTopicNames); err != nil {
 					return err
 				}
 			} else {
-				if err := protocol.WriteInt32(w, int32(len(m.SubscribedTopicNames))); err != nil {
+				if err := protocol.WriteStringArray(w, m.SubscribedTopicNames); err != nil {
 					return err
 				}
-			}
-			for i := range m.SubscribedTopicNames {
-				if isFlexible {
-					if err := protocol.WriteCompactString(w, m.SubscribedTopicNames[i]); err != nil {
-						return err
-					}
-				} else {
-					if err := protocol.WriteString(w, m.SubscribedTopicNames[i]); err != nil {
-						return err
-					}
-				}
-				_ = i
 			}
 		}
 	}
@@ -211,63 +198,18 @@ func (m *ShareGroupHeartbeatRequest) Read(r io.Reader, version int16) error {
 	}
 	// SubscribedTopicNames
 	if version >= 0 && version <= 999 {
-		var length int32
 		if isFlexible {
-			var lengthUint uint32
-			lengthUint, err := protocol.ReadVaruint32(r)
+			val, err := protocol.ReadCompactStringArray(r)
 			if err != nil {
 				return err
 			}
-			if lengthUint == 0 {
-				m.SubscribedTopicNames = nil
-			} else {
-				if lengthUint < 1 {
-					return errors.New("invalid compact array length")
-				}
-				length = int32(lengthUint - 1)
-				m.SubscribedTopicNames = make([]string, length)
-				for i := int32(0); i < length; i++ {
-					if isFlexible {
-						val, err := protocol.ReadCompactString(r)
-						if err != nil {
-							return err
-						}
-						m.SubscribedTopicNames[i] = val
-					} else {
-						val, err := protocol.ReadString(r)
-						if err != nil {
-							return err
-						}
-						m.SubscribedTopicNames[i] = val
-					}
-				}
-			}
+			m.SubscribedTopicNames = val
 		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			val, err := protocol.ReadStringArray(r)
 			if err != nil {
 				return err
 			}
-			if length == -1 {
-				m.SubscribedTopicNames = nil
-			} else {
-				m.SubscribedTopicNames = make([]string, length)
-				for i := int32(0); i < length; i++ {
-					if isFlexible {
-						val, err := protocol.ReadCompactString(r)
-						if err != nil {
-							return err
-						}
-						m.SubscribedTopicNames[i] = val
-					} else {
-						val, err := protocol.ReadString(r)
-						if err != nil {
-							return err
-						}
-						m.SubscribedTopicNames[i] = val
-					}
-				}
-			}
+			m.SubscribedTopicNames = val
 		}
 	}
 	// Read tagged fields if flexible

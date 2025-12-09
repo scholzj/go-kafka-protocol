@@ -133,6 +133,48 @@ func (m *StreamsGroupHeartbeatResponse) Write(w io.Writer, version int16) error 
 	}
 	// Status
 	if version >= 0 && version <= 999 {
+		// Encode array using ArrayEncoder
+		encoder := func(item interface{}) ([]byte, error) {
+			if item == nil {
+				return nil, nil
+			}
+			structItem, ok := item.(Status)
+			if !ok {
+				return nil, errors.New("invalid type for array element")
+			}
+			var elemBuf bytes.Buffer
+			// Temporarily use elemBuf as writer
+			elemW := &elemBuf
+			// StatusCode
+			if version >= 0 && version <= 999 {
+				if err := protocol.WriteInt8(elemW, structItem.StatusCode); err != nil {
+					return nil, err
+				}
+			}
+			// StatusDetail
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					if err := protocol.WriteCompactString(elemW, structItem.StatusDetail); err != nil {
+						return nil, err
+					}
+				} else {
+					if err := protocol.WriteString(elemW, structItem.StatusDetail); err != nil {
+						return nil, err
+					}
+				}
+			}
+			// Write tagged fields if flexible
+			if isFlexible {
+				if err := structItem.writeTaggedFields(elemW, version); err != nil {
+					return nil, err
+				}
+			}
+			return elemBuf.Bytes(), nil
+		}
+		items := make([]interface{}, len(m.Status))
+		for i := range m.Status {
+			items[i] = m.Status[i]
+		}
 		if m.Status == nil {
 			if isFlexible {
 				if err := protocol.WriteVaruint32(w, 0); err != nil {
@@ -145,39 +187,66 @@ func (m *StreamsGroupHeartbeatResponse) Write(w io.Writer, version int16) error 
 			}
 		} else {
 			if isFlexible {
-				length := uint32(len(m.Status) + 1)
-				if err := protocol.WriteVaruint32(w, length); err != nil {
+				if err := protocol.WriteCompactArray(w, items, encoder); err != nil {
 					return err
 				}
 			} else {
-				if err := protocol.WriteInt32(w, int32(len(m.Status))); err != nil {
+				if err := protocol.WriteArray(w, items, encoder); err != nil {
 					return err
-				}
-			}
-			for i := range m.Status {
-				// StatusCode
-				if version >= 0 && version <= 999 {
-					if err := protocol.WriteInt8(w, m.Status[i].StatusCode); err != nil {
-						return err
-					}
-				}
-				// StatusDetail
-				if version >= 0 && version <= 999 {
-					if isFlexible {
-						if err := protocol.WriteCompactString(w, m.Status[i].StatusDetail); err != nil {
-							return err
-						}
-					} else {
-						if err := protocol.WriteString(w, m.Status[i].StatusDetail); err != nil {
-							return err
-						}
-					}
 				}
 			}
 		}
 	}
 	// ActiveTasks
 	if version >= 0 && version <= 999 {
+		// Encode array using ArrayEncoder
+		encoder := func(item interface{}) ([]byte, error) {
+			if item == nil {
+				return nil, nil
+			}
+			structItem, ok := item.(TaskIds)
+			if !ok {
+				return nil, errors.New("invalid type for array element")
+			}
+			var elemBuf bytes.Buffer
+			// Temporarily use elemBuf as writer
+			elemW := &elemBuf
+			// SubtopologyId
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					if err := protocol.WriteCompactString(elemW, structItem.SubtopologyId); err != nil {
+						return nil, err
+					}
+				} else {
+					if err := protocol.WriteString(elemW, structItem.SubtopologyId); err != nil {
+						return nil, err
+					}
+				}
+			}
+			// Partitions
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					if err := protocol.WriteCompactInt32Array(elemW, structItem.Partitions); err != nil {
+						return nil, err
+					}
+				} else {
+					if err := protocol.WriteInt32Array(elemW, structItem.Partitions); err != nil {
+						return nil, err
+					}
+				}
+			}
+			// Write tagged fields if flexible
+			if isFlexible {
+				if err := structItem.writeTaggedFields(elemW, version); err != nil {
+					return nil, err
+				}
+			}
+			return elemBuf.Bytes(), nil
+		}
+		items := make([]interface{}, len(m.ActiveTasks))
+		for i := range m.ActiveTasks {
+			items[i] = m.ActiveTasks[i]
+		}
 		if m.ActiveTasks == nil {
 			if isFlexible {
 				if err := protocol.WriteVaruint32(w, 0); err != nil {
@@ -190,52 +259,66 @@ func (m *StreamsGroupHeartbeatResponse) Write(w io.Writer, version int16) error 
 			}
 		} else {
 			if isFlexible {
-				length := uint32(len(m.ActiveTasks) + 1)
-				if err := protocol.WriteVaruint32(w, length); err != nil {
+				if err := protocol.WriteCompactArray(w, items, encoder); err != nil {
 					return err
 				}
 			} else {
-				if err := protocol.WriteInt32(w, int32(len(m.ActiveTasks))); err != nil {
+				if err := protocol.WriteArray(w, items, encoder); err != nil {
 					return err
-				}
-			}
-			for i := range m.ActiveTasks {
-				// SubtopologyId
-				if version >= 0 && version <= 999 {
-					if isFlexible {
-						if err := protocol.WriteCompactString(w, m.ActiveTasks[i].SubtopologyId); err != nil {
-							return err
-						}
-					} else {
-						if err := protocol.WriteString(w, m.ActiveTasks[i].SubtopologyId); err != nil {
-							return err
-						}
-					}
-				}
-				// Partitions
-				if version >= 0 && version <= 999 {
-					if isFlexible {
-						length := uint32(len(m.ActiveTasks[i].Partitions) + 1)
-						if err := protocol.WriteVaruint32(w, length); err != nil {
-							return err
-						}
-					} else {
-						if err := protocol.WriteInt32(w, int32(len(m.ActiveTasks[i].Partitions))); err != nil {
-							return err
-						}
-					}
-					for i := range m.ActiveTasks[i].Partitions {
-						if err := protocol.WriteInt32(w, m.ActiveTasks[i].Partitions[i]); err != nil {
-							return err
-						}
-						_ = i
-					}
 				}
 			}
 		}
 	}
 	// StandbyTasks
 	if version >= 0 && version <= 999 {
+		// Encode array using ArrayEncoder
+		encoder := func(item interface{}) ([]byte, error) {
+			if item == nil {
+				return nil, nil
+			}
+			structItem, ok := item.(TaskIds)
+			if !ok {
+				return nil, errors.New("invalid type for array element")
+			}
+			var elemBuf bytes.Buffer
+			// Temporarily use elemBuf as writer
+			elemW := &elemBuf
+			// SubtopologyId
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					if err := protocol.WriteCompactString(elemW, structItem.SubtopologyId); err != nil {
+						return nil, err
+					}
+				} else {
+					if err := protocol.WriteString(elemW, structItem.SubtopologyId); err != nil {
+						return nil, err
+					}
+				}
+			}
+			// Partitions
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					if err := protocol.WriteCompactInt32Array(elemW, structItem.Partitions); err != nil {
+						return nil, err
+					}
+				} else {
+					if err := protocol.WriteInt32Array(elemW, structItem.Partitions); err != nil {
+						return nil, err
+					}
+				}
+			}
+			// Write tagged fields if flexible
+			if isFlexible {
+				if err := structItem.writeTaggedFields(elemW, version); err != nil {
+					return nil, err
+				}
+			}
+			return elemBuf.Bytes(), nil
+		}
+		items := make([]interface{}, len(m.StandbyTasks))
+		for i := range m.StandbyTasks {
+			items[i] = m.StandbyTasks[i]
+		}
 		if m.StandbyTasks == nil {
 			if isFlexible {
 				if err := protocol.WriteVaruint32(w, 0); err != nil {
@@ -248,52 +331,66 @@ func (m *StreamsGroupHeartbeatResponse) Write(w io.Writer, version int16) error 
 			}
 		} else {
 			if isFlexible {
-				length := uint32(len(m.StandbyTasks) + 1)
-				if err := protocol.WriteVaruint32(w, length); err != nil {
+				if err := protocol.WriteCompactArray(w, items, encoder); err != nil {
 					return err
 				}
 			} else {
-				if err := protocol.WriteInt32(w, int32(len(m.StandbyTasks))); err != nil {
+				if err := protocol.WriteArray(w, items, encoder); err != nil {
 					return err
-				}
-			}
-			for i := range m.StandbyTasks {
-				// SubtopologyId
-				if version >= 0 && version <= 999 {
-					if isFlexible {
-						if err := protocol.WriteCompactString(w, m.StandbyTasks[i].SubtopologyId); err != nil {
-							return err
-						}
-					} else {
-						if err := protocol.WriteString(w, m.StandbyTasks[i].SubtopologyId); err != nil {
-							return err
-						}
-					}
-				}
-				// Partitions
-				if version >= 0 && version <= 999 {
-					if isFlexible {
-						length := uint32(len(m.StandbyTasks[i].Partitions) + 1)
-						if err := protocol.WriteVaruint32(w, length); err != nil {
-							return err
-						}
-					} else {
-						if err := protocol.WriteInt32(w, int32(len(m.StandbyTasks[i].Partitions))); err != nil {
-							return err
-						}
-					}
-					for i := range m.StandbyTasks[i].Partitions {
-						if err := protocol.WriteInt32(w, m.StandbyTasks[i].Partitions[i]); err != nil {
-							return err
-						}
-						_ = i
-					}
 				}
 			}
 		}
 	}
 	// WarmupTasks
 	if version >= 0 && version <= 999 {
+		// Encode array using ArrayEncoder
+		encoder := func(item interface{}) ([]byte, error) {
+			if item == nil {
+				return nil, nil
+			}
+			structItem, ok := item.(TaskIds)
+			if !ok {
+				return nil, errors.New("invalid type for array element")
+			}
+			var elemBuf bytes.Buffer
+			// Temporarily use elemBuf as writer
+			elemW := &elemBuf
+			// SubtopologyId
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					if err := protocol.WriteCompactString(elemW, structItem.SubtopologyId); err != nil {
+						return nil, err
+					}
+				} else {
+					if err := protocol.WriteString(elemW, structItem.SubtopologyId); err != nil {
+						return nil, err
+					}
+				}
+			}
+			// Partitions
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					if err := protocol.WriteCompactInt32Array(elemW, structItem.Partitions); err != nil {
+						return nil, err
+					}
+				} else {
+					if err := protocol.WriteInt32Array(elemW, structItem.Partitions); err != nil {
+						return nil, err
+					}
+				}
+			}
+			// Write tagged fields if flexible
+			if isFlexible {
+				if err := structItem.writeTaggedFields(elemW, version); err != nil {
+					return nil, err
+				}
+			}
+			return elemBuf.Bytes(), nil
+		}
+		items := make([]interface{}, len(m.WarmupTasks))
+		for i := range m.WarmupTasks {
+			items[i] = m.WarmupTasks[i]
+		}
 		if m.WarmupTasks == nil {
 			if isFlexible {
 				if err := protocol.WriteVaruint32(w, 0); err != nil {
@@ -306,46 +403,12 @@ func (m *StreamsGroupHeartbeatResponse) Write(w io.Writer, version int16) error 
 			}
 		} else {
 			if isFlexible {
-				length := uint32(len(m.WarmupTasks) + 1)
-				if err := protocol.WriteVaruint32(w, length); err != nil {
+				if err := protocol.WriteCompactArray(w, items, encoder); err != nil {
 					return err
 				}
 			} else {
-				if err := protocol.WriteInt32(w, int32(len(m.WarmupTasks))); err != nil {
+				if err := protocol.WriteArray(w, items, encoder); err != nil {
 					return err
-				}
-			}
-			for i := range m.WarmupTasks {
-				// SubtopologyId
-				if version >= 0 && version <= 999 {
-					if isFlexible {
-						if err := protocol.WriteCompactString(w, m.WarmupTasks[i].SubtopologyId); err != nil {
-							return err
-						}
-					} else {
-						if err := protocol.WriteString(w, m.WarmupTasks[i].SubtopologyId); err != nil {
-							return err
-						}
-					}
-				}
-				// Partitions
-				if version >= 0 && version <= 999 {
-					if isFlexible {
-						length := uint32(len(m.WarmupTasks[i].Partitions) + 1)
-						if err := protocol.WriteVaruint32(w, length); err != nil {
-							return err
-						}
-					} else {
-						if err := protocol.WriteInt32(w, int32(len(m.WarmupTasks[i].Partitions))); err != nil {
-							return err
-						}
-					}
-					for i := range m.WarmupTasks[i].Partitions {
-						if err := protocol.WriteInt32(w, m.WarmupTasks[i].Partitions[i]); err != nil {
-							return err
-						}
-						_ = i
-					}
 				}
 			}
 		}
@@ -358,6 +421,111 @@ func (m *StreamsGroupHeartbeatResponse) Write(w io.Writer, version int16) error 
 	}
 	// PartitionsByUserEndpoint
 	if version >= 0 && version <= 999 {
+		// Encode array using ArrayEncoder
+		encoder := func(item interface{}) ([]byte, error) {
+			if item == nil {
+				return nil, nil
+			}
+			structItem, ok := item.(StreamsGroupHeartbeatResponseEndpointToPartitions)
+			if !ok {
+				return nil, errors.New("invalid type for array element")
+			}
+			var elemBuf bytes.Buffer
+			// Temporarily use elemBuf as writer
+			elemW := &elemBuf
+			// UserEndpoint
+			if version >= 0 && version <= 999 {
+			}
+			// ActivePartitions
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					length := uint32(len(structItem.ActivePartitions) + 1)
+					if err := protocol.WriteVaruint32(elemW, length); err != nil {
+						return nil, err
+					}
+				} else {
+					if err := protocol.WriteInt32(elemW, int32(len(structItem.ActivePartitions))); err != nil {
+						return nil, err
+					}
+				}
+				for i := range structItem.ActivePartitions {
+					// Topic
+					if version >= 0 && version <= 999 {
+						if isFlexible {
+							if err := protocol.WriteCompactString(elemW, structItem.ActivePartitions[i].Topic); err != nil {
+								return nil, err
+							}
+						} else {
+							if err := protocol.WriteString(elemW, structItem.ActivePartitions[i].Topic); err != nil {
+								return nil, err
+							}
+						}
+					}
+					// Partitions
+					if version >= 0 && version <= 999 {
+						if isFlexible {
+							if err := protocol.WriteCompactInt32Array(elemW, structItem.ActivePartitions[i].Partitions); err != nil {
+								return nil, err
+							}
+						} else {
+							if err := protocol.WriteInt32Array(elemW, structItem.ActivePartitions[i].Partitions); err != nil {
+								return nil, err
+							}
+						}
+					}
+				}
+			}
+			// StandbyPartitions
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					length := uint32(len(structItem.StandbyPartitions) + 1)
+					if err := protocol.WriteVaruint32(elemW, length); err != nil {
+						return nil, err
+					}
+				} else {
+					if err := protocol.WriteInt32(elemW, int32(len(structItem.StandbyPartitions))); err != nil {
+						return nil, err
+					}
+				}
+				for i := range structItem.StandbyPartitions {
+					// Topic
+					if version >= 0 && version <= 999 {
+						if isFlexible {
+							if err := protocol.WriteCompactString(elemW, structItem.StandbyPartitions[i].Topic); err != nil {
+								return nil, err
+							}
+						} else {
+							if err := protocol.WriteString(elemW, structItem.StandbyPartitions[i].Topic); err != nil {
+								return nil, err
+							}
+						}
+					}
+					// Partitions
+					if version >= 0 && version <= 999 {
+						if isFlexible {
+							if err := protocol.WriteCompactInt32Array(elemW, structItem.StandbyPartitions[i].Partitions); err != nil {
+								return nil, err
+							}
+						} else {
+							if err := protocol.WriteInt32Array(elemW, structItem.StandbyPartitions[i].Partitions); err != nil {
+								return nil, err
+							}
+						}
+					}
+				}
+			}
+			// Write tagged fields if flexible
+			if isFlexible {
+				if err := structItem.writeTaggedFields(elemW, version); err != nil {
+					return nil, err
+				}
+			}
+			return elemBuf.Bytes(), nil
+		}
+		items := make([]interface{}, len(m.PartitionsByUserEndpoint))
+		for i := range m.PartitionsByUserEndpoint {
+			items[i] = m.PartitionsByUserEndpoint[i]
+		}
 		if m.PartitionsByUserEndpoint == nil {
 			if isFlexible {
 				if err := protocol.WriteVaruint32(w, 0); err != nil {
@@ -370,110 +538,12 @@ func (m *StreamsGroupHeartbeatResponse) Write(w io.Writer, version int16) error 
 			}
 		} else {
 			if isFlexible {
-				length := uint32(len(m.PartitionsByUserEndpoint) + 1)
-				if err := protocol.WriteVaruint32(w, length); err != nil {
+				if err := protocol.WriteCompactArray(w, items, encoder); err != nil {
 					return err
 				}
 			} else {
-				if err := protocol.WriteInt32(w, int32(len(m.PartitionsByUserEndpoint))); err != nil {
+				if err := protocol.WriteArray(w, items, encoder); err != nil {
 					return err
-				}
-			}
-			for i := range m.PartitionsByUserEndpoint {
-				// UserEndpoint
-				if version >= 0 && version <= 999 {
-				}
-				// ActivePartitions
-				if version >= 0 && version <= 999 {
-					if isFlexible {
-						length := uint32(len(m.PartitionsByUserEndpoint[i].ActivePartitions) + 1)
-						if err := protocol.WriteVaruint32(w, length); err != nil {
-							return err
-						}
-					} else {
-						if err := protocol.WriteInt32(w, int32(len(m.PartitionsByUserEndpoint[i].ActivePartitions))); err != nil {
-							return err
-						}
-					}
-					for i := range m.PartitionsByUserEndpoint[i].ActivePartitions {
-						// Topic
-						if version >= 0 && version <= 999 {
-							if isFlexible {
-								if err := protocol.WriteCompactString(w, m.PartitionsByUserEndpoint[i].ActivePartitions[i].Topic); err != nil {
-									return err
-								}
-							} else {
-								if err := protocol.WriteString(w, m.PartitionsByUserEndpoint[i].ActivePartitions[i].Topic); err != nil {
-									return err
-								}
-							}
-						}
-						// Partitions
-						if version >= 0 && version <= 999 {
-							if isFlexible {
-								length := uint32(len(m.PartitionsByUserEndpoint[i].ActivePartitions[i].Partitions) + 1)
-								if err := protocol.WriteVaruint32(w, length); err != nil {
-									return err
-								}
-							} else {
-								if err := protocol.WriteInt32(w, int32(len(m.PartitionsByUserEndpoint[i].ActivePartitions[i].Partitions))); err != nil {
-									return err
-								}
-							}
-							for i := range m.PartitionsByUserEndpoint[i].ActivePartitions[i].Partitions {
-								if err := protocol.WriteInt32(w, m.PartitionsByUserEndpoint[i].ActivePartitions[i].Partitions[i]); err != nil {
-									return err
-								}
-								_ = i
-							}
-						}
-					}
-				}
-				// StandbyPartitions
-				if version >= 0 && version <= 999 {
-					if isFlexible {
-						length := uint32(len(m.PartitionsByUserEndpoint[i].StandbyPartitions) + 1)
-						if err := protocol.WriteVaruint32(w, length); err != nil {
-							return err
-						}
-					} else {
-						if err := protocol.WriteInt32(w, int32(len(m.PartitionsByUserEndpoint[i].StandbyPartitions))); err != nil {
-							return err
-						}
-					}
-					for i := range m.PartitionsByUserEndpoint[i].StandbyPartitions {
-						// Topic
-						if version >= 0 && version <= 999 {
-							if isFlexible {
-								if err := protocol.WriteCompactString(w, m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Topic); err != nil {
-									return err
-								}
-							} else {
-								if err := protocol.WriteString(w, m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Topic); err != nil {
-									return err
-								}
-							}
-						}
-						// Partitions
-						if version >= 0 && version <= 999 {
-							if isFlexible {
-								length := uint32(len(m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Partitions) + 1)
-								if err := protocol.WriteVaruint32(w, length); err != nil {
-									return err
-								}
-							} else {
-								if err := protocol.WriteInt32(w, int32(len(m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Partitions))); err != nil {
-									return err
-								}
-							}
-							for i := range m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Partitions {
-								if err := protocol.WriteInt32(w, m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Partitions[i]); err != nil {
-									return err
-								}
-								_ = i
-							}
-						}
-					}
 				}
 			}
 		}
@@ -580,507 +650,873 @@ func (m *StreamsGroupHeartbeatResponse) Read(r io.Reader, version int16) error {
 	}
 	// Status
 	if version >= 0 && version <= 999 {
-		var length int32
+		// Decode array using ArrayDecoder
+		decoder := func(data []byte) (interface{}, int, error) {
+			var elem Status
+			elemR := bytes.NewReader(data)
+			// StatusCode
+			if version >= 0 && version <= 999 {
+				val, err := protocol.ReadInt8(elemR)
+				if err != nil {
+					return nil, 0, err
+				}
+				elem.StatusCode = val
+			}
+			// StatusDetail
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					val, err := protocol.ReadCompactString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.StatusDetail = val
+				} else {
+					val, err := protocol.ReadString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.StatusDetail = val
+				}
+			}
+			// Read tagged fields if flexible
+			if isFlexible {
+				if err := elem.readTaggedFields(elemR, version); err != nil {
+					return nil, 0, err
+				}
+			}
+			consumed := len(data) - elemR.Len()
+			return elem, consumed, nil
+		}
 		if isFlexible {
-			var lengthUint uint32
 			lengthUint, err := protocol.ReadVaruint32(r)
 			if err != nil {
 				return err
 			}
 			if lengthUint == 0 {
 				m.Status = nil
-			} else {
-				if lengthUint < 1 {
-					return errors.New("invalid compact array length")
+				return nil
+			}
+			if lengthUint < 1 {
+				return errors.New("invalid compact array length")
+			}
+			length := int32(lengthUint - 1)
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
+			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem Status
+				// StatusCode
+				if version >= 0 && version <= 999 {
+					val, err := protocol.ReadInt8(r)
+					if err != nil {
+						return err
+					}
+					tempElem.StatusCode = val
 				}
-				length = int32(lengthUint - 1)
-				m.Status = make([]Status, length)
-				for i := int32(0); i < length; i++ {
-					// StatusCode
-					if version >= 0 && version <= 999 {
-						val, err := protocol.ReadInt8(r)
+				// StatusDetail
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactString(r)
 						if err != nil {
 							return err
 						}
-						m.Status[i].StatusCode = val
+						tempElem.StatusDetail = val
+					} else {
+						val, err := protocol.ReadString(r)
+						if err != nil {
+							return err
+						}
+						tempElem.StatusDetail = val
 					}
-					// StatusDetail
-					if version >= 0 && version <= 999 {
-						if isFlexible {
-							val, err := protocol.ReadCompactString(r)
-							if err != nil {
-								return err
-							}
-							m.Status[i].StatusDetail = val
-						} else {
-							val, err := protocol.ReadString(r)
-							if err != nil {
-								return err
-							}
-							m.Status[i].StatusDetail = val
+				}
+				// StatusCode
+				if version >= 0 && version <= 999 {
+					if err := protocol.WriteInt8(elemW, tempElem.StatusCode); err != nil {
+						return err
+					}
+				}
+				// StatusDetail
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.StatusDetail); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.StatusDetail); err != nil {
+							return err
 						}
 					}
 				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeCompactArray
+			lengthBytes := protocol.EncodeVaruint32(lengthUint)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.Status = make([]Status, len(decoded))
+			for i, item := range decoded {
+				m.Status[i] = item.(Status)
 			}
 		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			length, err := protocol.ReadInt32(r)
 			if err != nil {
 				return err
 			}
 			if length == -1 {
 				m.Status = nil
-			} else {
-				m.Status = make([]Status, length)
-				for i := int32(0); i < length; i++ {
-					// StatusCode
-					if version >= 0 && version <= 999 {
-						val, err := protocol.ReadInt8(r)
+				return nil
+			}
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
+			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem Status
+				// StatusCode
+				if version >= 0 && version <= 999 {
+					val, err := protocol.ReadInt8(r)
+					if err != nil {
+						return err
+					}
+					tempElem.StatusCode = val
+				}
+				// StatusDetail
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactString(r)
 						if err != nil {
 							return err
 						}
-						m.Status[i].StatusCode = val
+						tempElem.StatusDetail = val
+					} else {
+						val, err := protocol.ReadString(r)
+						if err != nil {
+							return err
+						}
+						tempElem.StatusDetail = val
 					}
-					// StatusDetail
-					if version >= 0 && version <= 999 {
-						if isFlexible {
-							val, err := protocol.ReadCompactString(r)
-							if err != nil {
-								return err
-							}
-							m.Status[i].StatusDetail = val
-						} else {
-							val, err := protocol.ReadString(r)
-							if err != nil {
-								return err
-							}
-							m.Status[i].StatusDetail = val
+				}
+				// StatusCode
+				if version >= 0 && version <= 999 {
+					if err := protocol.WriteInt8(elemW, tempElem.StatusCode); err != nil {
+						return err
+					}
+				}
+				// StatusDetail
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.StatusDetail); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.StatusDetail); err != nil {
+							return err
 						}
 					}
 				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeArray
+			lengthBytes := protocol.EncodeInt32(length)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.Status = make([]Status, len(decoded))
+			for i, item := range decoded {
+				m.Status[i] = item.(Status)
 			}
 		}
 	}
 	// ActiveTasks
 	if version >= 0 && version <= 999 {
-		var length int32
+		// Decode array using ArrayDecoder
+		decoder := func(data []byte) (interface{}, int, error) {
+			var elem TaskIds
+			elemR := bytes.NewReader(data)
+			// SubtopologyId
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					val, err := protocol.ReadCompactString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.SubtopologyId = val
+				} else {
+					val, err := protocol.ReadString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.SubtopologyId = val
+				}
+			}
+			// Partitions
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					val, err := protocol.ReadCompactInt32Array(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.Partitions = val
+				} else {
+					val, err := protocol.ReadInt32Array(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.Partitions = val
+				}
+			}
+			// Read tagged fields if flexible
+			if isFlexible {
+				if err := elem.readTaggedFields(elemR, version); err != nil {
+					return nil, 0, err
+				}
+			}
+			consumed := len(data) - elemR.Len()
+			return elem, consumed, nil
+		}
 		if isFlexible {
-			var lengthUint uint32
 			lengthUint, err := protocol.ReadVaruint32(r)
 			if err != nil {
 				return err
 			}
 			if lengthUint == 0 {
 				m.ActiveTasks = nil
-			} else {
-				if lengthUint < 1 {
-					return errors.New("invalid compact array length")
-				}
-				length = int32(lengthUint - 1)
-				m.ActiveTasks = make([]TaskIds, length)
-				for i := int32(0); i < length; i++ {
-					// SubtopologyId
-					if version >= 0 && version <= 999 {
-						if isFlexible {
-							val, err := protocol.ReadCompactString(r)
-							if err != nil {
-								return err
-							}
-							m.ActiveTasks[i].SubtopologyId = val
-						} else {
-							val, err := protocol.ReadString(r)
-							if err != nil {
-								return err
-							}
-							m.ActiveTasks[i].SubtopologyId = val
+				return nil
+			}
+			if lengthUint < 1 {
+				return errors.New("invalid compact array length")
+			}
+			length := int32(lengthUint - 1)
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
+			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem TaskIds
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactString(r)
+						if err != nil {
+							return err
 						}
+						tempElem.SubtopologyId = val
+					} else {
+						val, err := protocol.ReadString(r)
+						if err != nil {
+							return err
+						}
+						tempElem.SubtopologyId = val
 					}
-					// Partitions
-					if version >= 0 && version <= 999 {
-						var length int32
-						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
-								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.ActiveTasks[i].Partitions = make([]int32, length)
-							for i := int32(0); i < length; i++ {
-								val, err := protocol.ReadInt32(r)
-								if err != nil {
-									return err
-								}
-								m.ActiveTasks[i].Partitions[i] = val
-							}
-						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
-								return err
-							}
-							m.ActiveTasks[i].Partitions = make([]int32, length)
-							for i := int32(0); i < length; i++ {
-								val, err := protocol.ReadInt32(r)
-								if err != nil {
-									return err
-								}
-								m.ActiveTasks[i].Partitions[i] = val
-							}
+				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactInt32Array(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Partitions = val
+					} else {
+						val, err := protocol.ReadInt32Array(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Partitions = val
+					}
+				}
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
 						}
 					}
 				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactInt32Array(elemW, tempElem.Partitions); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32Array(elemW, tempElem.Partitions); err != nil {
+							return err
+						}
+					}
+				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeCompactArray
+			lengthBytes := protocol.EncodeVaruint32(lengthUint)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.ActiveTasks = make([]TaskIds, len(decoded))
+			for i, item := range decoded {
+				m.ActiveTasks[i] = item.(TaskIds)
 			}
 		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			length, err := protocol.ReadInt32(r)
 			if err != nil {
 				return err
 			}
 			if length == -1 {
 				m.ActiveTasks = nil
-			} else {
-				m.ActiveTasks = make([]TaskIds, length)
-				for i := int32(0); i < length; i++ {
-					// SubtopologyId
-					if version >= 0 && version <= 999 {
-						if isFlexible {
-							val, err := protocol.ReadCompactString(r)
-							if err != nil {
-								return err
-							}
-							m.ActiveTasks[i].SubtopologyId = val
-						} else {
-							val, err := protocol.ReadString(r)
-							if err != nil {
-								return err
-							}
-							m.ActiveTasks[i].SubtopologyId = val
+				return nil
+			}
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
+			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem TaskIds
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactString(r)
+						if err != nil {
+							return err
 						}
+						tempElem.SubtopologyId = val
+					} else {
+						val, err := protocol.ReadString(r)
+						if err != nil {
+							return err
+						}
+						tempElem.SubtopologyId = val
 					}
-					// Partitions
-					if version >= 0 && version <= 999 {
-						var length int32
-						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
-								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.ActiveTasks[i].Partitions = make([]int32, length)
-							for i := int32(0); i < length; i++ {
-								val, err := protocol.ReadInt32(r)
-								if err != nil {
-									return err
-								}
-								m.ActiveTasks[i].Partitions[i] = val
-							}
-						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
-								return err
-							}
-							m.ActiveTasks[i].Partitions = make([]int32, length)
-							for i := int32(0); i < length; i++ {
-								val, err := protocol.ReadInt32(r)
-								if err != nil {
-									return err
-								}
-								m.ActiveTasks[i].Partitions[i] = val
-							}
+				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactInt32Array(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Partitions = val
+					} else {
+						val, err := protocol.ReadInt32Array(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Partitions = val
+					}
+				}
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
 						}
 					}
 				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactInt32Array(elemW, tempElem.Partitions); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32Array(elemW, tempElem.Partitions); err != nil {
+							return err
+						}
+					}
+				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeArray
+			lengthBytes := protocol.EncodeInt32(length)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.ActiveTasks = make([]TaskIds, len(decoded))
+			for i, item := range decoded {
+				m.ActiveTasks[i] = item.(TaskIds)
 			}
 		}
 	}
 	// StandbyTasks
 	if version >= 0 && version <= 999 {
-		var length int32
+		// Decode array using ArrayDecoder
+		decoder := func(data []byte) (interface{}, int, error) {
+			var elem TaskIds
+			elemR := bytes.NewReader(data)
+			// SubtopologyId
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					val, err := protocol.ReadCompactString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.SubtopologyId = val
+				} else {
+					val, err := protocol.ReadString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.SubtopologyId = val
+				}
+			}
+			// Partitions
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					val, err := protocol.ReadCompactInt32Array(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.Partitions = val
+				} else {
+					val, err := protocol.ReadInt32Array(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.Partitions = val
+				}
+			}
+			// Read tagged fields if flexible
+			if isFlexible {
+				if err := elem.readTaggedFields(elemR, version); err != nil {
+					return nil, 0, err
+				}
+			}
+			consumed := len(data) - elemR.Len()
+			return elem, consumed, nil
+		}
 		if isFlexible {
-			var lengthUint uint32
 			lengthUint, err := protocol.ReadVaruint32(r)
 			if err != nil {
 				return err
 			}
 			if lengthUint == 0 {
 				m.StandbyTasks = nil
-			} else {
-				if lengthUint < 1 {
-					return errors.New("invalid compact array length")
-				}
-				length = int32(lengthUint - 1)
-				m.StandbyTasks = make([]TaskIds, length)
-				for i := int32(0); i < length; i++ {
-					// SubtopologyId
-					if version >= 0 && version <= 999 {
-						if isFlexible {
-							val, err := protocol.ReadCompactString(r)
-							if err != nil {
-								return err
-							}
-							m.StandbyTasks[i].SubtopologyId = val
-						} else {
-							val, err := protocol.ReadString(r)
-							if err != nil {
-								return err
-							}
-							m.StandbyTasks[i].SubtopologyId = val
+				return nil
+			}
+			if lengthUint < 1 {
+				return errors.New("invalid compact array length")
+			}
+			length := int32(lengthUint - 1)
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
+			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem TaskIds
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactString(r)
+						if err != nil {
+							return err
 						}
+						tempElem.SubtopologyId = val
+					} else {
+						val, err := protocol.ReadString(r)
+						if err != nil {
+							return err
+						}
+						tempElem.SubtopologyId = val
 					}
-					// Partitions
-					if version >= 0 && version <= 999 {
-						var length int32
-						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
-								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.StandbyTasks[i].Partitions = make([]int32, length)
-							for i := int32(0); i < length; i++ {
-								val, err := protocol.ReadInt32(r)
-								if err != nil {
-									return err
-								}
-								m.StandbyTasks[i].Partitions[i] = val
-							}
-						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
-								return err
-							}
-							m.StandbyTasks[i].Partitions = make([]int32, length)
-							for i := int32(0); i < length; i++ {
-								val, err := protocol.ReadInt32(r)
-								if err != nil {
-									return err
-								}
-								m.StandbyTasks[i].Partitions[i] = val
-							}
+				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactInt32Array(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Partitions = val
+					} else {
+						val, err := protocol.ReadInt32Array(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Partitions = val
+					}
+				}
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
 						}
 					}
 				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactInt32Array(elemW, tempElem.Partitions); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32Array(elemW, tempElem.Partitions); err != nil {
+							return err
+						}
+					}
+				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeCompactArray
+			lengthBytes := protocol.EncodeVaruint32(lengthUint)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.StandbyTasks = make([]TaskIds, len(decoded))
+			for i, item := range decoded {
+				m.StandbyTasks[i] = item.(TaskIds)
 			}
 		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			length, err := protocol.ReadInt32(r)
 			if err != nil {
 				return err
 			}
 			if length == -1 {
 				m.StandbyTasks = nil
-			} else {
-				m.StandbyTasks = make([]TaskIds, length)
-				for i := int32(0); i < length; i++ {
-					// SubtopologyId
-					if version >= 0 && version <= 999 {
-						if isFlexible {
-							val, err := protocol.ReadCompactString(r)
-							if err != nil {
-								return err
-							}
-							m.StandbyTasks[i].SubtopologyId = val
-						} else {
-							val, err := protocol.ReadString(r)
-							if err != nil {
-								return err
-							}
-							m.StandbyTasks[i].SubtopologyId = val
+				return nil
+			}
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
+			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem TaskIds
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactString(r)
+						if err != nil {
+							return err
 						}
+						tempElem.SubtopologyId = val
+					} else {
+						val, err := protocol.ReadString(r)
+						if err != nil {
+							return err
+						}
+						tempElem.SubtopologyId = val
 					}
-					// Partitions
-					if version >= 0 && version <= 999 {
-						var length int32
-						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
-								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.StandbyTasks[i].Partitions = make([]int32, length)
-							for i := int32(0); i < length; i++ {
-								val, err := protocol.ReadInt32(r)
-								if err != nil {
-									return err
-								}
-								m.StandbyTasks[i].Partitions[i] = val
-							}
-						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
-								return err
-							}
-							m.StandbyTasks[i].Partitions = make([]int32, length)
-							for i := int32(0); i < length; i++ {
-								val, err := protocol.ReadInt32(r)
-								if err != nil {
-									return err
-								}
-								m.StandbyTasks[i].Partitions[i] = val
-							}
+				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactInt32Array(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Partitions = val
+					} else {
+						val, err := protocol.ReadInt32Array(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Partitions = val
+					}
+				}
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
 						}
 					}
 				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactInt32Array(elemW, tempElem.Partitions); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32Array(elemW, tempElem.Partitions); err != nil {
+							return err
+						}
+					}
+				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeArray
+			lengthBytes := protocol.EncodeInt32(length)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.StandbyTasks = make([]TaskIds, len(decoded))
+			for i, item := range decoded {
+				m.StandbyTasks[i] = item.(TaskIds)
 			}
 		}
 	}
 	// WarmupTasks
 	if version >= 0 && version <= 999 {
-		var length int32
+		// Decode array using ArrayDecoder
+		decoder := func(data []byte) (interface{}, int, error) {
+			var elem TaskIds
+			elemR := bytes.NewReader(data)
+			// SubtopologyId
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					val, err := protocol.ReadCompactString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.SubtopologyId = val
+				} else {
+					val, err := protocol.ReadString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.SubtopologyId = val
+				}
+			}
+			// Partitions
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					val, err := protocol.ReadCompactInt32Array(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.Partitions = val
+				} else {
+					val, err := protocol.ReadInt32Array(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.Partitions = val
+				}
+			}
+			// Read tagged fields if flexible
+			if isFlexible {
+				if err := elem.readTaggedFields(elemR, version); err != nil {
+					return nil, 0, err
+				}
+			}
+			consumed := len(data) - elemR.Len()
+			return elem, consumed, nil
+		}
 		if isFlexible {
-			var lengthUint uint32
 			lengthUint, err := protocol.ReadVaruint32(r)
 			if err != nil {
 				return err
 			}
 			if lengthUint == 0 {
 				m.WarmupTasks = nil
-			} else {
-				if lengthUint < 1 {
-					return errors.New("invalid compact array length")
-				}
-				length = int32(lengthUint - 1)
-				m.WarmupTasks = make([]TaskIds, length)
-				for i := int32(0); i < length; i++ {
-					// SubtopologyId
-					if version >= 0 && version <= 999 {
-						if isFlexible {
-							val, err := protocol.ReadCompactString(r)
-							if err != nil {
-								return err
-							}
-							m.WarmupTasks[i].SubtopologyId = val
-						} else {
-							val, err := protocol.ReadString(r)
-							if err != nil {
-								return err
-							}
-							m.WarmupTasks[i].SubtopologyId = val
+				return nil
+			}
+			if lengthUint < 1 {
+				return errors.New("invalid compact array length")
+			}
+			length := int32(lengthUint - 1)
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
+			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem TaskIds
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactString(r)
+						if err != nil {
+							return err
 						}
+						tempElem.SubtopologyId = val
+					} else {
+						val, err := protocol.ReadString(r)
+						if err != nil {
+							return err
+						}
+						tempElem.SubtopologyId = val
 					}
-					// Partitions
-					if version >= 0 && version <= 999 {
-						var length int32
-						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
-								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.WarmupTasks[i].Partitions = make([]int32, length)
-							for i := int32(0); i < length; i++ {
-								val, err := protocol.ReadInt32(r)
-								if err != nil {
-									return err
-								}
-								m.WarmupTasks[i].Partitions[i] = val
-							}
-						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
-								return err
-							}
-							m.WarmupTasks[i].Partitions = make([]int32, length)
-							for i := int32(0); i < length; i++ {
-								val, err := protocol.ReadInt32(r)
-								if err != nil {
-									return err
-								}
-								m.WarmupTasks[i].Partitions[i] = val
-							}
+				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactInt32Array(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Partitions = val
+					} else {
+						val, err := protocol.ReadInt32Array(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Partitions = val
+					}
+				}
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
 						}
 					}
 				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactInt32Array(elemW, tempElem.Partitions); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32Array(elemW, tempElem.Partitions); err != nil {
+							return err
+						}
+					}
+				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeCompactArray
+			lengthBytes := protocol.EncodeVaruint32(lengthUint)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.WarmupTasks = make([]TaskIds, len(decoded))
+			for i, item := range decoded {
+				m.WarmupTasks[i] = item.(TaskIds)
 			}
 		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			length, err := protocol.ReadInt32(r)
 			if err != nil {
 				return err
 			}
 			if length == -1 {
 				m.WarmupTasks = nil
-			} else {
-				m.WarmupTasks = make([]TaskIds, length)
-				for i := int32(0); i < length; i++ {
-					// SubtopologyId
-					if version >= 0 && version <= 999 {
-						if isFlexible {
-							val, err := protocol.ReadCompactString(r)
-							if err != nil {
-								return err
-							}
-							m.WarmupTasks[i].SubtopologyId = val
-						} else {
-							val, err := protocol.ReadString(r)
-							if err != nil {
-								return err
-							}
-							m.WarmupTasks[i].SubtopologyId = val
+				return nil
+			}
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
+			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem TaskIds
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactString(r)
+						if err != nil {
+							return err
 						}
+						tempElem.SubtopologyId = val
+					} else {
+						val, err := protocol.ReadString(r)
+						if err != nil {
+							return err
+						}
+						tempElem.SubtopologyId = val
 					}
-					// Partitions
-					if version >= 0 && version <= 999 {
-						var length int32
-						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
-								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.WarmupTasks[i].Partitions = make([]int32, length)
-							for i := int32(0); i < length; i++ {
-								val, err := protocol.ReadInt32(r)
-								if err != nil {
-									return err
-								}
-								m.WarmupTasks[i].Partitions[i] = val
-							}
-						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
-								return err
-							}
-							m.WarmupTasks[i].Partitions = make([]int32, length)
-							for i := int32(0); i < length; i++ {
-								val, err := protocol.ReadInt32(r)
-								if err != nil {
-									return err
-								}
-								m.WarmupTasks[i].Partitions[i] = val
-							}
+				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactInt32Array(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Partitions = val
+					} else {
+						val, err := protocol.ReadInt32Array(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Partitions = val
+					}
+				}
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
 						}
 					}
 				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactInt32Array(elemW, tempElem.Partitions); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32Array(elemW, tempElem.Partitions); err != nil {
+							return err
+						}
+					}
+				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeArray
+			lengthBytes := protocol.EncodeInt32(length)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.WarmupTasks = make([]TaskIds, len(decoded))
+			for i, item := range decoded {
+				m.WarmupTasks[i] = item.(TaskIds)
 			}
 		}
 	}
@@ -1094,574 +1530,1117 @@ func (m *StreamsGroupHeartbeatResponse) Read(r io.Reader, version int16) error {
 	}
 	// PartitionsByUserEndpoint
 	if version >= 0 && version <= 999 {
-		var length int32
+		// Decode array using ArrayDecoder
+		decoder := func(data []byte) (interface{}, int, error) {
+			var elem StreamsGroupHeartbeatResponseEndpointToPartitions
+			elemR := bytes.NewReader(data)
+			// UserEndpoint
+			if version >= 0 && version <= 999 {
+			}
+			// ActivePartitions
+			if version >= 0 && version <= 999 {
+				// Nested array in decoder - manual handling needed
+				return nil, 0, errors.New("nested arrays in decoder not fully supported")
+			}
+			// StandbyPartitions
+			if version >= 0 && version <= 999 {
+				// Nested array in decoder - manual handling needed
+				return nil, 0, errors.New("nested arrays in decoder not fully supported")
+			}
+			// Read tagged fields if flexible
+			if isFlexible {
+				if err := elem.readTaggedFields(elemR, version); err != nil {
+					return nil, 0, err
+				}
+			}
+			consumed := len(data) - elemR.Len()
+			return elem, consumed, nil
+		}
 		if isFlexible {
-			var lengthUint uint32
 			lengthUint, err := protocol.ReadVaruint32(r)
 			if err != nil {
 				return err
 			}
 			if lengthUint == 0 {
 				m.PartitionsByUserEndpoint = nil
-			} else {
-				if lengthUint < 1 {
-					return errors.New("invalid compact array length")
+				return nil
+			}
+			if lengthUint < 1 {
+				return errors.New("invalid compact array length")
+			}
+			length := int32(lengthUint - 1)
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
+			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem StreamsGroupHeartbeatResponseEndpointToPartitions
+				// UserEndpoint
+				if version >= 0 && version <= 999 {
 				}
-				length = int32(lengthUint - 1)
-				m.PartitionsByUserEndpoint = make([]StreamsGroupHeartbeatResponseEndpointToPartitions, length)
-				for i := int32(0); i < length; i++ {
-					// UserEndpoint
-					if version >= 0 && version <= 999 {
+				// ActivePartitions
+				if version >= 0 && version <= 999 {
+					// Decode array using ArrayDecoder
+					decoder := func(data []byte) (interface{}, int, error) {
+						var elem TopicPartition
+						elemR := bytes.NewReader(data)
+						// Topic
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								val, err := protocol.ReadCompactString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Topic = val
+							} else {
+								val, err := protocol.ReadString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Topic = val
+							}
+						}
+						// Partitions
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								val, err := protocol.ReadCompactInt32Array(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Partitions = val
+							} else {
+								val, err := protocol.ReadInt32Array(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Partitions = val
+							}
+						}
+						consumed := len(data) - elemR.Len()
+						return elem, consumed, nil
 					}
-					// ActivePartitions
-					if version >= 0 && version <= 999 {
-						var length int32
-						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
-								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.PartitionsByUserEndpoint[i].ActivePartitions = make([]TopicPartition, length)
-							for i := int32(0); i < length; i++ {
-								// Topic
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactString(r)
-										if err != nil {
-											return err
-										}
-										m.PartitionsByUserEndpoint[i].ActivePartitions[i].Topic = val
-									} else {
-										val, err := protocol.ReadString(r)
-										if err != nil {
-											return err
-										}
-										m.PartitionsByUserEndpoint[i].ActivePartitions[i].Topic = val
+					if isFlexible {
+						lengthUint, err := protocol.ReadVaruint32(r)
+						if err != nil {
+							return err
+						}
+						if lengthUint < 1 {
+							return errors.New("invalid compact array length")
+						}
+						length := int32(lengthUint - 1)
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
+						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem TopicPartition
+							// Topic
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactString(r)
+									if err != nil {
+										return err
 									}
+									tempElem.Topic = val
+								} else {
+									val, err := protocol.ReadString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Topic = val
 								}
-								// Partitions
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.PartitionsByUserEndpoint[i].ActivePartitions[i].Partitions = make([]int32, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt32(r)
-											if err != nil {
-												return err
-											}
-											m.PartitionsByUserEndpoint[i].ActivePartitions[i].Partitions[i] = val
-										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.PartitionsByUserEndpoint[i].ActivePartitions[i].Partitions = make([]int32, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt32(r)
-											if err != nil {
-												return err
-											}
-											m.PartitionsByUserEndpoint[i].ActivePartitions[i].Partitions[i] = val
-										}
+							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactInt32Array(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Partitions = val
+								} else {
+									val, err := protocol.ReadInt32Array(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Partitions = val
+								}
+							}
+							// Topic
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactString(elemW, tempElem.Topic); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteString(elemW, tempElem.Topic); err != nil {
+										return err
 									}
 								}
 							}
-						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
-								return err
-							}
-							m.PartitionsByUserEndpoint[i].ActivePartitions = make([]TopicPartition, length)
-							for i := int32(0); i < length; i++ {
-								// Topic
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactString(r)
-										if err != nil {
-											return err
-										}
-										m.PartitionsByUserEndpoint[i].ActivePartitions[i].Topic = val
-									} else {
-										val, err := protocol.ReadString(r)
-										if err != nil {
-											return err
-										}
-										m.PartitionsByUserEndpoint[i].ActivePartitions[i].Topic = val
+							// Partitions
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactInt32Array(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt32Array(elemW, tempElem.Partitions); err != nil {
+										return err
 									}
 								}
-								// Partitions
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.PartitionsByUserEndpoint[i].ActivePartitions[i].Partitions = make([]int32, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt32(r)
-											if err != nil {
-												return err
-											}
-											m.PartitionsByUserEndpoint[i].ActivePartitions[i].Partitions[i] = val
-										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.PartitionsByUserEndpoint[i].ActivePartitions[i].Partitions = make([]int32, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt32(r)
-											if err != nil {
-												return err
-											}
-											m.PartitionsByUserEndpoint[i].ActivePartitions[i].Partitions[i] = val
-										}
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
+						}
+						// Prepend length and decode using DecodeCompactArray
+						lengthBytes := protocol.EncodeVaruint32(lengthUint)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+						if err != nil {
+							return err
+						}
+						// Convert []interface{} to typed slice
+						tempElem.ActivePartitions = make([]TopicPartition, len(decoded))
+						for i, item := range decoded {
+							tempElem.ActivePartitions[i] = item.(TopicPartition)
+						}
+					} else {
+						length, err := protocol.ReadInt32(r)
+						if err != nil {
+							return err
+						}
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
+						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem TopicPartition
+							// Topic
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactString(r)
+									if err != nil {
+										return err
 									}
+									tempElem.Topic = val
+								} else {
+									val, err := protocol.ReadString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Topic = val
+								}
+							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactInt32Array(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Partitions = val
+								} else {
+									val, err := protocol.ReadInt32Array(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Partitions = val
+								}
+							}
+							// Topic
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactString(elemW, tempElem.Topic); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteString(elemW, tempElem.Topic); err != nil {
+										return err
+									}
+								}
+							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactInt32Array(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt32Array(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								}
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
+						}
+						// Prepend length and decode using DecodeArray
+						lengthBytes := protocol.EncodeInt32(length)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeArray(fullData, decoder)
+						if err != nil {
+							return err
+						}
+						// Convert []interface{} to typed slice
+						tempElem.ActivePartitions = make([]TopicPartition, len(decoded))
+						for i, item := range decoded {
+							tempElem.ActivePartitions[i] = item.(TopicPartition)
+						}
+					}
+				}
+				// StandbyPartitions
+				if version >= 0 && version <= 999 {
+					// Decode array using ArrayDecoder
+					decoder := func(data []byte) (interface{}, int, error) {
+						var elem TopicPartition
+						elemR := bytes.NewReader(data)
+						// Topic
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								val, err := protocol.ReadCompactString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Topic = val
+							} else {
+								val, err := protocol.ReadString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Topic = val
+							}
+						}
+						// Partitions
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								val, err := protocol.ReadCompactInt32Array(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Partitions = val
+							} else {
+								val, err := protocol.ReadInt32Array(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Partitions = val
+							}
+						}
+						consumed := len(data) - elemR.Len()
+						return elem, consumed, nil
+					}
+					if isFlexible {
+						lengthUint, err := protocol.ReadVaruint32(r)
+						if err != nil {
+							return err
+						}
+						if lengthUint < 1 {
+							return errors.New("invalid compact array length")
+						}
+						length := int32(lengthUint - 1)
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
+						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem TopicPartition
+							// Topic
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Topic = val
+								} else {
+									val, err := protocol.ReadString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Topic = val
+								}
+							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactInt32Array(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Partitions = val
+								} else {
+									val, err := protocol.ReadInt32Array(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Partitions = val
+								}
+							}
+							// Topic
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactString(elemW, tempElem.Topic); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteString(elemW, tempElem.Topic); err != nil {
+										return err
+									}
+								}
+							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactInt32Array(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt32Array(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								}
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
+						}
+						// Prepend length and decode using DecodeCompactArray
+						lengthBytes := protocol.EncodeVaruint32(lengthUint)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+						if err != nil {
+							return err
+						}
+						// Convert []interface{} to typed slice
+						tempElem.StandbyPartitions = make([]TopicPartition, len(decoded))
+						for i, item := range decoded {
+							tempElem.StandbyPartitions[i] = item.(TopicPartition)
+						}
+					} else {
+						length, err := protocol.ReadInt32(r)
+						if err != nil {
+							return err
+						}
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
+						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem TopicPartition
+							// Topic
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Topic = val
+								} else {
+									val, err := protocol.ReadString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Topic = val
+								}
+							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactInt32Array(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Partitions = val
+								} else {
+									val, err := protocol.ReadInt32Array(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Partitions = val
+								}
+							}
+							// Topic
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactString(elemW, tempElem.Topic); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteString(elemW, tempElem.Topic); err != nil {
+										return err
+									}
+								}
+							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactInt32Array(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt32Array(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								}
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
+						}
+						// Prepend length and decode using DecodeArray
+						lengthBytes := protocol.EncodeInt32(length)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeArray(fullData, decoder)
+						if err != nil {
+							return err
+						}
+						// Convert []interface{} to typed slice
+						tempElem.StandbyPartitions = make([]TopicPartition, len(decoded))
+						for i, item := range decoded {
+							tempElem.StandbyPartitions[i] = item.(TopicPartition)
+						}
+					}
+				}
+				// UserEndpoint
+				if version >= 0 && version <= 999 {
+				}
+				// ActivePartitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						length := uint32(len(tempElem.ActivePartitions) + 1)
+						if err := protocol.WriteVaruint32(elemW, length); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32(elemW, int32(len(tempElem.ActivePartitions))); err != nil {
+							return err
+						}
+					}
+					for i := range tempElem.ActivePartitions {
+						// Topic
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								if err := protocol.WriteCompactString(elemW, tempElem.ActivePartitions[i].Topic); err != nil {
+									return err
+								}
+							} else {
+								if err := protocol.WriteString(elemW, tempElem.ActivePartitions[i].Topic); err != nil {
+									return err
+								}
+							}
+						}
+						// Partitions
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								if err := protocol.WriteCompactInt32Array(elemW, tempElem.ActivePartitions[i].Partitions); err != nil {
+									return err
+								}
+							} else {
+								if err := protocol.WriteInt32Array(elemW, tempElem.ActivePartitions[i].Partitions); err != nil {
+									return err
 								}
 							}
 						}
 					}
-					// StandbyPartitions
-					if version >= 0 && version <= 999 {
-						var length int32
-						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
-								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.PartitionsByUserEndpoint[i].StandbyPartitions = make([]TopicPartition, length)
-							for i := int32(0); i < length; i++ {
-								// Topic
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactString(r)
-										if err != nil {
-											return err
-										}
-										m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Topic = val
-									} else {
-										val, err := protocol.ReadString(r)
-										if err != nil {
-											return err
-										}
-										m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Topic = val
-									}
+				}
+				// StandbyPartitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						length := uint32(len(tempElem.StandbyPartitions) + 1)
+						if err := protocol.WriteVaruint32(elemW, length); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32(elemW, int32(len(tempElem.StandbyPartitions))); err != nil {
+							return err
+						}
+					}
+					for i := range tempElem.StandbyPartitions {
+						// Topic
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								if err := protocol.WriteCompactString(elemW, tempElem.StandbyPartitions[i].Topic); err != nil {
+									return err
 								}
-								// Partitions
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Partitions = make([]int32, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt32(r)
-											if err != nil {
-												return err
-											}
-											m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Partitions[i] = val
-										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Partitions = make([]int32, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt32(r)
-											if err != nil {
-												return err
-											}
-											m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Partitions[i] = val
-										}
-									}
+							} else {
+								if err := protocol.WriteString(elemW, tempElem.StandbyPartitions[i].Topic); err != nil {
+									return err
 								}
 							}
-						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
-								return err
-							}
-							m.PartitionsByUserEndpoint[i].StandbyPartitions = make([]TopicPartition, length)
-							for i := int32(0); i < length; i++ {
-								// Topic
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactString(r)
-										if err != nil {
-											return err
-										}
-										m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Topic = val
-									} else {
-										val, err := protocol.ReadString(r)
-										if err != nil {
-											return err
-										}
-										m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Topic = val
-									}
+						}
+						// Partitions
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								if err := protocol.WriteCompactInt32Array(elemW, tempElem.StandbyPartitions[i].Partitions); err != nil {
+									return err
 								}
-								// Partitions
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Partitions = make([]int32, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt32(r)
-											if err != nil {
-												return err
-											}
-											m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Partitions[i] = val
-										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Partitions = make([]int32, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt32(r)
-											if err != nil {
-												return err
-											}
-											m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Partitions[i] = val
-										}
-									}
+							} else {
+								if err := protocol.WriteInt32Array(elemW, tempElem.StandbyPartitions[i].Partitions); err != nil {
+									return err
 								}
 							}
 						}
 					}
 				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeCompactArray
+			lengthBytes := protocol.EncodeVaruint32(lengthUint)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.PartitionsByUserEndpoint = make([]StreamsGroupHeartbeatResponseEndpointToPartitions, len(decoded))
+			for i, item := range decoded {
+				m.PartitionsByUserEndpoint[i] = item.(StreamsGroupHeartbeatResponseEndpointToPartitions)
 			}
 		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			length, err := protocol.ReadInt32(r)
 			if err != nil {
 				return err
 			}
 			if length == -1 {
 				m.PartitionsByUserEndpoint = nil
-			} else {
-				m.PartitionsByUserEndpoint = make([]StreamsGroupHeartbeatResponseEndpointToPartitions, length)
-				for i := int32(0); i < length; i++ {
-					// UserEndpoint
-					if version >= 0 && version <= 999 {
+				return nil
+			}
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
+			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem StreamsGroupHeartbeatResponseEndpointToPartitions
+				// UserEndpoint
+				if version >= 0 && version <= 999 {
+				}
+				// ActivePartitions
+				if version >= 0 && version <= 999 {
+					// Decode array using ArrayDecoder
+					decoder := func(data []byte) (interface{}, int, error) {
+						var elem TopicPartition
+						elemR := bytes.NewReader(data)
+						// Topic
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								val, err := protocol.ReadCompactString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Topic = val
+							} else {
+								val, err := protocol.ReadString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Topic = val
+							}
+						}
+						// Partitions
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								val, err := protocol.ReadCompactInt32Array(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Partitions = val
+							} else {
+								val, err := protocol.ReadInt32Array(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Partitions = val
+							}
+						}
+						consumed := len(data) - elemR.Len()
+						return elem, consumed, nil
 					}
-					// ActivePartitions
-					if version >= 0 && version <= 999 {
-						var length int32
-						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
-								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.PartitionsByUserEndpoint[i].ActivePartitions = make([]TopicPartition, length)
-							for i := int32(0); i < length; i++ {
-								// Topic
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactString(r)
-										if err != nil {
-											return err
-										}
-										m.PartitionsByUserEndpoint[i].ActivePartitions[i].Topic = val
-									} else {
-										val, err := protocol.ReadString(r)
-										if err != nil {
-											return err
-										}
-										m.PartitionsByUserEndpoint[i].ActivePartitions[i].Topic = val
+					if isFlexible {
+						lengthUint, err := protocol.ReadVaruint32(r)
+						if err != nil {
+							return err
+						}
+						if lengthUint < 1 {
+							return errors.New("invalid compact array length")
+						}
+						length := int32(lengthUint - 1)
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
+						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem TopicPartition
+							// Topic
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactString(r)
+									if err != nil {
+										return err
 									}
+									tempElem.Topic = val
+								} else {
+									val, err := protocol.ReadString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Topic = val
 								}
-								// Partitions
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.PartitionsByUserEndpoint[i].ActivePartitions[i].Partitions = make([]int32, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt32(r)
-											if err != nil {
-												return err
-											}
-											m.PartitionsByUserEndpoint[i].ActivePartitions[i].Partitions[i] = val
-										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.PartitionsByUserEndpoint[i].ActivePartitions[i].Partitions = make([]int32, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt32(r)
-											if err != nil {
-												return err
-											}
-											m.PartitionsByUserEndpoint[i].ActivePartitions[i].Partitions[i] = val
-										}
+							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactInt32Array(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Partitions = val
+								} else {
+									val, err := protocol.ReadInt32Array(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Partitions = val
+								}
+							}
+							// Topic
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactString(elemW, tempElem.Topic); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteString(elemW, tempElem.Topic); err != nil {
+										return err
 									}
 								}
 							}
-						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
-								return err
-							}
-							m.PartitionsByUserEndpoint[i].ActivePartitions = make([]TopicPartition, length)
-							for i := int32(0); i < length; i++ {
-								// Topic
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactString(r)
-										if err != nil {
-											return err
-										}
-										m.PartitionsByUserEndpoint[i].ActivePartitions[i].Topic = val
-									} else {
-										val, err := protocol.ReadString(r)
-										if err != nil {
-											return err
-										}
-										m.PartitionsByUserEndpoint[i].ActivePartitions[i].Topic = val
+							// Partitions
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactInt32Array(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt32Array(elemW, tempElem.Partitions); err != nil {
+										return err
 									}
 								}
-								// Partitions
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.PartitionsByUserEndpoint[i].ActivePartitions[i].Partitions = make([]int32, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt32(r)
-											if err != nil {
-												return err
-											}
-											m.PartitionsByUserEndpoint[i].ActivePartitions[i].Partitions[i] = val
-										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.PartitionsByUserEndpoint[i].ActivePartitions[i].Partitions = make([]int32, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt32(r)
-											if err != nil {
-												return err
-											}
-											m.PartitionsByUserEndpoint[i].ActivePartitions[i].Partitions[i] = val
-										}
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
+						}
+						// Prepend length and decode using DecodeCompactArray
+						lengthBytes := protocol.EncodeVaruint32(lengthUint)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+						if err != nil {
+							return err
+						}
+						// Convert []interface{} to typed slice
+						tempElem.ActivePartitions = make([]TopicPartition, len(decoded))
+						for i, item := range decoded {
+							tempElem.ActivePartitions[i] = item.(TopicPartition)
+						}
+					} else {
+						length, err := protocol.ReadInt32(r)
+						if err != nil {
+							return err
+						}
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
+						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem TopicPartition
+							// Topic
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactString(r)
+									if err != nil {
+										return err
 									}
+									tempElem.Topic = val
+								} else {
+									val, err := protocol.ReadString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Topic = val
+								}
+							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactInt32Array(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Partitions = val
+								} else {
+									val, err := protocol.ReadInt32Array(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Partitions = val
+								}
+							}
+							// Topic
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactString(elemW, tempElem.Topic); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteString(elemW, tempElem.Topic); err != nil {
+										return err
+									}
+								}
+							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactInt32Array(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt32Array(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								}
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
+						}
+						// Prepend length and decode using DecodeArray
+						lengthBytes := protocol.EncodeInt32(length)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeArray(fullData, decoder)
+						if err != nil {
+							return err
+						}
+						// Convert []interface{} to typed slice
+						tempElem.ActivePartitions = make([]TopicPartition, len(decoded))
+						for i, item := range decoded {
+							tempElem.ActivePartitions[i] = item.(TopicPartition)
+						}
+					}
+				}
+				// StandbyPartitions
+				if version >= 0 && version <= 999 {
+					// Decode array using ArrayDecoder
+					decoder := func(data []byte) (interface{}, int, error) {
+						var elem TopicPartition
+						elemR := bytes.NewReader(data)
+						// Topic
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								val, err := protocol.ReadCompactString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Topic = val
+							} else {
+								val, err := protocol.ReadString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Topic = val
+							}
+						}
+						// Partitions
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								val, err := protocol.ReadCompactInt32Array(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Partitions = val
+							} else {
+								val, err := protocol.ReadInt32Array(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Partitions = val
+							}
+						}
+						consumed := len(data) - elemR.Len()
+						return elem, consumed, nil
+					}
+					if isFlexible {
+						lengthUint, err := protocol.ReadVaruint32(r)
+						if err != nil {
+							return err
+						}
+						if lengthUint < 1 {
+							return errors.New("invalid compact array length")
+						}
+						length := int32(lengthUint - 1)
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
+						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem TopicPartition
+							// Topic
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Topic = val
+								} else {
+									val, err := protocol.ReadString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Topic = val
+								}
+							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactInt32Array(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Partitions = val
+								} else {
+									val, err := protocol.ReadInt32Array(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Partitions = val
+								}
+							}
+							// Topic
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactString(elemW, tempElem.Topic); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteString(elemW, tempElem.Topic); err != nil {
+										return err
+									}
+								}
+							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactInt32Array(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt32Array(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								}
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
+						}
+						// Prepend length and decode using DecodeCompactArray
+						lengthBytes := protocol.EncodeVaruint32(lengthUint)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+						if err != nil {
+							return err
+						}
+						// Convert []interface{} to typed slice
+						tempElem.StandbyPartitions = make([]TopicPartition, len(decoded))
+						for i, item := range decoded {
+							tempElem.StandbyPartitions[i] = item.(TopicPartition)
+						}
+					} else {
+						length, err := protocol.ReadInt32(r)
+						if err != nil {
+							return err
+						}
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
+						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem TopicPartition
+							// Topic
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Topic = val
+								} else {
+									val, err := protocol.ReadString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Topic = val
+								}
+							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactInt32Array(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Partitions = val
+								} else {
+									val, err := protocol.ReadInt32Array(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Partitions = val
+								}
+							}
+							// Topic
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactString(elemW, tempElem.Topic); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteString(elemW, tempElem.Topic); err != nil {
+										return err
+									}
+								}
+							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactInt32Array(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt32Array(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								}
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
+						}
+						// Prepend length and decode using DecodeArray
+						lengthBytes := protocol.EncodeInt32(length)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeArray(fullData, decoder)
+						if err != nil {
+							return err
+						}
+						// Convert []interface{} to typed slice
+						tempElem.StandbyPartitions = make([]TopicPartition, len(decoded))
+						for i, item := range decoded {
+							tempElem.StandbyPartitions[i] = item.(TopicPartition)
+						}
+					}
+				}
+				// UserEndpoint
+				if version >= 0 && version <= 999 {
+				}
+				// ActivePartitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						length := uint32(len(tempElem.ActivePartitions) + 1)
+						if err := protocol.WriteVaruint32(elemW, length); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32(elemW, int32(len(tempElem.ActivePartitions))); err != nil {
+							return err
+						}
+					}
+					for i := range tempElem.ActivePartitions {
+						// Topic
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								if err := protocol.WriteCompactString(elemW, tempElem.ActivePartitions[i].Topic); err != nil {
+									return err
+								}
+							} else {
+								if err := protocol.WriteString(elemW, tempElem.ActivePartitions[i].Topic); err != nil {
+									return err
 								}
 							}
 						}
-					}
-					// StandbyPartitions
-					if version >= 0 && version <= 999 {
-						var length int32
-						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
-								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.PartitionsByUserEndpoint[i].StandbyPartitions = make([]TopicPartition, length)
-							for i := int32(0); i < length; i++ {
-								// Topic
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactString(r)
-										if err != nil {
-											return err
-										}
-										m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Topic = val
-									} else {
-										val, err := protocol.ReadString(r)
-										if err != nil {
-											return err
-										}
-										m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Topic = val
-									}
+						// Partitions
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								if err := protocol.WriteCompactInt32Array(elemW, tempElem.ActivePartitions[i].Partitions); err != nil {
+									return err
 								}
-								// Partitions
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Partitions = make([]int32, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt32(r)
-											if err != nil {
-												return err
-											}
-											m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Partitions[i] = val
-										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Partitions = make([]int32, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt32(r)
-											if err != nil {
-												return err
-											}
-											m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Partitions[i] = val
-										}
-									}
-								}
-							}
-						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
-								return err
-							}
-							m.PartitionsByUserEndpoint[i].StandbyPartitions = make([]TopicPartition, length)
-							for i := int32(0); i < length; i++ {
-								// Topic
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactString(r)
-										if err != nil {
-											return err
-										}
-										m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Topic = val
-									} else {
-										val, err := protocol.ReadString(r)
-										if err != nil {
-											return err
-										}
-										m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Topic = val
-									}
-								}
-								// Partitions
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Partitions = make([]int32, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt32(r)
-											if err != nil {
-												return err
-											}
-											m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Partitions[i] = val
-										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Partitions = make([]int32, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt32(r)
-											if err != nil {
-												return err
-											}
-											m.PartitionsByUserEndpoint[i].StandbyPartitions[i].Partitions[i] = val
-										}
-									}
+							} else {
+								if err := protocol.WriteInt32Array(elemW, tempElem.ActivePartitions[i].Partitions); err != nil {
+									return err
 								}
 							}
 						}
 					}
 				}
+				// StandbyPartitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						length := uint32(len(tempElem.StandbyPartitions) + 1)
+						if err := protocol.WriteVaruint32(elemW, length); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32(elemW, int32(len(tempElem.StandbyPartitions))); err != nil {
+							return err
+						}
+					}
+					for i := range tempElem.StandbyPartitions {
+						// Topic
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								if err := protocol.WriteCompactString(elemW, tempElem.StandbyPartitions[i].Topic); err != nil {
+									return err
+								}
+							} else {
+								if err := protocol.WriteString(elemW, tempElem.StandbyPartitions[i].Topic); err != nil {
+									return err
+								}
+							}
+						}
+						// Partitions
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								if err := protocol.WriteCompactInt32Array(elemW, tempElem.StandbyPartitions[i].Partitions); err != nil {
+									return err
+								}
+							} else {
+								if err := protocol.WriteInt32Array(elemW, tempElem.StandbyPartitions[i].Partitions); err != nil {
+									return err
+								}
+							}
+						}
+					}
+				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeArray
+			lengthBytes := protocol.EncodeInt32(length)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.PartitionsByUserEndpoint = make([]StreamsGroupHeartbeatResponseEndpointToPartitions, len(decoded))
+			for i, item := range decoded {
+				m.PartitionsByUserEndpoint[i] = item.(StreamsGroupHeartbeatResponseEndpointToPartitions)
 			}
 		}
 	}
@@ -1682,6 +2661,56 @@ type StreamsGroupHeartbeatResponseEndpointToPartitions struct {
 	ActivePartitions []TopicPartition `json:"activepartitions" versions:"0-999"`
 	// All topic partitions materialized by standby tasks on the node
 	StandbyPartitions []TopicPartition `json:"standbypartitions" versions:"0-999"`
+	// Tagged fields (for flexible versions)
+	_tagged_fields map[uint32]interface{} `json:"-"`
+}
+
+// writeTaggedFields writes tagged fields for StreamsGroupHeartbeatResponseEndpointToPartitions.
+func (m *StreamsGroupHeartbeatResponseEndpointToPartitions) writeTaggedFields(w io.Writer, version int16) error {
+	var taggedFieldsCount int
+	var taggedFieldsBuf bytes.Buffer
+
+	// Write tagged fields count
+	if err := protocol.WriteVaruint32(w, uint32(taggedFieldsCount)); err != nil {
+		return err
+	}
+
+	// Write tagged fields data
+	if taggedFieldsCount > 0 {
+		if _, err := w.Write(taggedFieldsBuf.Bytes()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// readTaggedFields reads tagged fields for StreamsGroupHeartbeatResponseEndpointToPartitions.
+func (m *StreamsGroupHeartbeatResponseEndpointToPartitions) readTaggedFields(r io.Reader, version int16) error {
+	// Read tagged fields count
+	count, err := protocol.ReadVaruint32(r)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	// Read tagged fields
+	for i := uint32(0); i < count; i++ {
+		tag, err := protocol.ReadVaruint32(r)
+		if err != nil {
+			return err
+		}
+
+		switch tag {
+		default:
+			// Unknown tag, skip it
+		}
+	}
+
+	return nil
 }
 
 // writeTaggedFields writes tagged fields for StreamsGroupHeartbeatResponse.

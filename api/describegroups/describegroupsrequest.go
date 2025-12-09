@@ -50,26 +50,13 @@ func (m *DescribeGroupsRequest) Write(w io.Writer, version int16) error {
 	// Groups
 	if version >= 0 && version <= 999 {
 		if isFlexible {
-			length := uint32(len(m.Groups) + 1)
-			if err := protocol.WriteVaruint32(w, length); err != nil {
+			if err := protocol.WriteCompactStringArray(w, m.Groups); err != nil {
 				return err
 			}
 		} else {
-			if err := protocol.WriteInt32(w, int32(len(m.Groups))); err != nil {
+			if err := protocol.WriteStringArray(w, m.Groups); err != nil {
 				return err
 			}
-		}
-		for i := range m.Groups {
-			if isFlexible {
-				if err := protocol.WriteCompactString(w, m.Groups[i]); err != nil {
-					return err
-				}
-			} else {
-				if err := protocol.WriteString(w, m.Groups[i]); err != nil {
-					return err
-				}
-			}
-			_ = i
 		}
 	}
 	// IncludeAuthorizedOperations
@@ -100,55 +87,18 @@ func (m *DescribeGroupsRequest) Read(r io.Reader, version int16) error {
 
 	// Groups
 	if version >= 0 && version <= 999 {
-		var length int32
 		if isFlexible {
-			var lengthUint uint32
-			lengthUint, err := protocol.ReadVaruint32(r)
+			val, err := protocol.ReadCompactStringArray(r)
 			if err != nil {
 				return err
 			}
-			if lengthUint < 1 {
-				return errors.New("invalid compact array length")
-			}
-			length = int32(lengthUint - 1)
-			m.Groups = make([]string, length)
-			for i := int32(0); i < length; i++ {
-				if isFlexible {
-					val, err := protocol.ReadCompactString(r)
-					if err != nil {
-						return err
-					}
-					m.Groups[i] = val
-				} else {
-					val, err := protocol.ReadString(r)
-					if err != nil {
-						return err
-					}
-					m.Groups[i] = val
-				}
-			}
+			m.Groups = val
 		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			val, err := protocol.ReadStringArray(r)
 			if err != nil {
 				return err
 			}
-			m.Groups = make([]string, length)
-			for i := int32(0); i < length; i++ {
-				if isFlexible {
-					val, err := protocol.ReadCompactString(r)
-					if err != nil {
-						return err
-					}
-					m.Groups[i] = val
-				} else {
-					val, err := protocol.ReadString(r)
-					if err != nil {
-						return err
-					}
-					m.Groups[i] = val
-				}
-			}
+			m.Groups = val
 		}
 	}
 	// IncludeAuthorizedOperations

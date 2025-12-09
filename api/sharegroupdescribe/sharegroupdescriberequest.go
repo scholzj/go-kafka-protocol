@@ -51,26 +51,13 @@ func (m *ShareGroupDescribeRequest) Write(w io.Writer, version int16) error {
 	// GroupIds
 	if version >= 0 && version <= 999 {
 		if isFlexible {
-			length := uint32(len(m.GroupIds) + 1)
-			if err := protocol.WriteVaruint32(w, length); err != nil {
+			if err := protocol.WriteCompactStringArray(w, m.GroupIds); err != nil {
 				return err
 			}
 		} else {
-			if err := protocol.WriteInt32(w, int32(len(m.GroupIds))); err != nil {
+			if err := protocol.WriteStringArray(w, m.GroupIds); err != nil {
 				return err
 			}
-		}
-		for i := range m.GroupIds {
-			if isFlexible {
-				if err := protocol.WriteCompactString(w, m.GroupIds[i]); err != nil {
-					return err
-				}
-			} else {
-				if err := protocol.WriteString(w, m.GroupIds[i]); err != nil {
-					return err
-				}
-			}
-			_ = i
 		}
 	}
 	// IncludeAuthorizedOperations
@@ -101,55 +88,18 @@ func (m *ShareGroupDescribeRequest) Read(r io.Reader, version int16) error {
 
 	// GroupIds
 	if version >= 0 && version <= 999 {
-		var length int32
 		if isFlexible {
-			var lengthUint uint32
-			lengthUint, err := protocol.ReadVaruint32(r)
+			val, err := protocol.ReadCompactStringArray(r)
 			if err != nil {
 				return err
 			}
-			if lengthUint < 1 {
-				return errors.New("invalid compact array length")
-			}
-			length = int32(lengthUint - 1)
-			m.GroupIds = make([]string, length)
-			for i := int32(0); i < length; i++ {
-				if isFlexible {
-					val, err := protocol.ReadCompactString(r)
-					if err != nil {
-						return err
-					}
-					m.GroupIds[i] = val
-				} else {
-					val, err := protocol.ReadString(r)
-					if err != nil {
-						return err
-					}
-					m.GroupIds[i] = val
-				}
-			}
+			m.GroupIds = val
 		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			val, err := protocol.ReadStringArray(r)
 			if err != nil {
 				return err
 			}
-			m.GroupIds = make([]string, length)
-			for i := int32(0); i < length; i++ {
-				if isFlexible {
-					val, err := protocol.ReadCompactString(r)
-					if err != nil {
-						return err
-					}
-					m.GroupIds[i] = val
-				} else {
-					val, err := protocol.ReadString(r)
-					if err != nil {
-						return err
-					}
-					m.GroupIds[i] = val
-				}
-			}
+			m.GroupIds = val
 		}
 	}
 	// IncludeAuthorizedOperations
@@ -169,6 +119,12 @@ func (m *ShareGroupDescribeRequest) Read(r io.Reader, version int16) error {
 	return nil
 }
 
+// Assignment represents .
+type Assignment struct {
+	// The assigned topic-partitions to the member.
+	TopicPartitions []TopicPartitions `json:"topicpartitions" versions:"0-999"`
+}
+
 // TopicPartitions represents .
 type TopicPartitions struct {
 	// The topic ID.
@@ -177,12 +133,6 @@ type TopicPartitions struct {
 	TopicName string `json:"topicname" versions:"0-999"`
 	// The partitions.
 	Partitions []int32 `json:"partitions" versions:"0-999"`
-}
-
-// Assignment represents .
-type Assignment struct {
-	// The assigned topic-partitions to the member.
-	TopicPartitions []TopicPartitions `json:"topicpartitions" versions:"0-999"`
 }
 
 // writeTaggedFields writes tagged fields for ShareGroupDescribeRequest.

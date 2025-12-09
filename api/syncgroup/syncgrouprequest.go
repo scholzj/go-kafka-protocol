@@ -125,40 +125,61 @@ func (m *SyncGroupRequest) Write(w io.Writer, version int16) error {
 	}
 	// Assignments
 	if version >= 0 && version <= 999 {
-		if isFlexible {
-			length := uint32(len(m.Assignments) + 1)
-			if err := protocol.WriteVaruint32(w, length); err != nil {
-				return err
+		// Encode array using ArrayEncoder
+		encoder := func(item interface{}) ([]byte, error) {
+			if item == nil {
+				return nil, nil
 			}
-		} else {
-			if err := protocol.WriteInt32(w, int32(len(m.Assignments))); err != nil {
-				return err
+			structItem, ok := item.(SyncGroupRequestSyncGroupRequestAssignment)
+			if !ok {
+				return nil, errors.New("invalid type for array element")
 			}
-		}
-		for i := range m.Assignments {
+			var elemBuf bytes.Buffer
+			// Temporarily use elemBuf as writer
+			elemW := &elemBuf
 			// MemberId
 			if version >= 0 && version <= 999 {
 				if isFlexible {
-					if err := protocol.WriteCompactString(w, m.Assignments[i].MemberId); err != nil {
-						return err
+					if err := protocol.WriteCompactString(elemW, structItem.MemberId); err != nil {
+						return nil, err
 					}
 				} else {
-					if err := protocol.WriteString(w, m.Assignments[i].MemberId); err != nil {
-						return err
+					if err := protocol.WriteString(elemW, structItem.MemberId); err != nil {
+						return nil, err
 					}
 				}
 			}
 			// Assignment
 			if version >= 0 && version <= 999 {
 				if isFlexible {
-					if err := protocol.WriteCompactBytes(w, m.Assignments[i].Assignment); err != nil {
-						return err
+					if err := protocol.WriteCompactBytes(elemW, structItem.Assignment); err != nil {
+						return nil, err
 					}
 				} else {
-					if err := protocol.WriteBytes(w, m.Assignments[i].Assignment); err != nil {
-						return err
+					if err := protocol.WriteBytes(elemW, structItem.Assignment); err != nil {
+						return nil, err
 					}
 				}
+			}
+			// Write tagged fields if flexible
+			if isFlexible {
+				if err := structItem.writeTaggedFields(elemW, version); err != nil {
+					return nil, err
+				}
+			}
+			return elemBuf.Bytes(), nil
+		}
+		items := make([]interface{}, len(m.Assignments))
+		for i := range m.Assignments {
+			items[i] = m.Assignments[i]
+		}
+		if isFlexible {
+			if err := protocol.WriteCompactArray(w, items, encoder); err != nil {
+				return err
+			}
+		} else {
+			if err := protocol.WriteArray(w, items, encoder); err != nil {
+				return err
 			}
 		}
 	}
@@ -272,9 +293,52 @@ func (m *SyncGroupRequest) Read(r io.Reader, version int16) error {
 	}
 	// Assignments
 	if version >= 0 && version <= 999 {
-		var length int32
+		// Decode array using ArrayDecoder
+		decoder := func(data []byte) (interface{}, int, error) {
+			var elem SyncGroupRequestSyncGroupRequestAssignment
+			elemR := bytes.NewReader(data)
+			// MemberId
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					val, err := protocol.ReadCompactString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.MemberId = val
+				} else {
+					val, err := protocol.ReadString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.MemberId = val
+				}
+			}
+			// Assignment
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					val, err := protocol.ReadCompactBytes(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.Assignment = val
+				} else {
+					val, err := protocol.ReadBytes(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.Assignment = val
+				}
+			}
+			// Read tagged fields if flexible
+			if isFlexible {
+				if err := elem.readTaggedFields(elemR, version); err != nil {
+					return nil, 0, err
+				}
+			}
+			consumed := len(data) - elemR.Len()
+			return elem, consumed, nil
+		}
 		if isFlexible {
-			var lengthUint uint32
 			lengthUint, err := protocol.ReadVaruint32(r)
 			if err != nil {
 				return err
@@ -282,9 +346,14 @@ func (m *SyncGroupRequest) Read(r io.Reader, version int16) error {
 			if lengthUint < 1 {
 				return errors.New("invalid compact array length")
 			}
-			length = int32(lengthUint - 1)
-			m.Assignments = make([]SyncGroupRequestSyncGroupRequestAssignment, length)
+			length := int32(lengthUint - 1)
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
 			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem SyncGroupRequestSyncGroupRequestAssignment
 				// MemberId
 				if version >= 0 && version <= 999 {
 					if isFlexible {
@@ -292,13 +361,13 @@ func (m *SyncGroupRequest) Read(r io.Reader, version int16) error {
 						if err != nil {
 							return err
 						}
-						m.Assignments[i].MemberId = val
+						tempElem.MemberId = val
 					} else {
 						val, err := protocol.ReadString(r)
 						if err != nil {
 							return err
 						}
-						m.Assignments[i].MemberId = val
+						tempElem.MemberId = val
 					}
 				}
 				// Assignment
@@ -308,24 +377,66 @@ func (m *SyncGroupRequest) Read(r io.Reader, version int16) error {
 						if err != nil {
 							return err
 						}
-						m.Assignments[i].Assignment = val
+						tempElem.Assignment = val
 					} else {
 						val, err := protocol.ReadBytes(r)
 						if err != nil {
 							return err
 						}
-						m.Assignments[i].Assignment = val
+						tempElem.Assignment = val
 					}
 				}
+				// MemberId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.MemberId); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.MemberId); err != nil {
+							return err
+						}
+					}
+				}
+				// Assignment
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactBytes(elemW, tempElem.Assignment); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteBytes(elemW, tempElem.Assignment); err != nil {
+							return err
+						}
+					}
+				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
 			}
-		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			// Prepend length and decode using DecodeCompactArray
+			lengthBytes := protocol.EncodeVaruint32(lengthUint)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
 			if err != nil {
 				return err
 			}
-			m.Assignments = make([]SyncGroupRequestSyncGroupRequestAssignment, length)
+			// Convert []interface{} to typed slice
+			m.Assignments = make([]SyncGroupRequestSyncGroupRequestAssignment, len(decoded))
+			for i, item := range decoded {
+				m.Assignments[i] = item.(SyncGroupRequestSyncGroupRequestAssignment)
+			}
+		} else {
+			length, err := protocol.ReadInt32(r)
+			if err != nil {
+				return err
+			}
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
 			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem SyncGroupRequestSyncGroupRequestAssignment
 				// MemberId
 				if version >= 0 && version <= 999 {
 					if isFlexible {
@@ -333,13 +444,13 @@ func (m *SyncGroupRequest) Read(r io.Reader, version int16) error {
 						if err != nil {
 							return err
 						}
-						m.Assignments[i].MemberId = val
+						tempElem.MemberId = val
 					} else {
 						val, err := protocol.ReadString(r)
 						if err != nil {
 							return err
 						}
-						m.Assignments[i].MemberId = val
+						tempElem.MemberId = val
 					}
 				}
 				// Assignment
@@ -349,15 +460,53 @@ func (m *SyncGroupRequest) Read(r io.Reader, version int16) error {
 						if err != nil {
 							return err
 						}
-						m.Assignments[i].Assignment = val
+						tempElem.Assignment = val
 					} else {
 						val, err := protocol.ReadBytes(r)
 						if err != nil {
 							return err
 						}
-						m.Assignments[i].Assignment = val
+						tempElem.Assignment = val
 					}
 				}
+				// MemberId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.MemberId); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.MemberId); err != nil {
+							return err
+						}
+					}
+				}
+				// Assignment
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactBytes(elemW, tempElem.Assignment); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteBytes(elemW, tempElem.Assignment); err != nil {
+							return err
+						}
+					}
+				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeArray
+			lengthBytes := protocol.EncodeInt32(length)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.Assignments = make([]SyncGroupRequestSyncGroupRequestAssignment, len(decoded))
+			for i, item := range decoded {
+				m.Assignments[i] = item.(SyncGroupRequestSyncGroupRequestAssignment)
 			}
 		}
 	}
@@ -376,6 +525,56 @@ type SyncGroupRequestSyncGroupRequestAssignment struct {
 	MemberId string `json:"memberid" versions:"0-999"`
 	// The member assignment.
 	Assignment []byte `json:"assignment" versions:"0-999"`
+	// Tagged fields (for flexible versions)
+	_tagged_fields map[uint32]interface{} `json:"-"`
+}
+
+// writeTaggedFields writes tagged fields for SyncGroupRequestSyncGroupRequestAssignment.
+func (m *SyncGroupRequestSyncGroupRequestAssignment) writeTaggedFields(w io.Writer, version int16) error {
+	var taggedFieldsCount int
+	var taggedFieldsBuf bytes.Buffer
+
+	// Write tagged fields count
+	if err := protocol.WriteVaruint32(w, uint32(taggedFieldsCount)); err != nil {
+		return err
+	}
+
+	// Write tagged fields data
+	if taggedFieldsCount > 0 {
+		if _, err := w.Write(taggedFieldsBuf.Bytes()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// readTaggedFields reads tagged fields for SyncGroupRequestSyncGroupRequestAssignment.
+func (m *SyncGroupRequestSyncGroupRequestAssignment) readTaggedFields(r io.Reader, version int16) error {
+	// Read tagged fields count
+	count, err := protocol.ReadVaruint32(r)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	// Read tagged fields
+	for i := uint32(0); i < count; i++ {
+		tag, err := protocol.ReadVaruint32(r)
+		if err != nil {
+			return err
+		}
+
+		switch tag {
+		default:
+			// Unknown tag, skip it
+		}
+	}
+
+	return nil
 }
 
 // writeTaggedFields writes tagged fields for SyncGroupRequest.

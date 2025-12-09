@@ -153,150 +153,125 @@ func (m *StreamsGroupHeartbeatRequest) Write(w io.Writer, version int16) error {
 		}
 		// Subtopologies
 		if version >= 0 && version <= 999 {
-			if isFlexible {
-				length := uint32(len(m.Topology.Subtopologies) + 1)
-				if err := protocol.WriteVaruint32(w, length); err != nil {
-					return err
+			// Encode array using ArrayEncoder
+			encoder := func(item interface{}) ([]byte, error) {
+				if item == nil {
+					return nil, nil
 				}
-			} else {
-				if err := protocol.WriteInt32(w, int32(len(m.Topology.Subtopologies))); err != nil {
-					return err
+				structItem, ok := item.(StreamsGroupHeartbeatRequestSubtopology)
+				if !ok {
+					return nil, errors.New("invalid type for array element")
 				}
-			}
-			for i := range m.Topology.Subtopologies {
+				var elemBuf bytes.Buffer
+				// Temporarily use elemBuf as writer
+				elemW := &elemBuf
 				// SubtopologyId
 				if version >= 0 && version <= 999 {
 					if isFlexible {
-						if err := protocol.WriteCompactString(w, m.Topology.Subtopologies[i].SubtopologyId); err != nil {
-							return err
+						if err := protocol.WriteCompactString(elemW, structItem.SubtopologyId); err != nil {
+							return nil, err
 						}
 					} else {
-						if err := protocol.WriteString(w, m.Topology.Subtopologies[i].SubtopologyId); err != nil {
-							return err
+						if err := protocol.WriteString(elemW, structItem.SubtopologyId); err != nil {
+							return nil, err
 						}
 					}
 				}
 				// SourceTopics
 				if version >= 0 && version <= 999 {
 					if isFlexible {
-						length := uint32(len(m.Topology.Subtopologies[i].SourceTopics) + 1)
-						if err := protocol.WriteVaruint32(w, length); err != nil {
-							return err
+						if err := protocol.WriteCompactStringArray(elemW, structItem.SourceTopics); err != nil {
+							return nil, err
 						}
 					} else {
-						if err := protocol.WriteInt32(w, int32(len(m.Topology.Subtopologies[i].SourceTopics))); err != nil {
-							return err
+						if err := protocol.WriteStringArray(elemW, structItem.SourceTopics); err != nil {
+							return nil, err
 						}
-					}
-					for i := range m.Topology.Subtopologies[i].SourceTopics {
-						if isFlexible {
-							if err := protocol.WriteCompactString(w, m.Topology.Subtopologies[i].SourceTopics[i]); err != nil {
-								return err
-							}
-						} else {
-							if err := protocol.WriteString(w, m.Topology.Subtopologies[i].SourceTopics[i]); err != nil {
-								return err
-							}
-						}
-						_ = i
 					}
 				}
 				// SourceTopicRegex
 				if version >= 0 && version <= 999 {
 					if isFlexible {
-						length := uint32(len(m.Topology.Subtopologies[i].SourceTopicRegex) + 1)
-						if err := protocol.WriteVaruint32(w, length); err != nil {
-							return err
+						if err := protocol.WriteCompactStringArray(elemW, structItem.SourceTopicRegex); err != nil {
+							return nil, err
 						}
 					} else {
-						if err := protocol.WriteInt32(w, int32(len(m.Topology.Subtopologies[i].SourceTopicRegex))); err != nil {
-							return err
+						if err := protocol.WriteStringArray(elemW, structItem.SourceTopicRegex); err != nil {
+							return nil, err
 						}
-					}
-					for i := range m.Topology.Subtopologies[i].SourceTopicRegex {
-						if isFlexible {
-							if err := protocol.WriteCompactString(w, m.Topology.Subtopologies[i].SourceTopicRegex[i]); err != nil {
-								return err
-							}
-						} else {
-							if err := protocol.WriteString(w, m.Topology.Subtopologies[i].SourceTopicRegex[i]); err != nil {
-								return err
-							}
-						}
-						_ = i
 					}
 				}
 				// StateChangelogTopics
 				if version >= 0 && version <= 999 {
 					if isFlexible {
-						length := uint32(len(m.Topology.Subtopologies[i].StateChangelogTopics) + 1)
-						if err := protocol.WriteVaruint32(w, length); err != nil {
-							return err
+						length := uint32(len(structItem.StateChangelogTopics) + 1)
+						if err := protocol.WriteVaruint32(elemW, length); err != nil {
+							return nil, err
 						}
 					} else {
-						if err := protocol.WriteInt32(w, int32(len(m.Topology.Subtopologies[i].StateChangelogTopics))); err != nil {
-							return err
+						if err := protocol.WriteInt32(elemW, int32(len(structItem.StateChangelogTopics))); err != nil {
+							return nil, err
 						}
 					}
-					for i := range m.Topology.Subtopologies[i].StateChangelogTopics {
+					for i := range structItem.StateChangelogTopics {
 						// Name
 						if version >= 0 && version <= 999 {
 							if isFlexible {
-								if err := protocol.WriteCompactString(w, m.Topology.Subtopologies[i].StateChangelogTopics[i].Name); err != nil {
-									return err
+								if err := protocol.WriteCompactString(elemW, structItem.StateChangelogTopics[i].Name); err != nil {
+									return nil, err
 								}
 							} else {
-								if err := protocol.WriteString(w, m.Topology.Subtopologies[i].StateChangelogTopics[i].Name); err != nil {
-									return err
+								if err := protocol.WriteString(elemW, structItem.StateChangelogTopics[i].Name); err != nil {
+									return nil, err
 								}
 							}
 						}
 						// Partitions
 						if version >= 0 && version <= 999 {
-							if err := protocol.WriteInt32(w, m.Topology.Subtopologies[i].StateChangelogTopics[i].Partitions); err != nil {
-								return err
+							if err := protocol.WriteInt32(elemW, structItem.StateChangelogTopics[i].Partitions); err != nil {
+								return nil, err
 							}
 						}
 						// ReplicationFactor
 						if version >= 0 && version <= 999 {
-							if err := protocol.WriteInt16(w, m.Topology.Subtopologies[i].StateChangelogTopics[i].ReplicationFactor); err != nil {
-								return err
+							if err := protocol.WriteInt16(elemW, structItem.StateChangelogTopics[i].ReplicationFactor); err != nil {
+								return nil, err
 							}
 						}
 						// TopicConfigs
 						if version >= 0 && version <= 999 {
 							if isFlexible {
-								length := uint32(len(m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs) + 1)
-								if err := protocol.WriteVaruint32(w, length); err != nil {
-									return err
+								length := uint32(len(structItem.StateChangelogTopics[i].TopicConfigs) + 1)
+								if err := protocol.WriteVaruint32(elemW, length); err != nil {
+									return nil, err
 								}
 							} else {
-								if err := protocol.WriteInt32(w, int32(len(m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs))); err != nil {
-									return err
+								if err := protocol.WriteInt32(elemW, int32(len(structItem.StateChangelogTopics[i].TopicConfigs))); err != nil {
+									return nil, err
 								}
 							}
-							for i := range m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs {
+							for i := range structItem.StateChangelogTopics[i].TopicConfigs {
 								// Key
 								if version >= 0 && version <= 999 {
 									if isFlexible {
-										if err := protocol.WriteCompactString(w, m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Key); err != nil {
-											return err
+										if err := protocol.WriteCompactString(elemW, structItem.StateChangelogTopics[i].TopicConfigs[i].Key); err != nil {
+											return nil, err
 										}
 									} else {
-										if err := protocol.WriteString(w, m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Key); err != nil {
-											return err
+										if err := protocol.WriteString(elemW, structItem.StateChangelogTopics[i].TopicConfigs[i].Key); err != nil {
+											return nil, err
 										}
 									}
 								}
 								// Value
 								if version >= 0 && version <= 999 {
 									if isFlexible {
-										if err := protocol.WriteCompactString(w, m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Value); err != nil {
-											return err
+										if err := protocol.WriteCompactString(elemW, structItem.StateChangelogTopics[i].TopicConfigs[i].Value); err != nil {
+											return nil, err
 										}
 									} else {
-										if err := protocol.WriteString(w, m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Value); err != nil {
-											return err
+										if err := protocol.WriteString(elemW, structItem.StateChangelogTopics[i].TopicConfigs[i].Value); err != nil {
+											return nil, err
 										}
 									}
 								}
@@ -307,99 +282,86 @@ func (m *StreamsGroupHeartbeatRequest) Write(w io.Writer, version int16) error {
 				// RepartitionSinkTopics
 				if version >= 0 && version <= 999 {
 					if isFlexible {
-						length := uint32(len(m.Topology.Subtopologies[i].RepartitionSinkTopics) + 1)
-						if err := protocol.WriteVaruint32(w, length); err != nil {
-							return err
+						if err := protocol.WriteCompactStringArray(elemW, structItem.RepartitionSinkTopics); err != nil {
+							return nil, err
 						}
 					} else {
-						if err := protocol.WriteInt32(w, int32(len(m.Topology.Subtopologies[i].RepartitionSinkTopics))); err != nil {
-							return err
+						if err := protocol.WriteStringArray(elemW, structItem.RepartitionSinkTopics); err != nil {
+							return nil, err
 						}
-					}
-					for i := range m.Topology.Subtopologies[i].RepartitionSinkTopics {
-						if isFlexible {
-							if err := protocol.WriteCompactString(w, m.Topology.Subtopologies[i].RepartitionSinkTopics[i]); err != nil {
-								return err
-							}
-						} else {
-							if err := protocol.WriteString(w, m.Topology.Subtopologies[i].RepartitionSinkTopics[i]); err != nil {
-								return err
-							}
-						}
-						_ = i
 					}
 				}
 				// RepartitionSourceTopics
 				if version >= 0 && version <= 999 {
 					if isFlexible {
-						length := uint32(len(m.Topology.Subtopologies[i].RepartitionSourceTopics) + 1)
-						if err := protocol.WriteVaruint32(w, length); err != nil {
-							return err
+						length := uint32(len(structItem.RepartitionSourceTopics) + 1)
+						if err := protocol.WriteVaruint32(elemW, length); err != nil {
+							return nil, err
 						}
 					} else {
-						if err := protocol.WriteInt32(w, int32(len(m.Topology.Subtopologies[i].RepartitionSourceTopics))); err != nil {
-							return err
+						if err := protocol.WriteInt32(elemW, int32(len(structItem.RepartitionSourceTopics))); err != nil {
+							return nil, err
 						}
 					}
-					for i := range m.Topology.Subtopologies[i].RepartitionSourceTopics {
+					for i := range structItem.RepartitionSourceTopics {
 						// Name
 						if version >= 0 && version <= 999 {
 							if isFlexible {
-								if err := protocol.WriteCompactString(w, m.Topology.Subtopologies[i].RepartitionSourceTopics[i].Name); err != nil {
-									return err
+								if err := protocol.WriteCompactString(elemW, structItem.RepartitionSourceTopics[i].Name); err != nil {
+									return nil, err
 								}
 							} else {
-								if err := protocol.WriteString(w, m.Topology.Subtopologies[i].RepartitionSourceTopics[i].Name); err != nil {
-									return err
+								if err := protocol.WriteString(elemW, structItem.RepartitionSourceTopics[i].Name); err != nil {
+									return nil, err
 								}
 							}
 						}
 						// Partitions
 						if version >= 0 && version <= 999 {
-							if err := protocol.WriteInt32(w, m.Topology.Subtopologies[i].RepartitionSourceTopics[i].Partitions); err != nil {
-								return err
+							if err := protocol.WriteInt32(elemW, structItem.RepartitionSourceTopics[i].Partitions); err != nil {
+								return nil, err
 							}
 						}
 						// ReplicationFactor
 						if version >= 0 && version <= 999 {
-							if err := protocol.WriteInt16(w, m.Topology.Subtopologies[i].RepartitionSourceTopics[i].ReplicationFactor); err != nil {
-								return err
+							if err := protocol.WriteInt16(elemW, structItem.RepartitionSourceTopics[i].ReplicationFactor); err != nil {
+								return nil, err
 							}
 						}
 						// TopicConfigs
 						if version >= 0 && version <= 999 {
 							if isFlexible {
-								length := uint32(len(m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs) + 1)
-								if err := protocol.WriteVaruint32(w, length); err != nil {
-									return err
+								length := uint32(len(structItem.RepartitionSourceTopics[i].TopicConfigs) + 1)
+								if err := protocol.WriteVaruint32(elemW, length); err != nil {
+									return nil, err
 								}
 							} else {
-								if err := protocol.WriteInt32(w, int32(len(m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs))); err != nil {
-									return err
+								if err := protocol.WriteInt32(elemW, int32(len(structItem.RepartitionSourceTopics[i].TopicConfigs))); err != nil {
+									return nil, err
 								}
 							}
-							for i := range m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs {
+							for i := range structItem.RepartitionSourceTopics[i].TopicConfigs {
 								// Key
 								if version >= 0 && version <= 999 {
 									if isFlexible {
-										if err := protocol.WriteCompactString(w, m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Key); err != nil {
-											return err
+										if err := protocol.WriteCompactString(elemW, structItem.RepartitionSourceTopics[i].TopicConfigs[i].Key); err != nil {
+											return nil, err
 										}
 									} else {
-										if err := protocol.WriteString(w, m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Key); err != nil {
-											return err
+										if err := protocol.WriteString(elemW, structItem.RepartitionSourceTopics[i].TopicConfigs[i].Key); err != nil {
+											return nil, err
 										}
 									}
 								}
 								// Value
 								if version >= 0 && version <= 999 {
 									if isFlexible {
-										if err := protocol.WriteCompactString(w, m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Value); err != nil {
-											return err
+										if err := protocol.WriteCompactString(elemW, structItem.RepartitionSourceTopics[i].TopicConfigs[i].Value); err != nil {
+											return nil, err
 										}
 									} else {
-										if err := protocol.WriteString(w, m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Value); err != nil {
-											return err
+										if err := protocol.WriteString(elemW, structItem.RepartitionSourceTopics[i].TopicConfigs[i].Value); err != nil {
+											return nil, err
 										}
 									}
 								}
@@ -410,80 +372,127 @@ func (m *StreamsGroupHeartbeatRequest) Write(w io.Writer, version int16) error {
 				// CopartitionGroups
 				if version >= 0 && version <= 999 {
 					if isFlexible {
-						length := uint32(len(m.Topology.Subtopologies[i].CopartitionGroups) + 1)
-						if err := protocol.WriteVaruint32(w, length); err != nil {
-							return err
+						length := uint32(len(structItem.CopartitionGroups) + 1)
+						if err := protocol.WriteVaruint32(elemW, length); err != nil {
+							return nil, err
 						}
 					} else {
-						if err := protocol.WriteInt32(w, int32(len(m.Topology.Subtopologies[i].CopartitionGroups))); err != nil {
-							return err
+						if err := protocol.WriteInt32(elemW, int32(len(structItem.CopartitionGroups))); err != nil {
+							return nil, err
 						}
 					}
-					for i := range m.Topology.Subtopologies[i].CopartitionGroups {
+					for i := range structItem.CopartitionGroups {
 						// SourceTopics
 						if version >= 0 && version <= 999 {
 							if isFlexible {
-								length := uint32(len(m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopics) + 1)
-								if err := protocol.WriteVaruint32(w, length); err != nil {
-									return err
+								if err := protocol.WriteCompactInt16Array(elemW, structItem.CopartitionGroups[i].SourceTopics); err != nil {
+									return nil, err
 								}
 							} else {
-								if err := protocol.WriteInt32(w, int32(len(m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopics))); err != nil {
-									return err
+								if err := protocol.WriteInt16Array(elemW, structItem.CopartitionGroups[i].SourceTopics); err != nil {
+									return nil, err
 								}
-							}
-							for i := range m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopics {
-								if err := protocol.WriteInt16(w, m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopics[i]); err != nil {
-									return err
-								}
-								_ = i
 							}
 						}
 						// SourceTopicRegex
 						if version >= 0 && version <= 999 {
 							if isFlexible {
-								length := uint32(len(m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopicRegex) + 1)
-								if err := protocol.WriteVaruint32(w, length); err != nil {
-									return err
+								if err := protocol.WriteCompactInt16Array(elemW, structItem.CopartitionGroups[i].SourceTopicRegex); err != nil {
+									return nil, err
 								}
 							} else {
-								if err := protocol.WriteInt32(w, int32(len(m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopicRegex))); err != nil {
-									return err
+								if err := protocol.WriteInt16Array(elemW, structItem.CopartitionGroups[i].SourceTopicRegex); err != nil {
+									return nil, err
 								}
-							}
-							for i := range m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopicRegex {
-								if err := protocol.WriteInt16(w, m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopicRegex[i]); err != nil {
-									return err
-								}
-								_ = i
 							}
 						}
 						// RepartitionSourceTopics
 						if version >= 0 && version <= 999 {
 							if isFlexible {
-								length := uint32(len(m.Topology.Subtopologies[i].CopartitionGroups[i].RepartitionSourceTopics) + 1)
-								if err := protocol.WriteVaruint32(w, length); err != nil {
-									return err
+								if err := protocol.WriteCompactInt16Array(elemW, structItem.CopartitionGroups[i].RepartitionSourceTopics); err != nil {
+									return nil, err
 								}
 							} else {
-								if err := protocol.WriteInt32(w, int32(len(m.Topology.Subtopologies[i].CopartitionGroups[i].RepartitionSourceTopics))); err != nil {
-									return err
+								if err := protocol.WriteInt16Array(elemW, structItem.CopartitionGroups[i].RepartitionSourceTopics); err != nil {
+									return nil, err
 								}
-							}
-							for i := range m.Topology.Subtopologies[i].CopartitionGroups[i].RepartitionSourceTopics {
-								if err := protocol.WriteInt16(w, m.Topology.Subtopologies[i].CopartitionGroups[i].RepartitionSourceTopics[i]); err != nil {
-									return err
-								}
-								_ = i
 							}
 						}
 					}
 				}
+				return elemBuf.Bytes(), nil
+			}
+			items := make([]interface{}, len(m.Topology.Subtopologies))
+			for i := range m.Topology.Subtopologies {
+				items[i] = m.Topology.Subtopologies[i]
+			}
+			if isFlexible {
+				if err := protocol.WriteCompactArray(w, items, encoder); err != nil {
+					return err
+				}
+			} else {
+				if err := protocol.WriteArray(w, items, encoder); err != nil {
+					return err
+				}
+			}
+		}
+		// Write tagged fields if flexible
+		if isFlexible {
+			if err := m.Topology.writeTaggedFields(w, version); err != nil {
+				return err
 			}
 		}
 	}
 	// ActiveTasks
 	if version >= 0 && version <= 999 {
+		// Encode array using ArrayEncoder
+		encoder := func(item interface{}) ([]byte, error) {
+			if item == nil {
+				return nil, nil
+			}
+			structItem, ok := item.(TaskIds)
+			if !ok {
+				return nil, errors.New("invalid type for array element")
+			}
+			var elemBuf bytes.Buffer
+			// Temporarily use elemBuf as writer
+			elemW := &elemBuf
+			// SubtopologyId
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					if err := protocol.WriteCompactString(elemW, structItem.SubtopologyId); err != nil {
+						return nil, err
+					}
+				} else {
+					if err := protocol.WriteString(elemW, structItem.SubtopologyId); err != nil {
+						return nil, err
+					}
+				}
+			}
+			// Partitions
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					if err := protocol.WriteCompactInt32Array(elemW, structItem.Partitions); err != nil {
+						return nil, err
+					}
+				} else {
+					if err := protocol.WriteInt32Array(elemW, structItem.Partitions); err != nil {
+						return nil, err
+					}
+				}
+			}
+			// Write tagged fields if flexible
+			if isFlexible {
+				if err := structItem.writeTaggedFields(elemW, version); err != nil {
+					return nil, err
+				}
+			}
+			return elemBuf.Bytes(), nil
+		}
+		items := make([]interface{}, len(m.ActiveTasks))
+		for i := range m.ActiveTasks {
+			items[i] = m.ActiveTasks[i]
+		}
 		if m.ActiveTasks == nil {
 			if isFlexible {
 				if err := protocol.WriteVaruint32(w, 0); err != nil {
@@ -496,52 +505,66 @@ func (m *StreamsGroupHeartbeatRequest) Write(w io.Writer, version int16) error {
 			}
 		} else {
 			if isFlexible {
-				length := uint32(len(m.ActiveTasks) + 1)
-				if err := protocol.WriteVaruint32(w, length); err != nil {
+				if err := protocol.WriteCompactArray(w, items, encoder); err != nil {
 					return err
 				}
 			} else {
-				if err := protocol.WriteInt32(w, int32(len(m.ActiveTasks))); err != nil {
+				if err := protocol.WriteArray(w, items, encoder); err != nil {
 					return err
-				}
-			}
-			for i := range m.ActiveTasks {
-				// SubtopologyId
-				if version >= 0 && version <= 999 {
-					if isFlexible {
-						if err := protocol.WriteCompactString(w, m.ActiveTasks[i].SubtopologyId); err != nil {
-							return err
-						}
-					} else {
-						if err := protocol.WriteString(w, m.ActiveTasks[i].SubtopologyId); err != nil {
-							return err
-						}
-					}
-				}
-				// Partitions
-				if version >= 0 && version <= 999 {
-					if isFlexible {
-						length := uint32(len(m.ActiveTasks[i].Partitions) + 1)
-						if err := protocol.WriteVaruint32(w, length); err != nil {
-							return err
-						}
-					} else {
-						if err := protocol.WriteInt32(w, int32(len(m.ActiveTasks[i].Partitions))); err != nil {
-							return err
-						}
-					}
-					for i := range m.ActiveTasks[i].Partitions {
-						if err := protocol.WriteInt32(w, m.ActiveTasks[i].Partitions[i]); err != nil {
-							return err
-						}
-						_ = i
-					}
 				}
 			}
 		}
 	}
 	// StandbyTasks
 	if version >= 0 && version <= 999 {
+		// Encode array using ArrayEncoder
+		encoder := func(item interface{}) ([]byte, error) {
+			if item == nil {
+				return nil, nil
+			}
+			structItem, ok := item.(TaskIds)
+			if !ok {
+				return nil, errors.New("invalid type for array element")
+			}
+			var elemBuf bytes.Buffer
+			// Temporarily use elemBuf as writer
+			elemW := &elemBuf
+			// SubtopologyId
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					if err := protocol.WriteCompactString(elemW, structItem.SubtopologyId); err != nil {
+						return nil, err
+					}
+				} else {
+					if err := protocol.WriteString(elemW, structItem.SubtopologyId); err != nil {
+						return nil, err
+					}
+				}
+			}
+			// Partitions
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					if err := protocol.WriteCompactInt32Array(elemW, structItem.Partitions); err != nil {
+						return nil, err
+					}
+				} else {
+					if err := protocol.WriteInt32Array(elemW, structItem.Partitions); err != nil {
+						return nil, err
+					}
+				}
+			}
+			// Write tagged fields if flexible
+			if isFlexible {
+				if err := structItem.writeTaggedFields(elemW, version); err != nil {
+					return nil, err
+				}
+			}
+			return elemBuf.Bytes(), nil
+		}
+		items := make([]interface{}, len(m.StandbyTasks))
+		for i := range m.StandbyTasks {
+			items[i] = m.StandbyTasks[i]
+		}
 		if m.StandbyTasks == nil {
 			if isFlexible {
 				if err := protocol.WriteVaruint32(w, 0); err != nil {
@@ -554,52 +577,66 @@ func (m *StreamsGroupHeartbeatRequest) Write(w io.Writer, version int16) error {
 			}
 		} else {
 			if isFlexible {
-				length := uint32(len(m.StandbyTasks) + 1)
-				if err := protocol.WriteVaruint32(w, length); err != nil {
+				if err := protocol.WriteCompactArray(w, items, encoder); err != nil {
 					return err
 				}
 			} else {
-				if err := protocol.WriteInt32(w, int32(len(m.StandbyTasks))); err != nil {
+				if err := protocol.WriteArray(w, items, encoder); err != nil {
 					return err
-				}
-			}
-			for i := range m.StandbyTasks {
-				// SubtopologyId
-				if version >= 0 && version <= 999 {
-					if isFlexible {
-						if err := protocol.WriteCompactString(w, m.StandbyTasks[i].SubtopologyId); err != nil {
-							return err
-						}
-					} else {
-						if err := protocol.WriteString(w, m.StandbyTasks[i].SubtopologyId); err != nil {
-							return err
-						}
-					}
-				}
-				// Partitions
-				if version >= 0 && version <= 999 {
-					if isFlexible {
-						length := uint32(len(m.StandbyTasks[i].Partitions) + 1)
-						if err := protocol.WriteVaruint32(w, length); err != nil {
-							return err
-						}
-					} else {
-						if err := protocol.WriteInt32(w, int32(len(m.StandbyTasks[i].Partitions))); err != nil {
-							return err
-						}
-					}
-					for i := range m.StandbyTasks[i].Partitions {
-						if err := protocol.WriteInt32(w, m.StandbyTasks[i].Partitions[i]); err != nil {
-							return err
-						}
-						_ = i
-					}
 				}
 			}
 		}
 	}
 	// WarmupTasks
 	if version >= 0 && version <= 999 {
+		// Encode array using ArrayEncoder
+		encoder := func(item interface{}) ([]byte, error) {
+			if item == nil {
+				return nil, nil
+			}
+			structItem, ok := item.(TaskIds)
+			if !ok {
+				return nil, errors.New("invalid type for array element")
+			}
+			var elemBuf bytes.Buffer
+			// Temporarily use elemBuf as writer
+			elemW := &elemBuf
+			// SubtopologyId
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					if err := protocol.WriteCompactString(elemW, structItem.SubtopologyId); err != nil {
+						return nil, err
+					}
+				} else {
+					if err := protocol.WriteString(elemW, structItem.SubtopologyId); err != nil {
+						return nil, err
+					}
+				}
+			}
+			// Partitions
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					if err := protocol.WriteCompactInt32Array(elemW, structItem.Partitions); err != nil {
+						return nil, err
+					}
+				} else {
+					if err := protocol.WriteInt32Array(elemW, structItem.Partitions); err != nil {
+						return nil, err
+					}
+				}
+			}
+			// Write tagged fields if flexible
+			if isFlexible {
+				if err := structItem.writeTaggedFields(elemW, version); err != nil {
+					return nil, err
+				}
+			}
+			return elemBuf.Bytes(), nil
+		}
+		items := make([]interface{}, len(m.WarmupTasks))
+		for i := range m.WarmupTasks {
+			items[i] = m.WarmupTasks[i]
+		}
 		if m.WarmupTasks == nil {
 			if isFlexible {
 				if err := protocol.WriteVaruint32(w, 0); err != nil {
@@ -612,46 +649,12 @@ func (m *StreamsGroupHeartbeatRequest) Write(w io.Writer, version int16) error {
 			}
 		} else {
 			if isFlexible {
-				length := uint32(len(m.WarmupTasks) + 1)
-				if err := protocol.WriteVaruint32(w, length); err != nil {
+				if err := protocol.WriteCompactArray(w, items, encoder); err != nil {
 					return err
 				}
 			} else {
-				if err := protocol.WriteInt32(w, int32(len(m.WarmupTasks))); err != nil {
+				if err := protocol.WriteArray(w, items, encoder); err != nil {
 					return err
-				}
-			}
-			for i := range m.WarmupTasks {
-				// SubtopologyId
-				if version >= 0 && version <= 999 {
-					if isFlexible {
-						if err := protocol.WriteCompactString(w, m.WarmupTasks[i].SubtopologyId); err != nil {
-							return err
-						}
-					} else {
-						if err := protocol.WriteString(w, m.WarmupTasks[i].SubtopologyId); err != nil {
-							return err
-						}
-					}
-				}
-				// Partitions
-				if version >= 0 && version <= 999 {
-					if isFlexible {
-						length := uint32(len(m.WarmupTasks[i].Partitions) + 1)
-						if err := protocol.WriteVaruint32(w, length); err != nil {
-							return err
-						}
-					} else {
-						if err := protocol.WriteInt32(w, int32(len(m.WarmupTasks[i].Partitions))); err != nil {
-							return err
-						}
-					}
-					for i := range m.WarmupTasks[i].Partitions {
-						if err := protocol.WriteInt32(w, m.WarmupTasks[i].Partitions[i]); err != nil {
-							return err
-						}
-						_ = i
-					}
 				}
 			}
 		}
@@ -673,6 +676,54 @@ func (m *StreamsGroupHeartbeatRequest) Write(w io.Writer, version int16) error {
 	}
 	// ClientTags
 	if version >= 0 && version <= 999 {
+		// Encode array using ArrayEncoder
+		encoder := func(item interface{}) ([]byte, error) {
+			if item == nil {
+				return nil, nil
+			}
+			structItem, ok := item.(KeyValue)
+			if !ok {
+				return nil, errors.New("invalid type for array element")
+			}
+			var elemBuf bytes.Buffer
+			// Temporarily use elemBuf as writer
+			elemW := &elemBuf
+			// Key
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					if err := protocol.WriteCompactString(elemW, structItem.Key); err != nil {
+						return nil, err
+					}
+				} else {
+					if err := protocol.WriteString(elemW, structItem.Key); err != nil {
+						return nil, err
+					}
+				}
+			}
+			// Value
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					if err := protocol.WriteCompactString(elemW, structItem.Value); err != nil {
+						return nil, err
+					}
+				} else {
+					if err := protocol.WriteString(elemW, structItem.Value); err != nil {
+						return nil, err
+					}
+				}
+			}
+			// Write tagged fields if flexible
+			if isFlexible {
+				if err := structItem.writeTaggedFields(elemW, version); err != nil {
+					return nil, err
+				}
+			}
+			return elemBuf.Bytes(), nil
+		}
+		items := make([]interface{}, len(m.ClientTags))
+		for i := range m.ClientTags {
+			items[i] = m.ClientTags[i]
+		}
 		if m.ClientTags == nil {
 			if isFlexible {
 				if err := protocol.WriteVaruint32(w, 0); err != nil {
@@ -685,45 +736,66 @@ func (m *StreamsGroupHeartbeatRequest) Write(w io.Writer, version int16) error {
 			}
 		} else {
 			if isFlexible {
-				length := uint32(len(m.ClientTags) + 1)
-				if err := protocol.WriteVaruint32(w, length); err != nil {
+				if err := protocol.WriteCompactArray(w, items, encoder); err != nil {
 					return err
 				}
 			} else {
-				if err := protocol.WriteInt32(w, int32(len(m.ClientTags))); err != nil {
+				if err := protocol.WriteArray(w, items, encoder); err != nil {
 					return err
-				}
-			}
-			for i := range m.ClientTags {
-				// Key
-				if version >= 0 && version <= 999 {
-					if isFlexible {
-						if err := protocol.WriteCompactString(w, m.ClientTags[i].Key); err != nil {
-							return err
-						}
-					} else {
-						if err := protocol.WriteString(w, m.ClientTags[i].Key); err != nil {
-							return err
-						}
-					}
-				}
-				// Value
-				if version >= 0 && version <= 999 {
-					if isFlexible {
-						if err := protocol.WriteCompactString(w, m.ClientTags[i].Value); err != nil {
-							return err
-						}
-					} else {
-						if err := protocol.WriteString(w, m.ClientTags[i].Value); err != nil {
-							return err
-						}
-					}
 				}
 			}
 		}
 	}
 	// TaskOffsets
 	if version >= 0 && version <= 999 {
+		// Encode array using ArrayEncoder
+		encoder := func(item interface{}) ([]byte, error) {
+			if item == nil {
+				return nil, nil
+			}
+			structItem, ok := item.(TaskOffset)
+			if !ok {
+				return nil, errors.New("invalid type for array element")
+			}
+			var elemBuf bytes.Buffer
+			// Temporarily use elemBuf as writer
+			elemW := &elemBuf
+			// SubtopologyId
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					if err := protocol.WriteCompactString(elemW, structItem.SubtopologyId); err != nil {
+						return nil, err
+					}
+				} else {
+					if err := protocol.WriteString(elemW, structItem.SubtopologyId); err != nil {
+						return nil, err
+					}
+				}
+			}
+			// Partition
+			if version >= 0 && version <= 999 {
+				if err := protocol.WriteInt32(elemW, structItem.Partition); err != nil {
+					return nil, err
+				}
+			}
+			// Offset
+			if version >= 0 && version <= 999 {
+				if err := protocol.WriteInt64(elemW, structItem.Offset); err != nil {
+					return nil, err
+				}
+			}
+			// Write tagged fields if flexible
+			if isFlexible {
+				if err := structItem.writeTaggedFields(elemW, version); err != nil {
+					return nil, err
+				}
+			}
+			return elemBuf.Bytes(), nil
+		}
+		items := make([]interface{}, len(m.TaskOffsets))
+		for i := range m.TaskOffsets {
+			items[i] = m.TaskOffsets[i]
+		}
 		if m.TaskOffsets == nil {
 			if isFlexible {
 				if err := protocol.WriteVaruint32(w, 0); err != nil {
@@ -736,45 +808,66 @@ func (m *StreamsGroupHeartbeatRequest) Write(w io.Writer, version int16) error {
 			}
 		} else {
 			if isFlexible {
-				length := uint32(len(m.TaskOffsets) + 1)
-				if err := protocol.WriteVaruint32(w, length); err != nil {
+				if err := protocol.WriteCompactArray(w, items, encoder); err != nil {
 					return err
 				}
 			} else {
-				if err := protocol.WriteInt32(w, int32(len(m.TaskOffsets))); err != nil {
+				if err := protocol.WriteArray(w, items, encoder); err != nil {
 					return err
-				}
-			}
-			for i := range m.TaskOffsets {
-				// SubtopologyId
-				if version >= 0 && version <= 999 {
-					if isFlexible {
-						if err := protocol.WriteCompactString(w, m.TaskOffsets[i].SubtopologyId); err != nil {
-							return err
-						}
-					} else {
-						if err := protocol.WriteString(w, m.TaskOffsets[i].SubtopologyId); err != nil {
-							return err
-						}
-					}
-				}
-				// Partition
-				if version >= 0 && version <= 999 {
-					if err := protocol.WriteInt32(w, m.TaskOffsets[i].Partition); err != nil {
-						return err
-					}
-				}
-				// Offset
-				if version >= 0 && version <= 999 {
-					if err := protocol.WriteInt64(w, m.TaskOffsets[i].Offset); err != nil {
-						return err
-					}
 				}
 			}
 		}
 	}
 	// TaskEndOffsets
 	if version >= 0 && version <= 999 {
+		// Encode array using ArrayEncoder
+		encoder := func(item interface{}) ([]byte, error) {
+			if item == nil {
+				return nil, nil
+			}
+			structItem, ok := item.(TaskOffset)
+			if !ok {
+				return nil, errors.New("invalid type for array element")
+			}
+			var elemBuf bytes.Buffer
+			// Temporarily use elemBuf as writer
+			elemW := &elemBuf
+			// SubtopologyId
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					if err := protocol.WriteCompactString(elemW, structItem.SubtopologyId); err != nil {
+						return nil, err
+					}
+				} else {
+					if err := protocol.WriteString(elemW, structItem.SubtopologyId); err != nil {
+						return nil, err
+					}
+				}
+			}
+			// Partition
+			if version >= 0 && version <= 999 {
+				if err := protocol.WriteInt32(elemW, structItem.Partition); err != nil {
+					return nil, err
+				}
+			}
+			// Offset
+			if version >= 0 && version <= 999 {
+				if err := protocol.WriteInt64(elemW, structItem.Offset); err != nil {
+					return nil, err
+				}
+			}
+			// Write tagged fields if flexible
+			if isFlexible {
+				if err := structItem.writeTaggedFields(elemW, version); err != nil {
+					return nil, err
+				}
+			}
+			return elemBuf.Bytes(), nil
+		}
+		items := make([]interface{}, len(m.TaskEndOffsets))
+		for i := range m.TaskEndOffsets {
+			items[i] = m.TaskEndOffsets[i]
+		}
 		if m.TaskEndOffsets == nil {
 			if isFlexible {
 				if err := protocol.WriteVaruint32(w, 0); err != nil {
@@ -787,39 +880,12 @@ func (m *StreamsGroupHeartbeatRequest) Write(w io.Writer, version int16) error {
 			}
 		} else {
 			if isFlexible {
-				length := uint32(len(m.TaskEndOffsets) + 1)
-				if err := protocol.WriteVaruint32(w, length); err != nil {
+				if err := protocol.WriteCompactArray(w, items, encoder); err != nil {
 					return err
 				}
 			} else {
-				if err := protocol.WriteInt32(w, int32(len(m.TaskEndOffsets))); err != nil {
+				if err := protocol.WriteArray(w, items, encoder); err != nil {
 					return err
-				}
-			}
-			for i := range m.TaskEndOffsets {
-				// SubtopologyId
-				if version >= 0 && version <= 999 {
-					if isFlexible {
-						if err := protocol.WriteCompactString(w, m.TaskEndOffsets[i].SubtopologyId); err != nil {
-							return err
-						}
-					} else {
-						if err := protocol.WriteString(w, m.TaskEndOffsets[i].SubtopologyId); err != nil {
-							return err
-						}
-					}
-				}
-				// Partition
-				if version >= 0 && version <= 999 {
-					if err := protocol.WriteInt32(w, m.TaskEndOffsets[i].Partition); err != nil {
-						return err
-					}
-				}
-				// Offset
-				if version >= 0 && version <= 999 {
-					if err := protocol.WriteInt64(w, m.TaskEndOffsets[i].Offset); err != nil {
-						return err
-					}
 				}
 			}
 		}
@@ -950,9 +1016,93 @@ func (m *StreamsGroupHeartbeatRequest) Read(r io.Reader, version int16) error {
 		}
 		// Subtopologies
 		if version >= 0 && version <= 999 {
-			var length int32
+			// Decode array using ArrayDecoder
+			decoder := func(data []byte) (interface{}, int, error) {
+				var elem StreamsGroupHeartbeatRequestSubtopology
+				elemR := bytes.NewReader(data)
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactString(elemR)
+						if err != nil {
+							return nil, 0, err
+						}
+						elem.SubtopologyId = val
+					} else {
+						val, err := protocol.ReadString(elemR)
+						if err != nil {
+							return nil, 0, err
+						}
+						elem.SubtopologyId = val
+					}
+				}
+				// SourceTopics
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactStringArray(elemR)
+						if err != nil {
+							return nil, 0, err
+						}
+						elem.SourceTopics = val
+					} else {
+						val, err := protocol.ReadStringArray(elemR)
+						if err != nil {
+							return nil, 0, err
+						}
+						elem.SourceTopics = val
+					}
+				}
+				// SourceTopicRegex
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactStringArray(elemR)
+						if err != nil {
+							return nil, 0, err
+						}
+						elem.SourceTopicRegex = val
+					} else {
+						val, err := protocol.ReadStringArray(elemR)
+						if err != nil {
+							return nil, 0, err
+						}
+						elem.SourceTopicRegex = val
+					}
+				}
+				// StateChangelogTopics
+				if version >= 0 && version <= 999 {
+					// Nested array in decoder - manual handling needed
+					return nil, 0, errors.New("nested arrays in decoder not fully supported")
+				}
+				// RepartitionSinkTopics
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactStringArray(elemR)
+						if err != nil {
+							return nil, 0, err
+						}
+						elem.RepartitionSinkTopics = val
+					} else {
+						val, err := protocol.ReadStringArray(elemR)
+						if err != nil {
+							return nil, 0, err
+						}
+						elem.RepartitionSinkTopics = val
+					}
+				}
+				// RepartitionSourceTopics
+				if version >= 0 && version <= 999 {
+					// Nested array in decoder - manual handling needed
+					return nil, 0, errors.New("nested arrays in decoder not fully supported")
+				}
+				// CopartitionGroups
+				if version >= 0 && version <= 999 {
+					// Nested array in decoder - manual handling needed
+					return nil, 0, errors.New("nested arrays in decoder not fully supported")
+				}
+				consumed := len(data) - elemR.Len()
+				return elem, consumed, nil
+			}
 			if isFlexible {
-				var lengthUint uint32
 				lengthUint, err := protocol.ReadVaruint32(r)
 				if err != nil {
 					return err
@@ -960,9 +1110,14 @@ func (m *StreamsGroupHeartbeatRequest) Read(r io.Reader, version int16) error {
 				if lengthUint < 1 {
 					return errors.New("invalid compact array length")
 				}
-				length = int32(lengthUint - 1)
-				m.Topology.Subtopologies = make([]StreamsGroupHeartbeatRequestSubtopology, length)
+				length := int32(lengthUint - 1)
+				// Collect all array elements into a buffer
+				var arrayBuf bytes.Buffer
 				for i := int32(0); i < length; i++ {
+					// Read element into struct and encode to buffer
+					var elemBuf bytes.Buffer
+					elemW := &elemBuf
+					var tempElem StreamsGroupHeartbeatRequestSubtopology
 					// SubtopologyId
 					if version >= 0 && version <= 999 {
 						if isFlexible {
@@ -970,20 +1125,94 @@ func (m *StreamsGroupHeartbeatRequest) Read(r io.Reader, version int16) error {
 							if err != nil {
 								return err
 							}
-							m.Topology.Subtopologies[i].SubtopologyId = val
+							tempElem.SubtopologyId = val
 						} else {
 							val, err := protocol.ReadString(r)
 							if err != nil {
 								return err
 							}
-							m.Topology.Subtopologies[i].SubtopologyId = val
+							tempElem.SubtopologyId = val
 						}
 					}
 					// SourceTopics
 					if version >= 0 && version <= 999 {
-						var length int32
 						if isFlexible {
-							var lengthUint uint32
+							val, err := protocol.ReadCompactStringArray(r)
+							if err != nil {
+								return err
+							}
+							tempElem.SourceTopics = val
+						} else {
+							val, err := protocol.ReadStringArray(r)
+							if err != nil {
+								return err
+							}
+							tempElem.SourceTopics = val
+						}
+					}
+					// SourceTopicRegex
+					if version >= 0 && version <= 999 {
+						if isFlexible {
+							val, err := protocol.ReadCompactStringArray(r)
+							if err != nil {
+								return err
+							}
+							tempElem.SourceTopicRegex = val
+						} else {
+							val, err := protocol.ReadStringArray(r)
+							if err != nil {
+								return err
+							}
+							tempElem.SourceTopicRegex = val
+						}
+					}
+					// StateChangelogTopics
+					if version >= 0 && version <= 999 {
+						// Decode array using ArrayDecoder
+						decoder := func(data []byte) (interface{}, int, error) {
+							var elem TopicInfo
+							elemR := bytes.NewReader(data)
+							// Name
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactString(elemR)
+									if err != nil {
+										return nil, 0, err
+									}
+									elem.Name = val
+								} else {
+									val, err := protocol.ReadString(elemR)
+									if err != nil {
+										return nil, 0, err
+									}
+									elem.Name = val
+								}
+							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								val, err := protocol.ReadInt32(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Partitions = val
+							}
+							// ReplicationFactor
+							if version >= 0 && version <= 999 {
+								val, err := protocol.ReadInt16(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.ReplicationFactor = val
+							}
+							// TopicConfigs
+							if version >= 0 && version <= 999 {
+								// Nested array in decoder - manual handling needed
+								return nil, 0, errors.New("nested arrays in decoder not fully supported")
+							}
+							consumed := len(data) - elemR.Len()
+							return elem, consumed, nil
+						}
+						if isFlexible {
 							lengthUint, err := protocol.ReadVaruint32(r)
 							if err != nil {
 								return err
@@ -991,366 +1220,1804 @@ func (m *StreamsGroupHeartbeatRequest) Read(r io.Reader, version int16) error {
 							if lengthUint < 1 {
 								return errors.New("invalid compact array length")
 							}
-							length = int32(lengthUint - 1)
-							m.Topology.Subtopologies[i].SourceTopics = make([]string, length)
+							length := int32(lengthUint - 1)
+							// Collect all array elements into a buffer
+							var arrayBuf bytes.Buffer
 							for i := int32(0); i < length; i++ {
-								if isFlexible {
-									val, err := protocol.ReadCompactString(r)
-									if err != nil {
-										return err
+								// Read element into struct and encode to buffer
+								var elemBuf bytes.Buffer
+								elemW := &elemBuf
+								var tempElem TopicInfo
+								// Name
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										val, err := protocol.ReadCompactString(r)
+										if err != nil {
+											return err
+										}
+										tempElem.Name = val
+									} else {
+										val, err := protocol.ReadString(r)
+										if err != nil {
+											return err
+										}
+										tempElem.Name = val
 									}
-									m.Topology.Subtopologies[i].SourceTopics[i] = val
-								} else {
-									val, err := protocol.ReadString(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].SourceTopics[i] = val
 								}
+								// Partitions
+								if version >= 0 && version <= 999 {
+									val, err := protocol.ReadInt32(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Partitions = val
+								}
+								// ReplicationFactor
+								if version >= 0 && version <= 999 {
+									val, err := protocol.ReadInt16(r)
+									if err != nil {
+										return err
+									}
+									tempElem.ReplicationFactor = val
+								}
+								// TopicConfigs
+								if version >= 0 && version <= 999 {
+									// Decode array using ArrayDecoder
+									decoder := func(data []byte) (interface{}, int, error) {
+										var elem KeyValue
+										elemR := bytes.NewReader(data)
+										// Key
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												val, err := protocol.ReadCompactString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Key = val
+											} else {
+												val, err := protocol.ReadString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Key = val
+											}
+										}
+										// Value
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												val, err := protocol.ReadCompactString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Value = val
+											} else {
+												val, err := protocol.ReadString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Value = val
+											}
+										}
+										consumed := len(data) - elemR.Len()
+										return elem, consumed, nil
+									}
+									if isFlexible {
+										lengthUint, err := protocol.ReadVaruint32(r)
+										if err != nil {
+											return err
+										}
+										if lengthUint < 1 {
+											return errors.New("invalid compact array length")
+										}
+										length := int32(lengthUint - 1)
+										// Collect all array elements into a buffer
+										var arrayBuf bytes.Buffer
+										for i := int32(0); i < length; i++ {
+											// Read element into struct and encode to buffer
+											var elemBuf bytes.Buffer
+											elemW := &elemBuf
+											var tempElem KeyValue
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												}
+											}
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												}
+											}
+											// Append to array buffer
+											arrayBuf.Write(elemBuf.Bytes())
+										}
+										// Prepend length and decode using DecodeCompactArray
+										lengthBytes := protocol.EncodeVaruint32(lengthUint)
+										fullData := append(lengthBytes, arrayBuf.Bytes()...)
+										decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+										if err != nil {
+											return err
+										}
+										// Convert []interface{} to typed slice
+										tempElem.TopicConfigs = make([]KeyValue, len(decoded))
+										for i, item := range decoded {
+											tempElem.TopicConfigs[i] = item.(KeyValue)
+										}
+									} else {
+										length, err := protocol.ReadInt32(r)
+										if err != nil {
+											return err
+										}
+										// Collect all array elements into a buffer
+										var arrayBuf bytes.Buffer
+										for i := int32(0); i < length; i++ {
+											// Read element into struct and encode to buffer
+											var elemBuf bytes.Buffer
+											elemW := &elemBuf
+											var tempElem KeyValue
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												}
+											}
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												}
+											}
+											// Append to array buffer
+											arrayBuf.Write(elemBuf.Bytes())
+										}
+										// Prepend length and decode using DecodeArray
+										lengthBytes := protocol.EncodeInt32(length)
+										fullData := append(lengthBytes, arrayBuf.Bytes()...)
+										decoded, _, err := protocol.DecodeArray(fullData, decoder)
+										if err != nil {
+											return err
+										}
+										// Convert []interface{} to typed slice
+										tempElem.TopicConfigs = make([]KeyValue, len(decoded))
+										for i, item := range decoded {
+											tempElem.TopicConfigs[i] = item.(KeyValue)
+										}
+									}
+								}
+								// Name
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										if err := protocol.WriteCompactString(elemW, tempElem.Name); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteString(elemW, tempElem.Name); err != nil {
+											return err
+										}
+									}
+								}
+								// Partitions
+								if version >= 0 && version <= 999 {
+									if err := protocol.WriteInt32(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								}
+								// ReplicationFactor
+								if version >= 0 && version <= 999 {
+									if err := protocol.WriteInt16(elemW, tempElem.ReplicationFactor); err != nil {
+										return err
+									}
+								}
+								// TopicConfigs
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										length := uint32(len(tempElem.TopicConfigs) + 1)
+										if err := protocol.WriteVaruint32(elemW, length); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteInt32(elemW, int32(len(tempElem.TopicConfigs))); err != nil {
+											return err
+										}
+									}
+									for i := range tempElem.TopicConfigs {
+										// Key
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactString(elemW, tempElem.TopicConfigs[i].Key); err != nil {
+													return err
+												}
+											} else {
+												if err := protocol.WriteString(elemW, tempElem.TopicConfigs[i].Key); err != nil {
+													return err
+												}
+											}
+										}
+										// Value
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactString(elemW, tempElem.TopicConfigs[i].Value); err != nil {
+													return err
+												}
+											} else {
+												if err := protocol.WriteString(elemW, tempElem.TopicConfigs[i].Value); err != nil {
+													return err
+												}
+											}
+										}
+									}
+								}
+								// Append to array buffer
+								arrayBuf.Write(elemBuf.Bytes())
 							}
-						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
+							// Prepend length and decode using DecodeCompactArray
+							lengthBytes := protocol.EncodeVaruint32(lengthUint)
+							fullData := append(lengthBytes, arrayBuf.Bytes()...)
+							decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
 							if err != nil {
 								return err
 							}
-							m.Topology.Subtopologies[i].SourceTopics = make([]string, length)
+							// Convert []interface{} to typed slice
+							tempElem.StateChangelogTopics = make([]TopicInfo, len(decoded))
+							for i, item := range decoded {
+								tempElem.StateChangelogTopics[i] = item.(TopicInfo)
+							}
+						} else {
+							length, err := protocol.ReadInt32(r)
+							if err != nil {
+								return err
+							}
+							// Collect all array elements into a buffer
+							var arrayBuf bytes.Buffer
 							for i := int32(0); i < length; i++ {
-								if isFlexible {
-									val, err := protocol.ReadCompactString(r)
-									if err != nil {
-										return err
+								// Read element into struct and encode to buffer
+								var elemBuf bytes.Buffer
+								elemW := &elemBuf
+								var tempElem TopicInfo
+								// Name
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										val, err := protocol.ReadCompactString(r)
+										if err != nil {
+											return err
+										}
+										tempElem.Name = val
+									} else {
+										val, err := protocol.ReadString(r)
+										if err != nil {
+											return err
+										}
+										tempElem.Name = val
 									}
-									m.Topology.Subtopologies[i].SourceTopics[i] = val
-								} else {
-									val, err := protocol.ReadString(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].SourceTopics[i] = val
 								}
+								// Partitions
+								if version >= 0 && version <= 999 {
+									val, err := protocol.ReadInt32(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Partitions = val
+								}
+								// ReplicationFactor
+								if version >= 0 && version <= 999 {
+									val, err := protocol.ReadInt16(r)
+									if err != nil {
+										return err
+									}
+									tempElem.ReplicationFactor = val
+								}
+								// TopicConfigs
+								if version >= 0 && version <= 999 {
+									// Decode array using ArrayDecoder
+									decoder := func(data []byte) (interface{}, int, error) {
+										var elem KeyValue
+										elemR := bytes.NewReader(data)
+										// Key
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												val, err := protocol.ReadCompactString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Key = val
+											} else {
+												val, err := protocol.ReadString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Key = val
+											}
+										}
+										// Value
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												val, err := protocol.ReadCompactString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Value = val
+											} else {
+												val, err := protocol.ReadString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Value = val
+											}
+										}
+										consumed := len(data) - elemR.Len()
+										return elem, consumed, nil
+									}
+									if isFlexible {
+										lengthUint, err := protocol.ReadVaruint32(r)
+										if err != nil {
+											return err
+										}
+										if lengthUint < 1 {
+											return errors.New("invalid compact array length")
+										}
+										length := int32(lengthUint - 1)
+										// Collect all array elements into a buffer
+										var arrayBuf bytes.Buffer
+										for i := int32(0); i < length; i++ {
+											// Read element into struct and encode to buffer
+											var elemBuf bytes.Buffer
+											elemW := &elemBuf
+											var tempElem KeyValue
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												}
+											}
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												}
+											}
+											// Append to array buffer
+											arrayBuf.Write(elemBuf.Bytes())
+										}
+										// Prepend length and decode using DecodeCompactArray
+										lengthBytes := protocol.EncodeVaruint32(lengthUint)
+										fullData := append(lengthBytes, arrayBuf.Bytes()...)
+										decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+										if err != nil {
+											return err
+										}
+										// Convert []interface{} to typed slice
+										tempElem.TopicConfigs = make([]KeyValue, len(decoded))
+										for i, item := range decoded {
+											tempElem.TopicConfigs[i] = item.(KeyValue)
+										}
+									} else {
+										length, err := protocol.ReadInt32(r)
+										if err != nil {
+											return err
+										}
+										// Collect all array elements into a buffer
+										var arrayBuf bytes.Buffer
+										for i := int32(0); i < length; i++ {
+											// Read element into struct and encode to buffer
+											var elemBuf bytes.Buffer
+											elemW := &elemBuf
+											var tempElem KeyValue
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												}
+											}
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												}
+											}
+											// Append to array buffer
+											arrayBuf.Write(elemBuf.Bytes())
+										}
+										// Prepend length and decode using DecodeArray
+										lengthBytes := protocol.EncodeInt32(length)
+										fullData := append(lengthBytes, arrayBuf.Bytes()...)
+										decoded, _, err := protocol.DecodeArray(fullData, decoder)
+										if err != nil {
+											return err
+										}
+										// Convert []interface{} to typed slice
+										tempElem.TopicConfigs = make([]KeyValue, len(decoded))
+										for i, item := range decoded {
+											tempElem.TopicConfigs[i] = item.(KeyValue)
+										}
+									}
+								}
+								// Name
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										if err := protocol.WriteCompactString(elemW, tempElem.Name); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteString(elemW, tempElem.Name); err != nil {
+											return err
+										}
+									}
+								}
+								// Partitions
+								if version >= 0 && version <= 999 {
+									if err := protocol.WriteInt32(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								}
+								// ReplicationFactor
+								if version >= 0 && version <= 999 {
+									if err := protocol.WriteInt16(elemW, tempElem.ReplicationFactor); err != nil {
+										return err
+									}
+								}
+								// TopicConfigs
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										length := uint32(len(tempElem.TopicConfigs) + 1)
+										if err := protocol.WriteVaruint32(elemW, length); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteInt32(elemW, int32(len(tempElem.TopicConfigs))); err != nil {
+											return err
+										}
+									}
+									for i := range tempElem.TopicConfigs {
+										// Key
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactString(elemW, tempElem.TopicConfigs[i].Key); err != nil {
+													return err
+												}
+											} else {
+												if err := protocol.WriteString(elemW, tempElem.TopicConfigs[i].Key); err != nil {
+													return err
+												}
+											}
+										}
+										// Value
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactString(elemW, tempElem.TopicConfigs[i].Value); err != nil {
+													return err
+												}
+											} else {
+												if err := protocol.WriteString(elemW, tempElem.TopicConfigs[i].Value); err != nil {
+													return err
+												}
+											}
+										}
+									}
+								}
+								// Append to array buffer
+								arrayBuf.Write(elemBuf.Bytes())
+							}
+							// Prepend length and decode using DecodeArray
+							lengthBytes := protocol.EncodeInt32(length)
+							fullData := append(lengthBytes, arrayBuf.Bytes()...)
+							decoded, _, err := protocol.DecodeArray(fullData, decoder)
+							if err != nil {
+								return err
+							}
+							// Convert []interface{} to typed slice
+							tempElem.StateChangelogTopics = make([]TopicInfo, len(decoded))
+							for i, item := range decoded {
+								tempElem.StateChangelogTopics[i] = item.(TopicInfo)
+							}
+						}
+					}
+					// RepartitionSinkTopics
+					if version >= 0 && version <= 999 {
+						if isFlexible {
+							val, err := protocol.ReadCompactStringArray(r)
+							if err != nil {
+								return err
+							}
+							tempElem.RepartitionSinkTopics = val
+						} else {
+							val, err := protocol.ReadStringArray(r)
+							if err != nil {
+								return err
+							}
+							tempElem.RepartitionSinkTopics = val
+						}
+					}
+					// RepartitionSourceTopics
+					if version >= 0 && version <= 999 {
+						// Decode array using ArrayDecoder
+						decoder := func(data []byte) (interface{}, int, error) {
+							var elem TopicInfo
+							elemR := bytes.NewReader(data)
+							// Name
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactString(elemR)
+									if err != nil {
+										return nil, 0, err
+									}
+									elem.Name = val
+								} else {
+									val, err := protocol.ReadString(elemR)
+									if err != nil {
+										return nil, 0, err
+									}
+									elem.Name = val
+								}
+							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								val, err := protocol.ReadInt32(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Partitions = val
+							}
+							// ReplicationFactor
+							if version >= 0 && version <= 999 {
+								val, err := protocol.ReadInt16(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.ReplicationFactor = val
+							}
+							// TopicConfigs
+							if version >= 0 && version <= 999 {
+								// Nested array in decoder - manual handling needed
+								return nil, 0, errors.New("nested arrays in decoder not fully supported")
+							}
+							consumed := len(data) - elemR.Len()
+							return elem, consumed, nil
+						}
+						if isFlexible {
+							lengthUint, err := protocol.ReadVaruint32(r)
+							if err != nil {
+								return err
+							}
+							if lengthUint < 1 {
+								return errors.New("invalid compact array length")
+							}
+							length := int32(lengthUint - 1)
+							// Collect all array elements into a buffer
+							var arrayBuf bytes.Buffer
+							for i := int32(0); i < length; i++ {
+								// Read element into struct and encode to buffer
+								var elemBuf bytes.Buffer
+								elemW := &elemBuf
+								var tempElem TopicInfo
+								// Name
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										val, err := protocol.ReadCompactString(r)
+										if err != nil {
+											return err
+										}
+										tempElem.Name = val
+									} else {
+										val, err := protocol.ReadString(r)
+										if err != nil {
+											return err
+										}
+										tempElem.Name = val
+									}
+								}
+								// Partitions
+								if version >= 0 && version <= 999 {
+									val, err := protocol.ReadInt32(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Partitions = val
+								}
+								// ReplicationFactor
+								if version >= 0 && version <= 999 {
+									val, err := protocol.ReadInt16(r)
+									if err != nil {
+										return err
+									}
+									tempElem.ReplicationFactor = val
+								}
+								// TopicConfigs
+								if version >= 0 && version <= 999 {
+									// Decode array using ArrayDecoder
+									decoder := func(data []byte) (interface{}, int, error) {
+										var elem KeyValue
+										elemR := bytes.NewReader(data)
+										// Key
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												val, err := protocol.ReadCompactString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Key = val
+											} else {
+												val, err := protocol.ReadString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Key = val
+											}
+										}
+										// Value
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												val, err := protocol.ReadCompactString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Value = val
+											} else {
+												val, err := protocol.ReadString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Value = val
+											}
+										}
+										consumed := len(data) - elemR.Len()
+										return elem, consumed, nil
+									}
+									if isFlexible {
+										lengthUint, err := protocol.ReadVaruint32(r)
+										if err != nil {
+											return err
+										}
+										if lengthUint < 1 {
+											return errors.New("invalid compact array length")
+										}
+										length := int32(lengthUint - 1)
+										// Collect all array elements into a buffer
+										var arrayBuf bytes.Buffer
+										for i := int32(0); i < length; i++ {
+											// Read element into struct and encode to buffer
+											var elemBuf bytes.Buffer
+											elemW := &elemBuf
+											var tempElem KeyValue
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												}
+											}
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												}
+											}
+											// Append to array buffer
+											arrayBuf.Write(elemBuf.Bytes())
+										}
+										// Prepend length and decode using DecodeCompactArray
+										lengthBytes := protocol.EncodeVaruint32(lengthUint)
+										fullData := append(lengthBytes, arrayBuf.Bytes()...)
+										decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+										if err != nil {
+											return err
+										}
+										// Convert []interface{} to typed slice
+										tempElem.TopicConfigs = make([]KeyValue, len(decoded))
+										for i, item := range decoded {
+											tempElem.TopicConfigs[i] = item.(KeyValue)
+										}
+									} else {
+										length, err := protocol.ReadInt32(r)
+										if err != nil {
+											return err
+										}
+										// Collect all array elements into a buffer
+										var arrayBuf bytes.Buffer
+										for i := int32(0); i < length; i++ {
+											// Read element into struct and encode to buffer
+											var elemBuf bytes.Buffer
+											elemW := &elemBuf
+											var tempElem KeyValue
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												}
+											}
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												}
+											}
+											// Append to array buffer
+											arrayBuf.Write(elemBuf.Bytes())
+										}
+										// Prepend length and decode using DecodeArray
+										lengthBytes := protocol.EncodeInt32(length)
+										fullData := append(lengthBytes, arrayBuf.Bytes()...)
+										decoded, _, err := protocol.DecodeArray(fullData, decoder)
+										if err != nil {
+											return err
+										}
+										// Convert []interface{} to typed slice
+										tempElem.TopicConfigs = make([]KeyValue, len(decoded))
+										for i, item := range decoded {
+											tempElem.TopicConfigs[i] = item.(KeyValue)
+										}
+									}
+								}
+								// Name
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										if err := protocol.WriteCompactString(elemW, tempElem.Name); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteString(elemW, tempElem.Name); err != nil {
+											return err
+										}
+									}
+								}
+								// Partitions
+								if version >= 0 && version <= 999 {
+									if err := protocol.WriteInt32(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								}
+								// ReplicationFactor
+								if version >= 0 && version <= 999 {
+									if err := protocol.WriteInt16(elemW, tempElem.ReplicationFactor); err != nil {
+										return err
+									}
+								}
+								// TopicConfigs
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										length := uint32(len(tempElem.TopicConfigs) + 1)
+										if err := protocol.WriteVaruint32(elemW, length); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteInt32(elemW, int32(len(tempElem.TopicConfigs))); err != nil {
+											return err
+										}
+									}
+									for i := range tempElem.TopicConfigs {
+										// Key
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactString(elemW, tempElem.TopicConfigs[i].Key); err != nil {
+													return err
+												}
+											} else {
+												if err := protocol.WriteString(elemW, tempElem.TopicConfigs[i].Key); err != nil {
+													return err
+												}
+											}
+										}
+										// Value
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactString(elemW, tempElem.TopicConfigs[i].Value); err != nil {
+													return err
+												}
+											} else {
+												if err := protocol.WriteString(elemW, tempElem.TopicConfigs[i].Value); err != nil {
+													return err
+												}
+											}
+										}
+									}
+								}
+								// Append to array buffer
+								arrayBuf.Write(elemBuf.Bytes())
+							}
+							// Prepend length and decode using DecodeCompactArray
+							lengthBytes := protocol.EncodeVaruint32(lengthUint)
+							fullData := append(lengthBytes, arrayBuf.Bytes()...)
+							decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+							if err != nil {
+								return err
+							}
+							// Convert []interface{} to typed slice
+							tempElem.RepartitionSourceTopics = make([]TopicInfo, len(decoded))
+							for i, item := range decoded {
+								tempElem.RepartitionSourceTopics[i] = item.(TopicInfo)
+							}
+						} else {
+							length, err := protocol.ReadInt32(r)
+							if err != nil {
+								return err
+							}
+							// Collect all array elements into a buffer
+							var arrayBuf bytes.Buffer
+							for i := int32(0); i < length; i++ {
+								// Read element into struct and encode to buffer
+								var elemBuf bytes.Buffer
+								elemW := &elemBuf
+								var tempElem TopicInfo
+								// Name
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										val, err := protocol.ReadCompactString(r)
+										if err != nil {
+											return err
+										}
+										tempElem.Name = val
+									} else {
+										val, err := protocol.ReadString(r)
+										if err != nil {
+											return err
+										}
+										tempElem.Name = val
+									}
+								}
+								// Partitions
+								if version >= 0 && version <= 999 {
+									val, err := protocol.ReadInt32(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Partitions = val
+								}
+								// ReplicationFactor
+								if version >= 0 && version <= 999 {
+									val, err := protocol.ReadInt16(r)
+									if err != nil {
+										return err
+									}
+									tempElem.ReplicationFactor = val
+								}
+								// TopicConfigs
+								if version >= 0 && version <= 999 {
+									// Decode array using ArrayDecoder
+									decoder := func(data []byte) (interface{}, int, error) {
+										var elem KeyValue
+										elemR := bytes.NewReader(data)
+										// Key
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												val, err := protocol.ReadCompactString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Key = val
+											} else {
+												val, err := protocol.ReadString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Key = val
+											}
+										}
+										// Value
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												val, err := protocol.ReadCompactString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Value = val
+											} else {
+												val, err := protocol.ReadString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Value = val
+											}
+										}
+										consumed := len(data) - elemR.Len()
+										return elem, consumed, nil
+									}
+									if isFlexible {
+										lengthUint, err := protocol.ReadVaruint32(r)
+										if err != nil {
+											return err
+										}
+										if lengthUint < 1 {
+											return errors.New("invalid compact array length")
+										}
+										length := int32(lengthUint - 1)
+										// Collect all array elements into a buffer
+										var arrayBuf bytes.Buffer
+										for i := int32(0); i < length; i++ {
+											// Read element into struct and encode to buffer
+											var elemBuf bytes.Buffer
+											elemW := &elemBuf
+											var tempElem KeyValue
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												}
+											}
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												}
+											}
+											// Append to array buffer
+											arrayBuf.Write(elemBuf.Bytes())
+										}
+										// Prepend length and decode using DecodeCompactArray
+										lengthBytes := protocol.EncodeVaruint32(lengthUint)
+										fullData := append(lengthBytes, arrayBuf.Bytes()...)
+										decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+										if err != nil {
+											return err
+										}
+										// Convert []interface{} to typed slice
+										tempElem.TopicConfigs = make([]KeyValue, len(decoded))
+										for i, item := range decoded {
+											tempElem.TopicConfigs[i] = item.(KeyValue)
+										}
+									} else {
+										length, err := protocol.ReadInt32(r)
+										if err != nil {
+											return err
+										}
+										// Collect all array elements into a buffer
+										var arrayBuf bytes.Buffer
+										for i := int32(0); i < length; i++ {
+											// Read element into struct and encode to buffer
+											var elemBuf bytes.Buffer
+											elemW := &elemBuf
+											var tempElem KeyValue
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												}
+											}
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												}
+											}
+											// Append to array buffer
+											arrayBuf.Write(elemBuf.Bytes())
+										}
+										// Prepend length and decode using DecodeArray
+										lengthBytes := protocol.EncodeInt32(length)
+										fullData := append(lengthBytes, arrayBuf.Bytes()...)
+										decoded, _, err := protocol.DecodeArray(fullData, decoder)
+										if err != nil {
+											return err
+										}
+										// Convert []interface{} to typed slice
+										tempElem.TopicConfigs = make([]KeyValue, len(decoded))
+										for i, item := range decoded {
+											tempElem.TopicConfigs[i] = item.(KeyValue)
+										}
+									}
+								}
+								// Name
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										if err := protocol.WriteCompactString(elemW, tempElem.Name); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteString(elemW, tempElem.Name); err != nil {
+											return err
+										}
+									}
+								}
+								// Partitions
+								if version >= 0 && version <= 999 {
+									if err := protocol.WriteInt32(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								}
+								// ReplicationFactor
+								if version >= 0 && version <= 999 {
+									if err := protocol.WriteInt16(elemW, tempElem.ReplicationFactor); err != nil {
+										return err
+									}
+								}
+								// TopicConfigs
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										length := uint32(len(tempElem.TopicConfigs) + 1)
+										if err := protocol.WriteVaruint32(elemW, length); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteInt32(elemW, int32(len(tempElem.TopicConfigs))); err != nil {
+											return err
+										}
+									}
+									for i := range tempElem.TopicConfigs {
+										// Key
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactString(elemW, tempElem.TopicConfigs[i].Key); err != nil {
+													return err
+												}
+											} else {
+												if err := protocol.WriteString(elemW, tempElem.TopicConfigs[i].Key); err != nil {
+													return err
+												}
+											}
+										}
+										// Value
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactString(elemW, tempElem.TopicConfigs[i].Value); err != nil {
+													return err
+												}
+											} else {
+												if err := protocol.WriteString(elemW, tempElem.TopicConfigs[i].Value); err != nil {
+													return err
+												}
+											}
+										}
+									}
+								}
+								// Append to array buffer
+								arrayBuf.Write(elemBuf.Bytes())
+							}
+							// Prepend length and decode using DecodeArray
+							lengthBytes := protocol.EncodeInt32(length)
+							fullData := append(lengthBytes, arrayBuf.Bytes()...)
+							decoded, _, err := protocol.DecodeArray(fullData, decoder)
+							if err != nil {
+								return err
+							}
+							// Convert []interface{} to typed slice
+							tempElem.RepartitionSourceTopics = make([]TopicInfo, len(decoded))
+							for i, item := range decoded {
+								tempElem.RepartitionSourceTopics[i] = item.(TopicInfo)
+							}
+						}
+					}
+					// CopartitionGroups
+					if version >= 0 && version <= 999 {
+						// Decode array using ArrayDecoder
+						decoder := func(data []byte) (interface{}, int, error) {
+							var elem StreamsGroupHeartbeatRequestCopartitionGroup
+							elemR := bytes.NewReader(data)
+							// SourceTopics
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactInt16Array(elemR)
+									if err != nil {
+										return nil, 0, err
+									}
+									elem.SourceTopics = val
+								} else {
+									val, err := protocol.ReadInt16Array(elemR)
+									if err != nil {
+										return nil, 0, err
+									}
+									elem.SourceTopics = val
+								}
+							}
+							// SourceTopicRegex
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactInt16Array(elemR)
+									if err != nil {
+										return nil, 0, err
+									}
+									elem.SourceTopicRegex = val
+								} else {
+									val, err := protocol.ReadInt16Array(elemR)
+									if err != nil {
+										return nil, 0, err
+									}
+									elem.SourceTopicRegex = val
+								}
+							}
+							// RepartitionSourceTopics
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactInt16Array(elemR)
+									if err != nil {
+										return nil, 0, err
+									}
+									elem.RepartitionSourceTopics = val
+								} else {
+									val, err := protocol.ReadInt16Array(elemR)
+									if err != nil {
+										return nil, 0, err
+									}
+									elem.RepartitionSourceTopics = val
+								}
+							}
+							consumed := len(data) - elemR.Len()
+							return elem, consumed, nil
+						}
+						if isFlexible {
+							lengthUint, err := protocol.ReadVaruint32(r)
+							if err != nil {
+								return err
+							}
+							if lengthUint < 1 {
+								return errors.New("invalid compact array length")
+							}
+							length := int32(lengthUint - 1)
+							// Collect all array elements into a buffer
+							var arrayBuf bytes.Buffer
+							for i := int32(0); i < length; i++ {
+								// Read element into struct and encode to buffer
+								var elemBuf bytes.Buffer
+								elemW := &elemBuf
+								var tempElem StreamsGroupHeartbeatRequestCopartitionGroup
+								// SourceTopics
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										val, err := protocol.ReadCompactInt16Array(r)
+										if err != nil {
+											return err
+										}
+										tempElem.SourceTopics = val
+									} else {
+										val, err := protocol.ReadInt16Array(r)
+										if err != nil {
+											return err
+										}
+										tempElem.SourceTopics = val
+									}
+								}
+								// SourceTopicRegex
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										val, err := protocol.ReadCompactInt16Array(r)
+										if err != nil {
+											return err
+										}
+										tempElem.SourceTopicRegex = val
+									} else {
+										val, err := protocol.ReadInt16Array(r)
+										if err != nil {
+											return err
+										}
+										tempElem.SourceTopicRegex = val
+									}
+								}
+								// RepartitionSourceTopics
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										val, err := protocol.ReadCompactInt16Array(r)
+										if err != nil {
+											return err
+										}
+										tempElem.RepartitionSourceTopics = val
+									} else {
+										val, err := protocol.ReadInt16Array(r)
+										if err != nil {
+											return err
+										}
+										tempElem.RepartitionSourceTopics = val
+									}
+								}
+								// SourceTopics
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										if err := protocol.WriteCompactInt16Array(elemW, tempElem.SourceTopics); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteInt16Array(elemW, tempElem.SourceTopics); err != nil {
+											return err
+										}
+									}
+								}
+								// SourceTopicRegex
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										if err := protocol.WriteCompactInt16Array(elemW, tempElem.SourceTopicRegex); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteInt16Array(elemW, tempElem.SourceTopicRegex); err != nil {
+											return err
+										}
+									}
+								}
+								// RepartitionSourceTopics
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										if err := protocol.WriteCompactInt16Array(elemW, tempElem.RepartitionSourceTopics); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteInt16Array(elemW, tempElem.RepartitionSourceTopics); err != nil {
+											return err
+										}
+									}
+								}
+								// Append to array buffer
+								arrayBuf.Write(elemBuf.Bytes())
+							}
+							// Prepend length and decode using DecodeCompactArray
+							lengthBytes := protocol.EncodeVaruint32(lengthUint)
+							fullData := append(lengthBytes, arrayBuf.Bytes()...)
+							decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+							if err != nil {
+								return err
+							}
+							// Convert []interface{} to typed slice
+							tempElem.CopartitionGroups = make([]StreamsGroupHeartbeatRequestCopartitionGroup, len(decoded))
+							for i, item := range decoded {
+								tempElem.CopartitionGroups[i] = item.(StreamsGroupHeartbeatRequestCopartitionGroup)
+							}
+						} else {
+							length, err := protocol.ReadInt32(r)
+							if err != nil {
+								return err
+							}
+							// Collect all array elements into a buffer
+							var arrayBuf bytes.Buffer
+							for i := int32(0); i < length; i++ {
+								// Read element into struct and encode to buffer
+								var elemBuf bytes.Buffer
+								elemW := &elemBuf
+								var tempElem StreamsGroupHeartbeatRequestCopartitionGroup
+								// SourceTopics
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										val, err := protocol.ReadCompactInt16Array(r)
+										if err != nil {
+											return err
+										}
+										tempElem.SourceTopics = val
+									} else {
+										val, err := protocol.ReadInt16Array(r)
+										if err != nil {
+											return err
+										}
+										tempElem.SourceTopics = val
+									}
+								}
+								// SourceTopicRegex
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										val, err := protocol.ReadCompactInt16Array(r)
+										if err != nil {
+											return err
+										}
+										tempElem.SourceTopicRegex = val
+									} else {
+										val, err := protocol.ReadInt16Array(r)
+										if err != nil {
+											return err
+										}
+										tempElem.SourceTopicRegex = val
+									}
+								}
+								// RepartitionSourceTopics
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										val, err := protocol.ReadCompactInt16Array(r)
+										if err != nil {
+											return err
+										}
+										tempElem.RepartitionSourceTopics = val
+									} else {
+										val, err := protocol.ReadInt16Array(r)
+										if err != nil {
+											return err
+										}
+										tempElem.RepartitionSourceTopics = val
+									}
+								}
+								// SourceTopics
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										if err := protocol.WriteCompactInt16Array(elemW, tempElem.SourceTopics); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteInt16Array(elemW, tempElem.SourceTopics); err != nil {
+											return err
+										}
+									}
+								}
+								// SourceTopicRegex
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										if err := protocol.WriteCompactInt16Array(elemW, tempElem.SourceTopicRegex); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteInt16Array(elemW, tempElem.SourceTopicRegex); err != nil {
+											return err
+										}
+									}
+								}
+								// RepartitionSourceTopics
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										if err := protocol.WriteCompactInt16Array(elemW, tempElem.RepartitionSourceTopics); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteInt16Array(elemW, tempElem.RepartitionSourceTopics); err != nil {
+											return err
+										}
+									}
+								}
+								// Append to array buffer
+								arrayBuf.Write(elemBuf.Bytes())
+							}
+							// Prepend length and decode using DecodeArray
+							lengthBytes := protocol.EncodeInt32(length)
+							fullData := append(lengthBytes, arrayBuf.Bytes()...)
+							decoded, _, err := protocol.DecodeArray(fullData, decoder)
+							if err != nil {
+								return err
+							}
+							// Convert []interface{} to typed slice
+							tempElem.CopartitionGroups = make([]StreamsGroupHeartbeatRequestCopartitionGroup, len(decoded))
+							for i, item := range decoded {
+								tempElem.CopartitionGroups[i] = item.(StreamsGroupHeartbeatRequestCopartitionGroup)
+							}
+						}
+					}
+					// SubtopologyId
+					if version >= 0 && version <= 999 {
+						if isFlexible {
+							if err := protocol.WriteCompactString(elemW, tempElem.SubtopologyId); err != nil {
+								return err
+							}
+						} else {
+							if err := protocol.WriteString(elemW, tempElem.SubtopologyId); err != nil {
+								return err
+							}
+						}
+					}
+					// SourceTopics
+					if version >= 0 && version <= 999 {
+						if isFlexible {
+							if err := protocol.WriteCompactStringArray(elemW, tempElem.SourceTopics); err != nil {
+								return err
+							}
+						} else {
+							if err := protocol.WriteStringArray(elemW, tempElem.SourceTopics); err != nil {
+								return err
 							}
 						}
 					}
 					// SourceTopicRegex
 					if version >= 0 && version <= 999 {
-						var length int32
 						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
+							if err := protocol.WriteCompactStringArray(elemW, tempElem.SourceTopicRegex); err != nil {
 								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.Topology.Subtopologies[i].SourceTopicRegex = make([]string, length)
-							for i := int32(0); i < length; i++ {
-								if isFlexible {
-									val, err := protocol.ReadCompactString(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].SourceTopicRegex[i] = val
-								} else {
-									val, err := protocol.ReadString(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].SourceTopicRegex[i] = val
-								}
 							}
 						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
+							if err := protocol.WriteStringArray(elemW, tempElem.SourceTopicRegex); err != nil {
 								return err
-							}
-							m.Topology.Subtopologies[i].SourceTopicRegex = make([]string, length)
-							for i := int32(0); i < length; i++ {
-								if isFlexible {
-									val, err := protocol.ReadCompactString(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].SourceTopicRegex[i] = val
-								} else {
-									val, err := protocol.ReadString(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].SourceTopicRegex[i] = val
-								}
 							}
 						}
 					}
 					// StateChangelogTopics
 					if version >= 0 && version <= 999 {
-						var length int32
 						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
+							length := uint32(len(tempElem.StateChangelogTopics) + 1)
+							if err := protocol.WriteVaruint32(elemW, length); err != nil {
 								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.Topology.Subtopologies[i].StateChangelogTopics = make([]TopicInfo, length)
-							for i := int32(0); i < length; i++ {
-								// Name
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactString(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].StateChangelogTopics[i].Name = val
-									} else {
-										val, err := protocol.ReadString(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].StateChangelogTopics[i].Name = val
-									}
-								}
-								// Partitions
-								if version >= 0 && version <= 999 {
-									val, err := protocol.ReadInt32(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].StateChangelogTopics[i].Partitions = val
-								}
-								// ReplicationFactor
-								if version >= 0 && version <= 999 {
-									val, err := protocol.ReadInt16(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].StateChangelogTopics[i].ReplicationFactor = val
-								}
-								// TopicConfigs
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs = make([]KeyValue, length)
-										for i := int32(0); i < length; i++ {
-											// Key
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Key = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Key = val
-												}
-											}
-											// Value
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Value = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Value = val
-												}
-											}
-										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs = make([]KeyValue, length)
-										for i := int32(0); i < length; i++ {
-											// Key
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Key = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Key = val
-												}
-											}
-											// Value
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Value = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Value = val
-												}
-											}
-										}
-									}
-								}
 							}
 						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
+							if err := protocol.WriteInt32(elemW, int32(len(tempElem.StateChangelogTopics))); err != nil {
 								return err
 							}
-							m.Topology.Subtopologies[i].StateChangelogTopics = make([]TopicInfo, length)
-							for i := int32(0); i < length; i++ {
-								// Name
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactString(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].StateChangelogTopics[i].Name = val
-									} else {
-										val, err := protocol.ReadString(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].StateChangelogTopics[i].Name = val
-									}
-								}
-								// Partitions
-								if version >= 0 && version <= 999 {
-									val, err := protocol.ReadInt32(r)
-									if err != nil {
+						}
+						for i := range tempElem.StateChangelogTopics {
+							// Name
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactString(elemW, tempElem.StateChangelogTopics[i].Name); err != nil {
 										return err
 									}
-									m.Topology.Subtopologies[i].StateChangelogTopics[i].Partitions = val
-								}
-								// ReplicationFactor
-								if version >= 0 && version <= 999 {
-									val, err := protocol.ReadInt16(r)
-									if err != nil {
+								} else {
+									if err := protocol.WriteString(elemW, tempElem.StateChangelogTopics[i].Name); err != nil {
 										return err
 									}
-									m.Topology.Subtopologies[i].StateChangelogTopics[i].ReplicationFactor = val
 								}
-								// TopicConfigs
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs = make([]KeyValue, length)
-										for i := int32(0); i < length; i++ {
-											// Key
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Key = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Key = val
-												}
+							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt32(elemW, tempElem.StateChangelogTopics[i].Partitions); err != nil {
+									return err
+								}
+							}
+							// ReplicationFactor
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt16(elemW, tempElem.StateChangelogTopics[i].ReplicationFactor); err != nil {
+									return err
+								}
+							}
+							// TopicConfigs
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									length := uint32(len(tempElem.StateChangelogTopics[i].TopicConfigs) + 1)
+									if err := protocol.WriteVaruint32(elemW, length); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt32(elemW, int32(len(tempElem.StateChangelogTopics[i].TopicConfigs))); err != nil {
+										return err
+									}
+								}
+								for i := range tempElem.StateChangelogTopics[i].TopicConfigs {
+									// Key
+									if version >= 0 && version <= 999 {
+										if isFlexible {
+											if err := protocol.WriteCompactString(elemW, tempElem.StateChangelogTopics[i].TopicConfigs[i].Key); err != nil {
+												return err
 											}
-											// Value
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Value = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Value = val
-												}
+										} else {
+											if err := protocol.WriteString(elemW, tempElem.StateChangelogTopics[i].TopicConfigs[i].Key); err != nil {
+												return err
 											}
 										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs = make([]KeyValue, length)
-										for i := int32(0); i < length; i++ {
-											// Key
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Key = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Key = val
-												}
+									}
+									// Value
+									if version >= 0 && version <= 999 {
+										if isFlexible {
+											if err := protocol.WriteCompactString(elemW, tempElem.StateChangelogTopics[i].TopicConfigs[i].Value); err != nil {
+												return err
 											}
-											// Value
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Value = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Value = val
-												}
+										} else {
+											if err := protocol.WriteString(elemW, tempElem.StateChangelogTopics[i].TopicConfigs[i].Value); err != nil {
+												return err
 											}
 										}
 									}
@@ -1360,323 +3027,87 @@ func (m *StreamsGroupHeartbeatRequest) Read(r io.Reader, version int16) error {
 					}
 					// RepartitionSinkTopics
 					if version >= 0 && version <= 999 {
-						var length int32
 						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
+							if err := protocol.WriteCompactStringArray(elemW, tempElem.RepartitionSinkTopics); err != nil {
 								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.Topology.Subtopologies[i].RepartitionSinkTopics = make([]string, length)
-							for i := int32(0); i < length; i++ {
-								if isFlexible {
-									val, err := protocol.ReadCompactString(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].RepartitionSinkTopics[i] = val
-								} else {
-									val, err := protocol.ReadString(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].RepartitionSinkTopics[i] = val
-								}
 							}
 						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
+							if err := protocol.WriteStringArray(elemW, tempElem.RepartitionSinkTopics); err != nil {
 								return err
-							}
-							m.Topology.Subtopologies[i].RepartitionSinkTopics = make([]string, length)
-							for i := int32(0); i < length; i++ {
-								if isFlexible {
-									val, err := protocol.ReadCompactString(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].RepartitionSinkTopics[i] = val
-								} else {
-									val, err := protocol.ReadString(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].RepartitionSinkTopics[i] = val
-								}
 							}
 						}
 					}
 					// RepartitionSourceTopics
 					if version >= 0 && version <= 999 {
-						var length int32
 						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
+							length := uint32(len(tempElem.RepartitionSourceTopics) + 1)
+							if err := protocol.WriteVaruint32(elemW, length); err != nil {
 								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.Topology.Subtopologies[i].RepartitionSourceTopics = make([]TopicInfo, length)
-							for i := int32(0); i < length; i++ {
-								// Name
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactString(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].RepartitionSourceTopics[i].Name = val
-									} else {
-										val, err := protocol.ReadString(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].RepartitionSourceTopics[i].Name = val
-									}
-								}
-								// Partitions
-								if version >= 0 && version <= 999 {
-									val, err := protocol.ReadInt32(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].RepartitionSourceTopics[i].Partitions = val
-								}
-								// ReplicationFactor
-								if version >= 0 && version <= 999 {
-									val, err := protocol.ReadInt16(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].RepartitionSourceTopics[i].ReplicationFactor = val
-								}
-								// TopicConfigs
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs = make([]KeyValue, length)
-										for i := int32(0); i < length; i++ {
-											// Key
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Key = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Key = val
-												}
-											}
-											// Value
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Value = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Value = val
-												}
-											}
-										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs = make([]KeyValue, length)
-										for i := int32(0); i < length; i++ {
-											// Key
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Key = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Key = val
-												}
-											}
-											// Value
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Value = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Value = val
-												}
-											}
-										}
-									}
-								}
 							}
 						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
+							if err := protocol.WriteInt32(elemW, int32(len(tempElem.RepartitionSourceTopics))); err != nil {
 								return err
 							}
-							m.Topology.Subtopologies[i].RepartitionSourceTopics = make([]TopicInfo, length)
-							for i := int32(0); i < length; i++ {
-								// Name
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactString(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].RepartitionSourceTopics[i].Name = val
-									} else {
-										val, err := protocol.ReadString(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].RepartitionSourceTopics[i].Name = val
-									}
-								}
-								// Partitions
-								if version >= 0 && version <= 999 {
-									val, err := protocol.ReadInt32(r)
-									if err != nil {
+						}
+						for i := range tempElem.RepartitionSourceTopics {
+							// Name
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactString(elemW, tempElem.RepartitionSourceTopics[i].Name); err != nil {
 										return err
 									}
-									m.Topology.Subtopologies[i].RepartitionSourceTopics[i].Partitions = val
-								}
-								// ReplicationFactor
-								if version >= 0 && version <= 999 {
-									val, err := protocol.ReadInt16(r)
-									if err != nil {
+								} else {
+									if err := protocol.WriteString(elemW, tempElem.RepartitionSourceTopics[i].Name); err != nil {
 										return err
 									}
-									m.Topology.Subtopologies[i].RepartitionSourceTopics[i].ReplicationFactor = val
 								}
-								// TopicConfigs
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs = make([]KeyValue, length)
-										for i := int32(0); i < length; i++ {
-											// Key
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Key = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Key = val
-												}
+							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt32(elemW, tempElem.RepartitionSourceTopics[i].Partitions); err != nil {
+									return err
+								}
+							}
+							// ReplicationFactor
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt16(elemW, tempElem.RepartitionSourceTopics[i].ReplicationFactor); err != nil {
+									return err
+								}
+							}
+							// TopicConfigs
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									length := uint32(len(tempElem.RepartitionSourceTopics[i].TopicConfigs) + 1)
+									if err := protocol.WriteVaruint32(elemW, length); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt32(elemW, int32(len(tempElem.RepartitionSourceTopics[i].TopicConfigs))); err != nil {
+										return err
+									}
+								}
+								for i := range tempElem.RepartitionSourceTopics[i].TopicConfigs {
+									// Key
+									if version >= 0 && version <= 999 {
+										if isFlexible {
+											if err := protocol.WriteCompactString(elemW, tempElem.RepartitionSourceTopics[i].TopicConfigs[i].Key); err != nil {
+												return err
 											}
-											// Value
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Value = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Value = val
-												}
+										} else {
+											if err := protocol.WriteString(elemW, tempElem.RepartitionSourceTopics[i].TopicConfigs[i].Key); err != nil {
+												return err
 											}
 										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs = make([]KeyValue, length)
-										for i := int32(0); i < length; i++ {
-											// Key
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Key = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Key = val
-												}
+									}
+									// Value
+									if version >= 0 && version <= 999 {
+										if isFlexible {
+											if err := protocol.WriteCompactString(elemW, tempElem.RepartitionSourceTopics[i].TopicConfigs[i].Value); err != nil {
+												return err
 											}
-											// Value
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Value = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Value = val
-												}
+										} else {
+											if err := protocol.WriteString(elemW, tempElem.RepartitionSourceTopics[i].TopicConfigs[i].Value); err != nil {
+												return err
 											}
 										}
 									}
@@ -1686,262 +3117,82 @@ func (m *StreamsGroupHeartbeatRequest) Read(r io.Reader, version int16) error {
 					}
 					// CopartitionGroups
 					if version >= 0 && version <= 999 {
-						var length int32
 						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
+							length := uint32(len(tempElem.CopartitionGroups) + 1)
+							if err := protocol.WriteVaruint32(elemW, length); err != nil {
 								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.Topology.Subtopologies[i].CopartitionGroups = make([]StreamsGroupHeartbeatRequestCopartitionGroup, length)
-							for i := int32(0); i < length; i++ {
-								// SourceTopics
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopics = make([]int16, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt16(r)
-											if err != nil {
-												return err
-											}
-											m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopics[i] = val
-										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopics = make([]int16, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt16(r)
-											if err != nil {
-												return err
-											}
-											m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopics[i] = val
-										}
-									}
-								}
-								// SourceTopicRegex
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopicRegex = make([]int16, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt16(r)
-											if err != nil {
-												return err
-											}
-											m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopicRegex[i] = val
-										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopicRegex = make([]int16, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt16(r)
-											if err != nil {
-												return err
-											}
-											m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopicRegex[i] = val
-										}
-									}
-								}
-								// RepartitionSourceTopics
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.Topology.Subtopologies[i].CopartitionGroups[i].RepartitionSourceTopics = make([]int16, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt16(r)
-											if err != nil {
-												return err
-											}
-											m.Topology.Subtopologies[i].CopartitionGroups[i].RepartitionSourceTopics[i] = val
-										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].CopartitionGroups[i].RepartitionSourceTopics = make([]int16, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt16(r)
-											if err != nil {
-												return err
-											}
-											m.Topology.Subtopologies[i].CopartitionGroups[i].RepartitionSourceTopics[i] = val
-										}
-									}
-								}
 							}
 						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
+							if err := protocol.WriteInt32(elemW, int32(len(tempElem.CopartitionGroups))); err != nil {
 								return err
 							}
-							m.Topology.Subtopologies[i].CopartitionGroups = make([]StreamsGroupHeartbeatRequestCopartitionGroup, length)
-							for i := int32(0); i < length; i++ {
-								// SourceTopics
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopics = make([]int16, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt16(r)
-											if err != nil {
-												return err
-											}
-											m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopics[i] = val
-										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopics = make([]int16, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt16(r)
-											if err != nil {
-												return err
-											}
-											m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopics[i] = val
-										}
+						}
+						for i := range tempElem.CopartitionGroups {
+							// SourceTopics
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactInt16Array(elemW, tempElem.CopartitionGroups[i].SourceTopics); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt16Array(elemW, tempElem.CopartitionGroups[i].SourceTopics); err != nil {
+										return err
 									}
 								}
-								// SourceTopicRegex
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopicRegex = make([]int16, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt16(r)
-											if err != nil {
-												return err
-											}
-											m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopicRegex[i] = val
-										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopicRegex = make([]int16, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt16(r)
-											if err != nil {
-												return err
-											}
-											m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopicRegex[i] = val
-										}
+							}
+							// SourceTopicRegex
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactInt16Array(elemW, tempElem.CopartitionGroups[i].SourceTopicRegex); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt16Array(elemW, tempElem.CopartitionGroups[i].SourceTopicRegex); err != nil {
+										return err
 									}
 								}
-								// RepartitionSourceTopics
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.Topology.Subtopologies[i].CopartitionGroups[i].RepartitionSourceTopics = make([]int16, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt16(r)
-											if err != nil {
-												return err
-											}
-											m.Topology.Subtopologies[i].CopartitionGroups[i].RepartitionSourceTopics[i] = val
-										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].CopartitionGroups[i].RepartitionSourceTopics = make([]int16, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt16(r)
-											if err != nil {
-												return err
-											}
-											m.Topology.Subtopologies[i].CopartitionGroups[i].RepartitionSourceTopics[i] = val
-										}
+							}
+							// RepartitionSourceTopics
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactInt16Array(elemW, tempElem.CopartitionGroups[i].RepartitionSourceTopics); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt16Array(elemW, tempElem.CopartitionGroups[i].RepartitionSourceTopics); err != nil {
+										return err
 									}
 								}
 							}
 						}
 					}
+					// Append to array buffer
+					arrayBuf.Write(elemBuf.Bytes())
 				}
-			} else {
-				var err error
-				length, err = protocol.ReadInt32(r)
+				// Prepend length and decode using DecodeCompactArray
+				lengthBytes := protocol.EncodeVaruint32(lengthUint)
+				fullData := append(lengthBytes, arrayBuf.Bytes()...)
+				decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
 				if err != nil {
 					return err
 				}
-				m.Topology.Subtopologies = make([]StreamsGroupHeartbeatRequestSubtopology, length)
+				// Convert []interface{} to typed slice
+				m.Topology.Subtopologies = make([]StreamsGroupHeartbeatRequestSubtopology, len(decoded))
+				for i, item := range decoded {
+					m.Topology.Subtopologies[i] = item.(StreamsGroupHeartbeatRequestSubtopology)
+				}
+			} else {
+				length, err := protocol.ReadInt32(r)
+				if err != nil {
+					return err
+				}
+				// Collect all array elements into a buffer
+				var arrayBuf bytes.Buffer
 				for i := int32(0); i < length; i++ {
+					// Read element into struct and encode to buffer
+					var elemBuf bytes.Buffer
+					elemW := &elemBuf
+					var tempElem StreamsGroupHeartbeatRequestSubtopology
 					// SubtopologyId
 					if version >= 0 && version <= 999 {
 						if isFlexible {
@@ -1949,20 +3200,94 @@ func (m *StreamsGroupHeartbeatRequest) Read(r io.Reader, version int16) error {
 							if err != nil {
 								return err
 							}
-							m.Topology.Subtopologies[i].SubtopologyId = val
+							tempElem.SubtopologyId = val
 						} else {
 							val, err := protocol.ReadString(r)
 							if err != nil {
 								return err
 							}
-							m.Topology.Subtopologies[i].SubtopologyId = val
+							tempElem.SubtopologyId = val
 						}
 					}
 					// SourceTopics
 					if version >= 0 && version <= 999 {
-						var length int32
 						if isFlexible {
-							var lengthUint uint32
+							val, err := protocol.ReadCompactStringArray(r)
+							if err != nil {
+								return err
+							}
+							tempElem.SourceTopics = val
+						} else {
+							val, err := protocol.ReadStringArray(r)
+							if err != nil {
+								return err
+							}
+							tempElem.SourceTopics = val
+						}
+					}
+					// SourceTopicRegex
+					if version >= 0 && version <= 999 {
+						if isFlexible {
+							val, err := protocol.ReadCompactStringArray(r)
+							if err != nil {
+								return err
+							}
+							tempElem.SourceTopicRegex = val
+						} else {
+							val, err := protocol.ReadStringArray(r)
+							if err != nil {
+								return err
+							}
+							tempElem.SourceTopicRegex = val
+						}
+					}
+					// StateChangelogTopics
+					if version >= 0 && version <= 999 {
+						// Decode array using ArrayDecoder
+						decoder := func(data []byte) (interface{}, int, error) {
+							var elem TopicInfo
+							elemR := bytes.NewReader(data)
+							// Name
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactString(elemR)
+									if err != nil {
+										return nil, 0, err
+									}
+									elem.Name = val
+								} else {
+									val, err := protocol.ReadString(elemR)
+									if err != nil {
+										return nil, 0, err
+									}
+									elem.Name = val
+								}
+							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								val, err := protocol.ReadInt32(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Partitions = val
+							}
+							// ReplicationFactor
+							if version >= 0 && version <= 999 {
+								val, err := protocol.ReadInt16(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.ReplicationFactor = val
+							}
+							// TopicConfigs
+							if version >= 0 && version <= 999 {
+								// Nested array in decoder - manual handling needed
+								return nil, 0, errors.New("nested arrays in decoder not fully supported")
+							}
+							consumed := len(data) - elemR.Len()
+							return elem, consumed, nil
+						}
+						if isFlexible {
 							lengthUint, err := protocol.ReadVaruint32(r)
 							if err != nil {
 								return err
@@ -1970,366 +3295,1804 @@ func (m *StreamsGroupHeartbeatRequest) Read(r io.Reader, version int16) error {
 							if lengthUint < 1 {
 								return errors.New("invalid compact array length")
 							}
-							length = int32(lengthUint - 1)
-							m.Topology.Subtopologies[i].SourceTopics = make([]string, length)
+							length := int32(lengthUint - 1)
+							// Collect all array elements into a buffer
+							var arrayBuf bytes.Buffer
 							for i := int32(0); i < length; i++ {
-								if isFlexible {
-									val, err := protocol.ReadCompactString(r)
-									if err != nil {
-										return err
+								// Read element into struct and encode to buffer
+								var elemBuf bytes.Buffer
+								elemW := &elemBuf
+								var tempElem TopicInfo
+								// Name
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										val, err := protocol.ReadCompactString(r)
+										if err != nil {
+											return err
+										}
+										tempElem.Name = val
+									} else {
+										val, err := protocol.ReadString(r)
+										if err != nil {
+											return err
+										}
+										tempElem.Name = val
 									}
-									m.Topology.Subtopologies[i].SourceTopics[i] = val
-								} else {
-									val, err := protocol.ReadString(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].SourceTopics[i] = val
 								}
+								// Partitions
+								if version >= 0 && version <= 999 {
+									val, err := protocol.ReadInt32(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Partitions = val
+								}
+								// ReplicationFactor
+								if version >= 0 && version <= 999 {
+									val, err := protocol.ReadInt16(r)
+									if err != nil {
+										return err
+									}
+									tempElem.ReplicationFactor = val
+								}
+								// TopicConfigs
+								if version >= 0 && version <= 999 {
+									// Decode array using ArrayDecoder
+									decoder := func(data []byte) (interface{}, int, error) {
+										var elem KeyValue
+										elemR := bytes.NewReader(data)
+										// Key
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												val, err := protocol.ReadCompactString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Key = val
+											} else {
+												val, err := protocol.ReadString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Key = val
+											}
+										}
+										// Value
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												val, err := protocol.ReadCompactString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Value = val
+											} else {
+												val, err := protocol.ReadString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Value = val
+											}
+										}
+										consumed := len(data) - elemR.Len()
+										return elem, consumed, nil
+									}
+									if isFlexible {
+										lengthUint, err := protocol.ReadVaruint32(r)
+										if err != nil {
+											return err
+										}
+										if lengthUint < 1 {
+											return errors.New("invalid compact array length")
+										}
+										length := int32(lengthUint - 1)
+										// Collect all array elements into a buffer
+										var arrayBuf bytes.Buffer
+										for i := int32(0); i < length; i++ {
+											// Read element into struct and encode to buffer
+											var elemBuf bytes.Buffer
+											elemW := &elemBuf
+											var tempElem KeyValue
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												}
+											}
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												}
+											}
+											// Append to array buffer
+											arrayBuf.Write(elemBuf.Bytes())
+										}
+										// Prepend length and decode using DecodeCompactArray
+										lengthBytes := protocol.EncodeVaruint32(lengthUint)
+										fullData := append(lengthBytes, arrayBuf.Bytes()...)
+										decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+										if err != nil {
+											return err
+										}
+										// Convert []interface{} to typed slice
+										tempElem.TopicConfigs = make([]KeyValue, len(decoded))
+										for i, item := range decoded {
+											tempElem.TopicConfigs[i] = item.(KeyValue)
+										}
+									} else {
+										length, err := protocol.ReadInt32(r)
+										if err != nil {
+											return err
+										}
+										// Collect all array elements into a buffer
+										var arrayBuf bytes.Buffer
+										for i := int32(0); i < length; i++ {
+											// Read element into struct and encode to buffer
+											var elemBuf bytes.Buffer
+											elemW := &elemBuf
+											var tempElem KeyValue
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												}
+											}
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												}
+											}
+											// Append to array buffer
+											arrayBuf.Write(elemBuf.Bytes())
+										}
+										// Prepend length and decode using DecodeArray
+										lengthBytes := protocol.EncodeInt32(length)
+										fullData := append(lengthBytes, arrayBuf.Bytes()...)
+										decoded, _, err := protocol.DecodeArray(fullData, decoder)
+										if err != nil {
+											return err
+										}
+										// Convert []interface{} to typed slice
+										tempElem.TopicConfigs = make([]KeyValue, len(decoded))
+										for i, item := range decoded {
+											tempElem.TopicConfigs[i] = item.(KeyValue)
+										}
+									}
+								}
+								// Name
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										if err := protocol.WriteCompactString(elemW, tempElem.Name); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteString(elemW, tempElem.Name); err != nil {
+											return err
+										}
+									}
+								}
+								// Partitions
+								if version >= 0 && version <= 999 {
+									if err := protocol.WriteInt32(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								}
+								// ReplicationFactor
+								if version >= 0 && version <= 999 {
+									if err := protocol.WriteInt16(elemW, tempElem.ReplicationFactor); err != nil {
+										return err
+									}
+								}
+								// TopicConfigs
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										length := uint32(len(tempElem.TopicConfigs) + 1)
+										if err := protocol.WriteVaruint32(elemW, length); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteInt32(elemW, int32(len(tempElem.TopicConfigs))); err != nil {
+											return err
+										}
+									}
+									for i := range tempElem.TopicConfigs {
+										// Key
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactString(elemW, tempElem.TopicConfigs[i].Key); err != nil {
+													return err
+												}
+											} else {
+												if err := protocol.WriteString(elemW, tempElem.TopicConfigs[i].Key); err != nil {
+													return err
+												}
+											}
+										}
+										// Value
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactString(elemW, tempElem.TopicConfigs[i].Value); err != nil {
+													return err
+												}
+											} else {
+												if err := protocol.WriteString(elemW, tempElem.TopicConfigs[i].Value); err != nil {
+													return err
+												}
+											}
+										}
+									}
+								}
+								// Append to array buffer
+								arrayBuf.Write(elemBuf.Bytes())
 							}
-						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
+							// Prepend length and decode using DecodeCompactArray
+							lengthBytes := protocol.EncodeVaruint32(lengthUint)
+							fullData := append(lengthBytes, arrayBuf.Bytes()...)
+							decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
 							if err != nil {
 								return err
 							}
-							m.Topology.Subtopologies[i].SourceTopics = make([]string, length)
+							// Convert []interface{} to typed slice
+							tempElem.StateChangelogTopics = make([]TopicInfo, len(decoded))
+							for i, item := range decoded {
+								tempElem.StateChangelogTopics[i] = item.(TopicInfo)
+							}
+						} else {
+							length, err := protocol.ReadInt32(r)
+							if err != nil {
+								return err
+							}
+							// Collect all array elements into a buffer
+							var arrayBuf bytes.Buffer
 							for i := int32(0); i < length; i++ {
-								if isFlexible {
-									val, err := protocol.ReadCompactString(r)
-									if err != nil {
-										return err
+								// Read element into struct and encode to buffer
+								var elemBuf bytes.Buffer
+								elemW := &elemBuf
+								var tempElem TopicInfo
+								// Name
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										val, err := protocol.ReadCompactString(r)
+										if err != nil {
+											return err
+										}
+										tempElem.Name = val
+									} else {
+										val, err := protocol.ReadString(r)
+										if err != nil {
+											return err
+										}
+										tempElem.Name = val
 									}
-									m.Topology.Subtopologies[i].SourceTopics[i] = val
-								} else {
-									val, err := protocol.ReadString(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].SourceTopics[i] = val
 								}
+								// Partitions
+								if version >= 0 && version <= 999 {
+									val, err := protocol.ReadInt32(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Partitions = val
+								}
+								// ReplicationFactor
+								if version >= 0 && version <= 999 {
+									val, err := protocol.ReadInt16(r)
+									if err != nil {
+										return err
+									}
+									tempElem.ReplicationFactor = val
+								}
+								// TopicConfigs
+								if version >= 0 && version <= 999 {
+									// Decode array using ArrayDecoder
+									decoder := func(data []byte) (interface{}, int, error) {
+										var elem KeyValue
+										elemR := bytes.NewReader(data)
+										// Key
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												val, err := protocol.ReadCompactString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Key = val
+											} else {
+												val, err := protocol.ReadString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Key = val
+											}
+										}
+										// Value
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												val, err := protocol.ReadCompactString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Value = val
+											} else {
+												val, err := protocol.ReadString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Value = val
+											}
+										}
+										consumed := len(data) - elemR.Len()
+										return elem, consumed, nil
+									}
+									if isFlexible {
+										lengthUint, err := protocol.ReadVaruint32(r)
+										if err != nil {
+											return err
+										}
+										if lengthUint < 1 {
+											return errors.New("invalid compact array length")
+										}
+										length := int32(lengthUint - 1)
+										// Collect all array elements into a buffer
+										var arrayBuf bytes.Buffer
+										for i := int32(0); i < length; i++ {
+											// Read element into struct and encode to buffer
+											var elemBuf bytes.Buffer
+											elemW := &elemBuf
+											var tempElem KeyValue
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												}
+											}
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												}
+											}
+											// Append to array buffer
+											arrayBuf.Write(elemBuf.Bytes())
+										}
+										// Prepend length and decode using DecodeCompactArray
+										lengthBytes := protocol.EncodeVaruint32(lengthUint)
+										fullData := append(lengthBytes, arrayBuf.Bytes()...)
+										decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+										if err != nil {
+											return err
+										}
+										// Convert []interface{} to typed slice
+										tempElem.TopicConfigs = make([]KeyValue, len(decoded))
+										for i, item := range decoded {
+											tempElem.TopicConfigs[i] = item.(KeyValue)
+										}
+									} else {
+										length, err := protocol.ReadInt32(r)
+										if err != nil {
+											return err
+										}
+										// Collect all array elements into a buffer
+										var arrayBuf bytes.Buffer
+										for i := int32(0); i < length; i++ {
+											// Read element into struct and encode to buffer
+											var elemBuf bytes.Buffer
+											elemW := &elemBuf
+											var tempElem KeyValue
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												}
+											}
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												}
+											}
+											// Append to array buffer
+											arrayBuf.Write(elemBuf.Bytes())
+										}
+										// Prepend length and decode using DecodeArray
+										lengthBytes := protocol.EncodeInt32(length)
+										fullData := append(lengthBytes, arrayBuf.Bytes()...)
+										decoded, _, err := protocol.DecodeArray(fullData, decoder)
+										if err != nil {
+											return err
+										}
+										// Convert []interface{} to typed slice
+										tempElem.TopicConfigs = make([]KeyValue, len(decoded))
+										for i, item := range decoded {
+											tempElem.TopicConfigs[i] = item.(KeyValue)
+										}
+									}
+								}
+								// Name
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										if err := protocol.WriteCompactString(elemW, tempElem.Name); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteString(elemW, tempElem.Name); err != nil {
+											return err
+										}
+									}
+								}
+								// Partitions
+								if version >= 0 && version <= 999 {
+									if err := protocol.WriteInt32(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								}
+								// ReplicationFactor
+								if version >= 0 && version <= 999 {
+									if err := protocol.WriteInt16(elemW, tempElem.ReplicationFactor); err != nil {
+										return err
+									}
+								}
+								// TopicConfigs
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										length := uint32(len(tempElem.TopicConfigs) + 1)
+										if err := protocol.WriteVaruint32(elemW, length); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteInt32(elemW, int32(len(tempElem.TopicConfigs))); err != nil {
+											return err
+										}
+									}
+									for i := range tempElem.TopicConfigs {
+										// Key
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactString(elemW, tempElem.TopicConfigs[i].Key); err != nil {
+													return err
+												}
+											} else {
+												if err := protocol.WriteString(elemW, tempElem.TopicConfigs[i].Key); err != nil {
+													return err
+												}
+											}
+										}
+										// Value
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactString(elemW, tempElem.TopicConfigs[i].Value); err != nil {
+													return err
+												}
+											} else {
+												if err := protocol.WriteString(elemW, tempElem.TopicConfigs[i].Value); err != nil {
+													return err
+												}
+											}
+										}
+									}
+								}
+								// Append to array buffer
+								arrayBuf.Write(elemBuf.Bytes())
+							}
+							// Prepend length and decode using DecodeArray
+							lengthBytes := protocol.EncodeInt32(length)
+							fullData := append(lengthBytes, arrayBuf.Bytes()...)
+							decoded, _, err := protocol.DecodeArray(fullData, decoder)
+							if err != nil {
+								return err
+							}
+							// Convert []interface{} to typed slice
+							tempElem.StateChangelogTopics = make([]TopicInfo, len(decoded))
+							for i, item := range decoded {
+								tempElem.StateChangelogTopics[i] = item.(TopicInfo)
+							}
+						}
+					}
+					// RepartitionSinkTopics
+					if version >= 0 && version <= 999 {
+						if isFlexible {
+							val, err := protocol.ReadCompactStringArray(r)
+							if err != nil {
+								return err
+							}
+							tempElem.RepartitionSinkTopics = val
+						} else {
+							val, err := protocol.ReadStringArray(r)
+							if err != nil {
+								return err
+							}
+							tempElem.RepartitionSinkTopics = val
+						}
+					}
+					// RepartitionSourceTopics
+					if version >= 0 && version <= 999 {
+						// Decode array using ArrayDecoder
+						decoder := func(data []byte) (interface{}, int, error) {
+							var elem TopicInfo
+							elemR := bytes.NewReader(data)
+							// Name
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactString(elemR)
+									if err != nil {
+										return nil, 0, err
+									}
+									elem.Name = val
+								} else {
+									val, err := protocol.ReadString(elemR)
+									if err != nil {
+										return nil, 0, err
+									}
+									elem.Name = val
+								}
+							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								val, err := protocol.ReadInt32(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Partitions = val
+							}
+							// ReplicationFactor
+							if version >= 0 && version <= 999 {
+								val, err := protocol.ReadInt16(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.ReplicationFactor = val
+							}
+							// TopicConfigs
+							if version >= 0 && version <= 999 {
+								// Nested array in decoder - manual handling needed
+								return nil, 0, errors.New("nested arrays in decoder not fully supported")
+							}
+							consumed := len(data) - elemR.Len()
+							return elem, consumed, nil
+						}
+						if isFlexible {
+							lengthUint, err := protocol.ReadVaruint32(r)
+							if err != nil {
+								return err
+							}
+							if lengthUint < 1 {
+								return errors.New("invalid compact array length")
+							}
+							length := int32(lengthUint - 1)
+							// Collect all array elements into a buffer
+							var arrayBuf bytes.Buffer
+							for i := int32(0); i < length; i++ {
+								// Read element into struct and encode to buffer
+								var elemBuf bytes.Buffer
+								elemW := &elemBuf
+								var tempElem TopicInfo
+								// Name
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										val, err := protocol.ReadCompactString(r)
+										if err != nil {
+											return err
+										}
+										tempElem.Name = val
+									} else {
+										val, err := protocol.ReadString(r)
+										if err != nil {
+											return err
+										}
+										tempElem.Name = val
+									}
+								}
+								// Partitions
+								if version >= 0 && version <= 999 {
+									val, err := protocol.ReadInt32(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Partitions = val
+								}
+								// ReplicationFactor
+								if version >= 0 && version <= 999 {
+									val, err := protocol.ReadInt16(r)
+									if err != nil {
+										return err
+									}
+									tempElem.ReplicationFactor = val
+								}
+								// TopicConfigs
+								if version >= 0 && version <= 999 {
+									// Decode array using ArrayDecoder
+									decoder := func(data []byte) (interface{}, int, error) {
+										var elem KeyValue
+										elemR := bytes.NewReader(data)
+										// Key
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												val, err := protocol.ReadCompactString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Key = val
+											} else {
+												val, err := protocol.ReadString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Key = val
+											}
+										}
+										// Value
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												val, err := protocol.ReadCompactString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Value = val
+											} else {
+												val, err := protocol.ReadString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Value = val
+											}
+										}
+										consumed := len(data) - elemR.Len()
+										return elem, consumed, nil
+									}
+									if isFlexible {
+										lengthUint, err := protocol.ReadVaruint32(r)
+										if err != nil {
+											return err
+										}
+										if lengthUint < 1 {
+											return errors.New("invalid compact array length")
+										}
+										length := int32(lengthUint - 1)
+										// Collect all array elements into a buffer
+										var arrayBuf bytes.Buffer
+										for i := int32(0); i < length; i++ {
+											// Read element into struct and encode to buffer
+											var elemBuf bytes.Buffer
+											elemW := &elemBuf
+											var tempElem KeyValue
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												}
+											}
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												}
+											}
+											// Append to array buffer
+											arrayBuf.Write(elemBuf.Bytes())
+										}
+										// Prepend length and decode using DecodeCompactArray
+										lengthBytes := protocol.EncodeVaruint32(lengthUint)
+										fullData := append(lengthBytes, arrayBuf.Bytes()...)
+										decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+										if err != nil {
+											return err
+										}
+										// Convert []interface{} to typed slice
+										tempElem.TopicConfigs = make([]KeyValue, len(decoded))
+										for i, item := range decoded {
+											tempElem.TopicConfigs[i] = item.(KeyValue)
+										}
+									} else {
+										length, err := protocol.ReadInt32(r)
+										if err != nil {
+											return err
+										}
+										// Collect all array elements into a buffer
+										var arrayBuf bytes.Buffer
+										for i := int32(0); i < length; i++ {
+											// Read element into struct and encode to buffer
+											var elemBuf bytes.Buffer
+											elemW := &elemBuf
+											var tempElem KeyValue
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												}
+											}
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												}
+											}
+											// Append to array buffer
+											arrayBuf.Write(elemBuf.Bytes())
+										}
+										// Prepend length and decode using DecodeArray
+										lengthBytes := protocol.EncodeInt32(length)
+										fullData := append(lengthBytes, arrayBuf.Bytes()...)
+										decoded, _, err := protocol.DecodeArray(fullData, decoder)
+										if err != nil {
+											return err
+										}
+										// Convert []interface{} to typed slice
+										tempElem.TopicConfigs = make([]KeyValue, len(decoded))
+										for i, item := range decoded {
+											tempElem.TopicConfigs[i] = item.(KeyValue)
+										}
+									}
+								}
+								// Name
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										if err := protocol.WriteCompactString(elemW, tempElem.Name); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteString(elemW, tempElem.Name); err != nil {
+											return err
+										}
+									}
+								}
+								// Partitions
+								if version >= 0 && version <= 999 {
+									if err := protocol.WriteInt32(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								}
+								// ReplicationFactor
+								if version >= 0 && version <= 999 {
+									if err := protocol.WriteInt16(elemW, tempElem.ReplicationFactor); err != nil {
+										return err
+									}
+								}
+								// TopicConfigs
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										length := uint32(len(tempElem.TopicConfigs) + 1)
+										if err := protocol.WriteVaruint32(elemW, length); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteInt32(elemW, int32(len(tempElem.TopicConfigs))); err != nil {
+											return err
+										}
+									}
+									for i := range tempElem.TopicConfigs {
+										// Key
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactString(elemW, tempElem.TopicConfigs[i].Key); err != nil {
+													return err
+												}
+											} else {
+												if err := protocol.WriteString(elemW, tempElem.TopicConfigs[i].Key); err != nil {
+													return err
+												}
+											}
+										}
+										// Value
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactString(elemW, tempElem.TopicConfigs[i].Value); err != nil {
+													return err
+												}
+											} else {
+												if err := protocol.WriteString(elemW, tempElem.TopicConfigs[i].Value); err != nil {
+													return err
+												}
+											}
+										}
+									}
+								}
+								// Append to array buffer
+								arrayBuf.Write(elemBuf.Bytes())
+							}
+							// Prepend length and decode using DecodeCompactArray
+							lengthBytes := protocol.EncodeVaruint32(lengthUint)
+							fullData := append(lengthBytes, arrayBuf.Bytes()...)
+							decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+							if err != nil {
+								return err
+							}
+							// Convert []interface{} to typed slice
+							tempElem.RepartitionSourceTopics = make([]TopicInfo, len(decoded))
+							for i, item := range decoded {
+								tempElem.RepartitionSourceTopics[i] = item.(TopicInfo)
+							}
+						} else {
+							length, err := protocol.ReadInt32(r)
+							if err != nil {
+								return err
+							}
+							// Collect all array elements into a buffer
+							var arrayBuf bytes.Buffer
+							for i := int32(0); i < length; i++ {
+								// Read element into struct and encode to buffer
+								var elemBuf bytes.Buffer
+								elemW := &elemBuf
+								var tempElem TopicInfo
+								// Name
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										val, err := protocol.ReadCompactString(r)
+										if err != nil {
+											return err
+										}
+										tempElem.Name = val
+									} else {
+										val, err := protocol.ReadString(r)
+										if err != nil {
+											return err
+										}
+										tempElem.Name = val
+									}
+								}
+								// Partitions
+								if version >= 0 && version <= 999 {
+									val, err := protocol.ReadInt32(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Partitions = val
+								}
+								// ReplicationFactor
+								if version >= 0 && version <= 999 {
+									val, err := protocol.ReadInt16(r)
+									if err != nil {
+										return err
+									}
+									tempElem.ReplicationFactor = val
+								}
+								// TopicConfigs
+								if version >= 0 && version <= 999 {
+									// Decode array using ArrayDecoder
+									decoder := func(data []byte) (interface{}, int, error) {
+										var elem KeyValue
+										elemR := bytes.NewReader(data)
+										// Key
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												val, err := protocol.ReadCompactString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Key = val
+											} else {
+												val, err := protocol.ReadString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Key = val
+											}
+										}
+										// Value
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												val, err := protocol.ReadCompactString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Value = val
+											} else {
+												val, err := protocol.ReadString(elemR)
+												if err != nil {
+													return nil, 0, err
+												}
+												elem.Value = val
+											}
+										}
+										consumed := len(data) - elemR.Len()
+										return elem, consumed, nil
+									}
+									if isFlexible {
+										lengthUint, err := protocol.ReadVaruint32(r)
+										if err != nil {
+											return err
+										}
+										if lengthUint < 1 {
+											return errors.New("invalid compact array length")
+										}
+										length := int32(lengthUint - 1)
+										// Collect all array elements into a buffer
+										var arrayBuf bytes.Buffer
+										for i := int32(0); i < length; i++ {
+											// Read element into struct and encode to buffer
+											var elemBuf bytes.Buffer
+											elemW := &elemBuf
+											var tempElem KeyValue
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												}
+											}
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												}
+											}
+											// Append to array buffer
+											arrayBuf.Write(elemBuf.Bytes())
+										}
+										// Prepend length and decode using DecodeCompactArray
+										lengthBytes := protocol.EncodeVaruint32(lengthUint)
+										fullData := append(lengthBytes, arrayBuf.Bytes()...)
+										decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+										if err != nil {
+											return err
+										}
+										// Convert []interface{} to typed slice
+										tempElem.TopicConfigs = make([]KeyValue, len(decoded))
+										for i, item := range decoded {
+											tempElem.TopicConfigs[i] = item.(KeyValue)
+										}
+									} else {
+										length, err := protocol.ReadInt32(r)
+										if err != nil {
+											return err
+										}
+										// Collect all array elements into a buffer
+										var arrayBuf bytes.Buffer
+										for i := int32(0); i < length; i++ {
+											// Read element into struct and encode to buffer
+											var elemBuf bytes.Buffer
+											elemW := &elemBuf
+											var tempElem KeyValue
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Key = val
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													val, err := protocol.ReadCompactString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												} else {
+													val, err := protocol.ReadString(r)
+													if err != nil {
+														return err
+													}
+													tempElem.Value = val
+												}
+											}
+											// Key
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Key); err != nil {
+														return err
+													}
+												}
+											}
+											// Value
+											if version >= 0 && version <= 999 {
+												if isFlexible {
+													if err := protocol.WriteCompactString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												} else {
+													if err := protocol.WriteString(elemW, tempElem.Value); err != nil {
+														return err
+													}
+												}
+											}
+											// Append to array buffer
+											arrayBuf.Write(elemBuf.Bytes())
+										}
+										// Prepend length and decode using DecodeArray
+										lengthBytes := protocol.EncodeInt32(length)
+										fullData := append(lengthBytes, arrayBuf.Bytes()...)
+										decoded, _, err := protocol.DecodeArray(fullData, decoder)
+										if err != nil {
+											return err
+										}
+										// Convert []interface{} to typed slice
+										tempElem.TopicConfigs = make([]KeyValue, len(decoded))
+										for i, item := range decoded {
+											tempElem.TopicConfigs[i] = item.(KeyValue)
+										}
+									}
+								}
+								// Name
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										if err := protocol.WriteCompactString(elemW, tempElem.Name); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteString(elemW, tempElem.Name); err != nil {
+											return err
+										}
+									}
+								}
+								// Partitions
+								if version >= 0 && version <= 999 {
+									if err := protocol.WriteInt32(elemW, tempElem.Partitions); err != nil {
+										return err
+									}
+								}
+								// ReplicationFactor
+								if version >= 0 && version <= 999 {
+									if err := protocol.WriteInt16(elemW, tempElem.ReplicationFactor); err != nil {
+										return err
+									}
+								}
+								// TopicConfigs
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										length := uint32(len(tempElem.TopicConfigs) + 1)
+										if err := protocol.WriteVaruint32(elemW, length); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteInt32(elemW, int32(len(tempElem.TopicConfigs))); err != nil {
+											return err
+										}
+									}
+									for i := range tempElem.TopicConfigs {
+										// Key
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactString(elemW, tempElem.TopicConfigs[i].Key); err != nil {
+													return err
+												}
+											} else {
+												if err := protocol.WriteString(elemW, tempElem.TopicConfigs[i].Key); err != nil {
+													return err
+												}
+											}
+										}
+										// Value
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactString(elemW, tempElem.TopicConfigs[i].Value); err != nil {
+													return err
+												}
+											} else {
+												if err := protocol.WriteString(elemW, tempElem.TopicConfigs[i].Value); err != nil {
+													return err
+												}
+											}
+										}
+									}
+								}
+								// Append to array buffer
+								arrayBuf.Write(elemBuf.Bytes())
+							}
+							// Prepend length and decode using DecodeArray
+							lengthBytes := protocol.EncodeInt32(length)
+							fullData := append(lengthBytes, arrayBuf.Bytes()...)
+							decoded, _, err := protocol.DecodeArray(fullData, decoder)
+							if err != nil {
+								return err
+							}
+							// Convert []interface{} to typed slice
+							tempElem.RepartitionSourceTopics = make([]TopicInfo, len(decoded))
+							for i, item := range decoded {
+								tempElem.RepartitionSourceTopics[i] = item.(TopicInfo)
+							}
+						}
+					}
+					// CopartitionGroups
+					if version >= 0 && version <= 999 {
+						// Decode array using ArrayDecoder
+						decoder := func(data []byte) (interface{}, int, error) {
+							var elem StreamsGroupHeartbeatRequestCopartitionGroup
+							elemR := bytes.NewReader(data)
+							// SourceTopics
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactInt16Array(elemR)
+									if err != nil {
+										return nil, 0, err
+									}
+									elem.SourceTopics = val
+								} else {
+									val, err := protocol.ReadInt16Array(elemR)
+									if err != nil {
+										return nil, 0, err
+									}
+									elem.SourceTopics = val
+								}
+							}
+							// SourceTopicRegex
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactInt16Array(elemR)
+									if err != nil {
+										return nil, 0, err
+									}
+									elem.SourceTopicRegex = val
+								} else {
+									val, err := protocol.ReadInt16Array(elemR)
+									if err != nil {
+										return nil, 0, err
+									}
+									elem.SourceTopicRegex = val
+								}
+							}
+							// RepartitionSourceTopics
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactInt16Array(elemR)
+									if err != nil {
+										return nil, 0, err
+									}
+									elem.RepartitionSourceTopics = val
+								} else {
+									val, err := protocol.ReadInt16Array(elemR)
+									if err != nil {
+										return nil, 0, err
+									}
+									elem.RepartitionSourceTopics = val
+								}
+							}
+							consumed := len(data) - elemR.Len()
+							return elem, consumed, nil
+						}
+						if isFlexible {
+							lengthUint, err := protocol.ReadVaruint32(r)
+							if err != nil {
+								return err
+							}
+							if lengthUint < 1 {
+								return errors.New("invalid compact array length")
+							}
+							length := int32(lengthUint - 1)
+							// Collect all array elements into a buffer
+							var arrayBuf bytes.Buffer
+							for i := int32(0); i < length; i++ {
+								// Read element into struct and encode to buffer
+								var elemBuf bytes.Buffer
+								elemW := &elemBuf
+								var tempElem StreamsGroupHeartbeatRequestCopartitionGroup
+								// SourceTopics
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										val, err := protocol.ReadCompactInt16Array(r)
+										if err != nil {
+											return err
+										}
+										tempElem.SourceTopics = val
+									} else {
+										val, err := protocol.ReadInt16Array(r)
+										if err != nil {
+											return err
+										}
+										tempElem.SourceTopics = val
+									}
+								}
+								// SourceTopicRegex
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										val, err := protocol.ReadCompactInt16Array(r)
+										if err != nil {
+											return err
+										}
+										tempElem.SourceTopicRegex = val
+									} else {
+										val, err := protocol.ReadInt16Array(r)
+										if err != nil {
+											return err
+										}
+										tempElem.SourceTopicRegex = val
+									}
+								}
+								// RepartitionSourceTopics
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										val, err := protocol.ReadCompactInt16Array(r)
+										if err != nil {
+											return err
+										}
+										tempElem.RepartitionSourceTopics = val
+									} else {
+										val, err := protocol.ReadInt16Array(r)
+										if err != nil {
+											return err
+										}
+										tempElem.RepartitionSourceTopics = val
+									}
+								}
+								// SourceTopics
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										if err := protocol.WriteCompactInt16Array(elemW, tempElem.SourceTopics); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteInt16Array(elemW, tempElem.SourceTopics); err != nil {
+											return err
+										}
+									}
+								}
+								// SourceTopicRegex
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										if err := protocol.WriteCompactInt16Array(elemW, tempElem.SourceTopicRegex); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteInt16Array(elemW, tempElem.SourceTopicRegex); err != nil {
+											return err
+										}
+									}
+								}
+								// RepartitionSourceTopics
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										if err := protocol.WriteCompactInt16Array(elemW, tempElem.RepartitionSourceTopics); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteInt16Array(elemW, tempElem.RepartitionSourceTopics); err != nil {
+											return err
+										}
+									}
+								}
+								// Append to array buffer
+								arrayBuf.Write(elemBuf.Bytes())
+							}
+							// Prepend length and decode using DecodeCompactArray
+							lengthBytes := protocol.EncodeVaruint32(lengthUint)
+							fullData := append(lengthBytes, arrayBuf.Bytes()...)
+							decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+							if err != nil {
+								return err
+							}
+							// Convert []interface{} to typed slice
+							tempElem.CopartitionGroups = make([]StreamsGroupHeartbeatRequestCopartitionGroup, len(decoded))
+							for i, item := range decoded {
+								tempElem.CopartitionGroups[i] = item.(StreamsGroupHeartbeatRequestCopartitionGroup)
+							}
+						} else {
+							length, err := protocol.ReadInt32(r)
+							if err != nil {
+								return err
+							}
+							// Collect all array elements into a buffer
+							var arrayBuf bytes.Buffer
+							for i := int32(0); i < length; i++ {
+								// Read element into struct and encode to buffer
+								var elemBuf bytes.Buffer
+								elemW := &elemBuf
+								var tempElem StreamsGroupHeartbeatRequestCopartitionGroup
+								// SourceTopics
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										val, err := protocol.ReadCompactInt16Array(r)
+										if err != nil {
+											return err
+										}
+										tempElem.SourceTopics = val
+									} else {
+										val, err := protocol.ReadInt16Array(r)
+										if err != nil {
+											return err
+										}
+										tempElem.SourceTopics = val
+									}
+								}
+								// SourceTopicRegex
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										val, err := protocol.ReadCompactInt16Array(r)
+										if err != nil {
+											return err
+										}
+										tempElem.SourceTopicRegex = val
+									} else {
+										val, err := protocol.ReadInt16Array(r)
+										if err != nil {
+											return err
+										}
+										tempElem.SourceTopicRegex = val
+									}
+								}
+								// RepartitionSourceTopics
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										val, err := protocol.ReadCompactInt16Array(r)
+										if err != nil {
+											return err
+										}
+										tempElem.RepartitionSourceTopics = val
+									} else {
+										val, err := protocol.ReadInt16Array(r)
+										if err != nil {
+											return err
+										}
+										tempElem.RepartitionSourceTopics = val
+									}
+								}
+								// SourceTopics
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										if err := protocol.WriteCompactInt16Array(elemW, tempElem.SourceTopics); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteInt16Array(elemW, tempElem.SourceTopics); err != nil {
+											return err
+										}
+									}
+								}
+								// SourceTopicRegex
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										if err := protocol.WriteCompactInt16Array(elemW, tempElem.SourceTopicRegex); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteInt16Array(elemW, tempElem.SourceTopicRegex); err != nil {
+											return err
+										}
+									}
+								}
+								// RepartitionSourceTopics
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										if err := protocol.WriteCompactInt16Array(elemW, tempElem.RepartitionSourceTopics); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteInt16Array(elemW, tempElem.RepartitionSourceTopics); err != nil {
+											return err
+										}
+									}
+								}
+								// Append to array buffer
+								arrayBuf.Write(elemBuf.Bytes())
+							}
+							// Prepend length and decode using DecodeArray
+							lengthBytes := protocol.EncodeInt32(length)
+							fullData := append(lengthBytes, arrayBuf.Bytes()...)
+							decoded, _, err := protocol.DecodeArray(fullData, decoder)
+							if err != nil {
+								return err
+							}
+							// Convert []interface{} to typed slice
+							tempElem.CopartitionGroups = make([]StreamsGroupHeartbeatRequestCopartitionGroup, len(decoded))
+							for i, item := range decoded {
+								tempElem.CopartitionGroups[i] = item.(StreamsGroupHeartbeatRequestCopartitionGroup)
+							}
+						}
+					}
+					// SubtopologyId
+					if version >= 0 && version <= 999 {
+						if isFlexible {
+							if err := protocol.WriteCompactString(elemW, tempElem.SubtopologyId); err != nil {
+								return err
+							}
+						} else {
+							if err := protocol.WriteString(elemW, tempElem.SubtopologyId); err != nil {
+								return err
+							}
+						}
+					}
+					// SourceTopics
+					if version >= 0 && version <= 999 {
+						if isFlexible {
+							if err := protocol.WriteCompactStringArray(elemW, tempElem.SourceTopics); err != nil {
+								return err
+							}
+						} else {
+							if err := protocol.WriteStringArray(elemW, tempElem.SourceTopics); err != nil {
+								return err
 							}
 						}
 					}
 					// SourceTopicRegex
 					if version >= 0 && version <= 999 {
-						var length int32
 						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
+							if err := protocol.WriteCompactStringArray(elemW, tempElem.SourceTopicRegex); err != nil {
 								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.Topology.Subtopologies[i].SourceTopicRegex = make([]string, length)
-							for i := int32(0); i < length; i++ {
-								if isFlexible {
-									val, err := protocol.ReadCompactString(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].SourceTopicRegex[i] = val
-								} else {
-									val, err := protocol.ReadString(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].SourceTopicRegex[i] = val
-								}
 							}
 						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
+							if err := protocol.WriteStringArray(elemW, tempElem.SourceTopicRegex); err != nil {
 								return err
-							}
-							m.Topology.Subtopologies[i].SourceTopicRegex = make([]string, length)
-							for i := int32(0); i < length; i++ {
-								if isFlexible {
-									val, err := protocol.ReadCompactString(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].SourceTopicRegex[i] = val
-								} else {
-									val, err := protocol.ReadString(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].SourceTopicRegex[i] = val
-								}
 							}
 						}
 					}
 					// StateChangelogTopics
 					if version >= 0 && version <= 999 {
-						var length int32
 						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
+							length := uint32(len(tempElem.StateChangelogTopics) + 1)
+							if err := protocol.WriteVaruint32(elemW, length); err != nil {
 								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.Topology.Subtopologies[i].StateChangelogTopics = make([]TopicInfo, length)
-							for i := int32(0); i < length; i++ {
-								// Name
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactString(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].StateChangelogTopics[i].Name = val
-									} else {
-										val, err := protocol.ReadString(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].StateChangelogTopics[i].Name = val
-									}
-								}
-								// Partitions
-								if version >= 0 && version <= 999 {
-									val, err := protocol.ReadInt32(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].StateChangelogTopics[i].Partitions = val
-								}
-								// ReplicationFactor
-								if version >= 0 && version <= 999 {
-									val, err := protocol.ReadInt16(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].StateChangelogTopics[i].ReplicationFactor = val
-								}
-								// TopicConfigs
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs = make([]KeyValue, length)
-										for i := int32(0); i < length; i++ {
-											// Key
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Key = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Key = val
-												}
-											}
-											// Value
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Value = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Value = val
-												}
-											}
-										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs = make([]KeyValue, length)
-										for i := int32(0); i < length; i++ {
-											// Key
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Key = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Key = val
-												}
-											}
-											// Value
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Value = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Value = val
-												}
-											}
-										}
-									}
-								}
 							}
 						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
+							if err := protocol.WriteInt32(elemW, int32(len(tempElem.StateChangelogTopics))); err != nil {
 								return err
 							}
-							m.Topology.Subtopologies[i].StateChangelogTopics = make([]TopicInfo, length)
-							for i := int32(0); i < length; i++ {
-								// Name
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactString(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].StateChangelogTopics[i].Name = val
-									} else {
-										val, err := protocol.ReadString(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].StateChangelogTopics[i].Name = val
-									}
-								}
-								// Partitions
-								if version >= 0 && version <= 999 {
-									val, err := protocol.ReadInt32(r)
-									if err != nil {
+						}
+						for i := range tempElem.StateChangelogTopics {
+							// Name
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactString(elemW, tempElem.StateChangelogTopics[i].Name); err != nil {
 										return err
 									}
-									m.Topology.Subtopologies[i].StateChangelogTopics[i].Partitions = val
-								}
-								// ReplicationFactor
-								if version >= 0 && version <= 999 {
-									val, err := protocol.ReadInt16(r)
-									if err != nil {
+								} else {
+									if err := protocol.WriteString(elemW, tempElem.StateChangelogTopics[i].Name); err != nil {
 										return err
 									}
-									m.Topology.Subtopologies[i].StateChangelogTopics[i].ReplicationFactor = val
 								}
-								// TopicConfigs
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs = make([]KeyValue, length)
-										for i := int32(0); i < length; i++ {
-											// Key
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Key = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Key = val
-												}
+							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt32(elemW, tempElem.StateChangelogTopics[i].Partitions); err != nil {
+									return err
+								}
+							}
+							// ReplicationFactor
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt16(elemW, tempElem.StateChangelogTopics[i].ReplicationFactor); err != nil {
+									return err
+								}
+							}
+							// TopicConfigs
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									length := uint32(len(tempElem.StateChangelogTopics[i].TopicConfigs) + 1)
+									if err := protocol.WriteVaruint32(elemW, length); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt32(elemW, int32(len(tempElem.StateChangelogTopics[i].TopicConfigs))); err != nil {
+										return err
+									}
+								}
+								for i := range tempElem.StateChangelogTopics[i].TopicConfigs {
+									// Key
+									if version >= 0 && version <= 999 {
+										if isFlexible {
+											if err := protocol.WriteCompactString(elemW, tempElem.StateChangelogTopics[i].TopicConfigs[i].Key); err != nil {
+												return err
 											}
-											// Value
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Value = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Value = val
-												}
+										} else {
+											if err := protocol.WriteString(elemW, tempElem.StateChangelogTopics[i].TopicConfigs[i].Key); err != nil {
+												return err
 											}
 										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs = make([]KeyValue, length)
-										for i := int32(0); i < length; i++ {
-											// Key
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Key = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Key = val
-												}
+									}
+									// Value
+									if version >= 0 && version <= 999 {
+										if isFlexible {
+											if err := protocol.WriteCompactString(elemW, tempElem.StateChangelogTopics[i].TopicConfigs[i].Value); err != nil {
+												return err
 											}
-											// Value
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Value = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].StateChangelogTopics[i].TopicConfigs[i].Value = val
-												}
+										} else {
+											if err := protocol.WriteString(elemW, tempElem.StateChangelogTopics[i].TopicConfigs[i].Value); err != nil {
+												return err
 											}
 										}
 									}
@@ -2339,323 +5102,87 @@ func (m *StreamsGroupHeartbeatRequest) Read(r io.Reader, version int16) error {
 					}
 					// RepartitionSinkTopics
 					if version >= 0 && version <= 999 {
-						var length int32
 						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
+							if err := protocol.WriteCompactStringArray(elemW, tempElem.RepartitionSinkTopics); err != nil {
 								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.Topology.Subtopologies[i].RepartitionSinkTopics = make([]string, length)
-							for i := int32(0); i < length; i++ {
-								if isFlexible {
-									val, err := protocol.ReadCompactString(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].RepartitionSinkTopics[i] = val
-								} else {
-									val, err := protocol.ReadString(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].RepartitionSinkTopics[i] = val
-								}
 							}
 						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
+							if err := protocol.WriteStringArray(elemW, tempElem.RepartitionSinkTopics); err != nil {
 								return err
-							}
-							m.Topology.Subtopologies[i].RepartitionSinkTopics = make([]string, length)
-							for i := int32(0); i < length; i++ {
-								if isFlexible {
-									val, err := protocol.ReadCompactString(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].RepartitionSinkTopics[i] = val
-								} else {
-									val, err := protocol.ReadString(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].RepartitionSinkTopics[i] = val
-								}
 							}
 						}
 					}
 					// RepartitionSourceTopics
 					if version >= 0 && version <= 999 {
-						var length int32
 						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
+							length := uint32(len(tempElem.RepartitionSourceTopics) + 1)
+							if err := protocol.WriteVaruint32(elemW, length); err != nil {
 								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.Topology.Subtopologies[i].RepartitionSourceTopics = make([]TopicInfo, length)
-							for i := int32(0); i < length; i++ {
-								// Name
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactString(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].RepartitionSourceTopics[i].Name = val
-									} else {
-										val, err := protocol.ReadString(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].RepartitionSourceTopics[i].Name = val
-									}
-								}
-								// Partitions
-								if version >= 0 && version <= 999 {
-									val, err := protocol.ReadInt32(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].RepartitionSourceTopics[i].Partitions = val
-								}
-								// ReplicationFactor
-								if version >= 0 && version <= 999 {
-									val, err := protocol.ReadInt16(r)
-									if err != nil {
-										return err
-									}
-									m.Topology.Subtopologies[i].RepartitionSourceTopics[i].ReplicationFactor = val
-								}
-								// TopicConfigs
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs = make([]KeyValue, length)
-										for i := int32(0); i < length; i++ {
-											// Key
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Key = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Key = val
-												}
-											}
-											// Value
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Value = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Value = val
-												}
-											}
-										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs = make([]KeyValue, length)
-										for i := int32(0); i < length; i++ {
-											// Key
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Key = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Key = val
-												}
-											}
-											// Value
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Value = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Value = val
-												}
-											}
-										}
-									}
-								}
 							}
 						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
+							if err := protocol.WriteInt32(elemW, int32(len(tempElem.RepartitionSourceTopics))); err != nil {
 								return err
 							}
-							m.Topology.Subtopologies[i].RepartitionSourceTopics = make([]TopicInfo, length)
-							for i := int32(0); i < length; i++ {
-								// Name
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactString(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].RepartitionSourceTopics[i].Name = val
-									} else {
-										val, err := protocol.ReadString(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].RepartitionSourceTopics[i].Name = val
-									}
-								}
-								// Partitions
-								if version >= 0 && version <= 999 {
-									val, err := protocol.ReadInt32(r)
-									if err != nil {
+						}
+						for i := range tempElem.RepartitionSourceTopics {
+							// Name
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactString(elemW, tempElem.RepartitionSourceTopics[i].Name); err != nil {
 										return err
 									}
-									m.Topology.Subtopologies[i].RepartitionSourceTopics[i].Partitions = val
-								}
-								// ReplicationFactor
-								if version >= 0 && version <= 999 {
-									val, err := protocol.ReadInt16(r)
-									if err != nil {
+								} else {
+									if err := protocol.WriteString(elemW, tempElem.RepartitionSourceTopics[i].Name); err != nil {
 										return err
 									}
-									m.Topology.Subtopologies[i].RepartitionSourceTopics[i].ReplicationFactor = val
 								}
-								// TopicConfigs
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs = make([]KeyValue, length)
-										for i := int32(0); i < length; i++ {
-											// Key
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Key = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Key = val
-												}
+							}
+							// Partitions
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt32(elemW, tempElem.RepartitionSourceTopics[i].Partitions); err != nil {
+									return err
+								}
+							}
+							// ReplicationFactor
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt16(elemW, tempElem.RepartitionSourceTopics[i].ReplicationFactor); err != nil {
+									return err
+								}
+							}
+							// TopicConfigs
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									length := uint32(len(tempElem.RepartitionSourceTopics[i].TopicConfigs) + 1)
+									if err := protocol.WriteVaruint32(elemW, length); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt32(elemW, int32(len(tempElem.RepartitionSourceTopics[i].TopicConfigs))); err != nil {
+										return err
+									}
+								}
+								for i := range tempElem.RepartitionSourceTopics[i].TopicConfigs {
+									// Key
+									if version >= 0 && version <= 999 {
+										if isFlexible {
+											if err := protocol.WriteCompactString(elemW, tempElem.RepartitionSourceTopics[i].TopicConfigs[i].Key); err != nil {
+												return err
 											}
-											// Value
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Value = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Value = val
-												}
+										} else {
+											if err := protocol.WriteString(elemW, tempElem.RepartitionSourceTopics[i].TopicConfigs[i].Key); err != nil {
+												return err
 											}
 										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs = make([]KeyValue, length)
-										for i := int32(0); i < length; i++ {
-											// Key
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Key = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Key = val
-												}
+									}
+									// Value
+									if version >= 0 && version <= 999 {
+										if isFlexible {
+											if err := protocol.WriteCompactString(elemW, tempElem.RepartitionSourceTopics[i].TopicConfigs[i].Value); err != nil {
+												return err
 											}
-											// Value
-											if version >= 0 && version <= 999 {
-												if isFlexible {
-													val, err := protocol.ReadCompactString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Value = val
-												} else {
-													val, err := protocol.ReadString(r)
-													if err != nil {
-														return err
-													}
-													m.Topology.Subtopologies[i].RepartitionSourceTopics[i].TopicConfigs[i].Value = val
-												}
+										} else {
+											if err := protocol.WriteString(elemW, tempElem.RepartitionSourceTopics[i].TopicConfigs[i].Value); err != nil {
+												return err
 											}
 										}
 									}
@@ -2665,677 +5192,757 @@ func (m *StreamsGroupHeartbeatRequest) Read(r io.Reader, version int16) error {
 					}
 					// CopartitionGroups
 					if version >= 0 && version <= 999 {
-						var length int32
 						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
+							length := uint32(len(tempElem.CopartitionGroups) + 1)
+							if err := protocol.WriteVaruint32(elemW, length); err != nil {
 								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.Topology.Subtopologies[i].CopartitionGroups = make([]StreamsGroupHeartbeatRequestCopartitionGroup, length)
-							for i := int32(0); i < length; i++ {
-								// SourceTopics
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopics = make([]int16, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt16(r)
-											if err != nil {
-												return err
-											}
-											m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopics[i] = val
-										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopics = make([]int16, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt16(r)
-											if err != nil {
-												return err
-											}
-											m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopics[i] = val
-										}
-									}
-								}
-								// SourceTopicRegex
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopicRegex = make([]int16, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt16(r)
-											if err != nil {
-												return err
-											}
-											m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopicRegex[i] = val
-										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopicRegex = make([]int16, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt16(r)
-											if err != nil {
-												return err
-											}
-											m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopicRegex[i] = val
-										}
-									}
-								}
-								// RepartitionSourceTopics
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.Topology.Subtopologies[i].CopartitionGroups[i].RepartitionSourceTopics = make([]int16, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt16(r)
-											if err != nil {
-												return err
-											}
-											m.Topology.Subtopologies[i].CopartitionGroups[i].RepartitionSourceTopics[i] = val
-										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].CopartitionGroups[i].RepartitionSourceTopics = make([]int16, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt16(r)
-											if err != nil {
-												return err
-											}
-											m.Topology.Subtopologies[i].CopartitionGroups[i].RepartitionSourceTopics[i] = val
-										}
-									}
-								}
 							}
 						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
+							if err := protocol.WriteInt32(elemW, int32(len(tempElem.CopartitionGroups))); err != nil {
 								return err
 							}
-							m.Topology.Subtopologies[i].CopartitionGroups = make([]StreamsGroupHeartbeatRequestCopartitionGroup, length)
-							for i := int32(0); i < length; i++ {
-								// SourceTopics
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopics = make([]int16, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt16(r)
-											if err != nil {
-												return err
-											}
-											m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopics[i] = val
-										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopics = make([]int16, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt16(r)
-											if err != nil {
-												return err
-											}
-											m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopics[i] = val
-										}
+						}
+						for i := range tempElem.CopartitionGroups {
+							// SourceTopics
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactInt16Array(elemW, tempElem.CopartitionGroups[i].SourceTopics); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt16Array(elemW, tempElem.CopartitionGroups[i].SourceTopics); err != nil {
+										return err
 									}
 								}
-								// SourceTopicRegex
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopicRegex = make([]int16, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt16(r)
-											if err != nil {
-												return err
-											}
-											m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopicRegex[i] = val
-										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopicRegex = make([]int16, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt16(r)
-											if err != nil {
-												return err
-											}
-											m.Topology.Subtopologies[i].CopartitionGroups[i].SourceTopicRegex[i] = val
-										}
+							}
+							// SourceTopicRegex
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactInt16Array(elemW, tempElem.CopartitionGroups[i].SourceTopicRegex); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt16Array(elemW, tempElem.CopartitionGroups[i].SourceTopicRegex); err != nil {
+										return err
 									}
 								}
-								// RepartitionSourceTopics
-								if version >= 0 && version <= 999 {
-									var length int32
-									if isFlexible {
-										var lengthUint uint32
-										lengthUint, err := protocol.ReadVaruint32(r)
-										if err != nil {
-											return err
-										}
-										if lengthUint < 1 {
-											return errors.New("invalid compact array length")
-										}
-										length = int32(lengthUint - 1)
-										m.Topology.Subtopologies[i].CopartitionGroups[i].RepartitionSourceTopics = make([]int16, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt16(r)
-											if err != nil {
-												return err
-											}
-											m.Topology.Subtopologies[i].CopartitionGroups[i].RepartitionSourceTopics[i] = val
-										}
-									} else {
-										var err error
-										length, err = protocol.ReadInt32(r)
-										if err != nil {
-											return err
-										}
-										m.Topology.Subtopologies[i].CopartitionGroups[i].RepartitionSourceTopics = make([]int16, length)
-										for i := int32(0); i < length; i++ {
-											val, err := protocol.ReadInt16(r)
-											if err != nil {
-												return err
-											}
-											m.Topology.Subtopologies[i].CopartitionGroups[i].RepartitionSourceTopics[i] = val
-										}
+							}
+							// RepartitionSourceTopics
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactInt16Array(elemW, tempElem.CopartitionGroups[i].RepartitionSourceTopics); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt16Array(elemW, tempElem.CopartitionGroups[i].RepartitionSourceTopics); err != nil {
+										return err
 									}
 								}
 							}
 						}
 					}
+					// Append to array buffer
+					arrayBuf.Write(elemBuf.Bytes())
 				}
+				// Prepend length and decode using DecodeArray
+				lengthBytes := protocol.EncodeInt32(length)
+				fullData := append(lengthBytes, arrayBuf.Bytes()...)
+				decoded, _, err := protocol.DecodeArray(fullData, decoder)
+				if err != nil {
+					return err
+				}
+				// Convert []interface{} to typed slice
+				m.Topology.Subtopologies = make([]StreamsGroupHeartbeatRequestSubtopology, len(decoded))
+				for i, item := range decoded {
+					m.Topology.Subtopologies[i] = item.(StreamsGroupHeartbeatRequestSubtopology)
+				}
+			}
+		}
+		// Read tagged fields if flexible
+		if isFlexible {
+			if err := m.Topology.readTaggedFields(r, version); err != nil {
+				return err
 			}
 		}
 	}
 	// ActiveTasks
 	if version >= 0 && version <= 999 {
-		var length int32
+		// Decode array using ArrayDecoder
+		decoder := func(data []byte) (interface{}, int, error) {
+			var elem TaskIds
+			elemR := bytes.NewReader(data)
+			// SubtopologyId
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					val, err := protocol.ReadCompactString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.SubtopologyId = val
+				} else {
+					val, err := protocol.ReadString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.SubtopologyId = val
+				}
+			}
+			// Partitions
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					val, err := protocol.ReadCompactInt32Array(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.Partitions = val
+				} else {
+					val, err := protocol.ReadInt32Array(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.Partitions = val
+				}
+			}
+			// Read tagged fields if flexible
+			if isFlexible {
+				if err := elem.readTaggedFields(elemR, version); err != nil {
+					return nil, 0, err
+				}
+			}
+			consumed := len(data) - elemR.Len()
+			return elem, consumed, nil
+		}
 		if isFlexible {
-			var lengthUint uint32
 			lengthUint, err := protocol.ReadVaruint32(r)
 			if err != nil {
 				return err
 			}
 			if lengthUint == 0 {
 				m.ActiveTasks = nil
-			} else {
-				if lengthUint < 1 {
-					return errors.New("invalid compact array length")
-				}
-				length = int32(lengthUint - 1)
-				m.ActiveTasks = make([]TaskIds, length)
-				for i := int32(0); i < length; i++ {
-					// SubtopologyId
-					if version >= 0 && version <= 999 {
-						if isFlexible {
-							val, err := protocol.ReadCompactString(r)
-							if err != nil {
-								return err
-							}
-							m.ActiveTasks[i].SubtopologyId = val
-						} else {
-							val, err := protocol.ReadString(r)
-							if err != nil {
-								return err
-							}
-							m.ActiveTasks[i].SubtopologyId = val
+				return nil
+			}
+			if lengthUint < 1 {
+				return errors.New("invalid compact array length")
+			}
+			length := int32(lengthUint - 1)
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
+			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem TaskIds
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactString(r)
+						if err != nil {
+							return err
 						}
+						tempElem.SubtopologyId = val
+					} else {
+						val, err := protocol.ReadString(r)
+						if err != nil {
+							return err
+						}
+						tempElem.SubtopologyId = val
 					}
-					// Partitions
-					if version >= 0 && version <= 999 {
-						var length int32
-						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
-								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.ActiveTasks[i].Partitions = make([]int32, length)
-							for i := int32(0); i < length; i++ {
-								val, err := protocol.ReadInt32(r)
-								if err != nil {
-									return err
-								}
-								m.ActiveTasks[i].Partitions[i] = val
-							}
-						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
-								return err
-							}
-							m.ActiveTasks[i].Partitions = make([]int32, length)
-							for i := int32(0); i < length; i++ {
-								val, err := protocol.ReadInt32(r)
-								if err != nil {
-									return err
-								}
-								m.ActiveTasks[i].Partitions[i] = val
-							}
+				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactInt32Array(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Partitions = val
+					} else {
+						val, err := protocol.ReadInt32Array(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Partitions = val
+					}
+				}
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
 						}
 					}
 				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactInt32Array(elemW, tempElem.Partitions); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32Array(elemW, tempElem.Partitions); err != nil {
+							return err
+						}
+					}
+				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeCompactArray
+			lengthBytes := protocol.EncodeVaruint32(lengthUint)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.ActiveTasks = make([]TaskIds, len(decoded))
+			for i, item := range decoded {
+				m.ActiveTasks[i] = item.(TaskIds)
 			}
 		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			length, err := protocol.ReadInt32(r)
 			if err != nil {
 				return err
 			}
 			if length == -1 {
 				m.ActiveTasks = nil
-			} else {
-				m.ActiveTasks = make([]TaskIds, length)
-				for i := int32(0); i < length; i++ {
-					// SubtopologyId
-					if version >= 0 && version <= 999 {
-						if isFlexible {
-							val, err := protocol.ReadCompactString(r)
-							if err != nil {
-								return err
-							}
-							m.ActiveTasks[i].SubtopologyId = val
-						} else {
-							val, err := protocol.ReadString(r)
-							if err != nil {
-								return err
-							}
-							m.ActiveTasks[i].SubtopologyId = val
+				return nil
+			}
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
+			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem TaskIds
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactString(r)
+						if err != nil {
+							return err
 						}
+						tempElem.SubtopologyId = val
+					} else {
+						val, err := protocol.ReadString(r)
+						if err != nil {
+							return err
+						}
+						tempElem.SubtopologyId = val
 					}
-					// Partitions
-					if version >= 0 && version <= 999 {
-						var length int32
-						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
-								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.ActiveTasks[i].Partitions = make([]int32, length)
-							for i := int32(0); i < length; i++ {
-								val, err := protocol.ReadInt32(r)
-								if err != nil {
-									return err
-								}
-								m.ActiveTasks[i].Partitions[i] = val
-							}
-						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
-								return err
-							}
-							m.ActiveTasks[i].Partitions = make([]int32, length)
-							for i := int32(0); i < length; i++ {
-								val, err := protocol.ReadInt32(r)
-								if err != nil {
-									return err
-								}
-								m.ActiveTasks[i].Partitions[i] = val
-							}
+				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactInt32Array(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Partitions = val
+					} else {
+						val, err := protocol.ReadInt32Array(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Partitions = val
+					}
+				}
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
 						}
 					}
 				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactInt32Array(elemW, tempElem.Partitions); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32Array(elemW, tempElem.Partitions); err != nil {
+							return err
+						}
+					}
+				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeArray
+			lengthBytes := protocol.EncodeInt32(length)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.ActiveTasks = make([]TaskIds, len(decoded))
+			for i, item := range decoded {
+				m.ActiveTasks[i] = item.(TaskIds)
 			}
 		}
 	}
 	// StandbyTasks
 	if version >= 0 && version <= 999 {
-		var length int32
+		// Decode array using ArrayDecoder
+		decoder := func(data []byte) (interface{}, int, error) {
+			var elem TaskIds
+			elemR := bytes.NewReader(data)
+			// SubtopologyId
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					val, err := protocol.ReadCompactString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.SubtopologyId = val
+				} else {
+					val, err := protocol.ReadString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.SubtopologyId = val
+				}
+			}
+			// Partitions
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					val, err := protocol.ReadCompactInt32Array(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.Partitions = val
+				} else {
+					val, err := protocol.ReadInt32Array(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.Partitions = val
+				}
+			}
+			// Read tagged fields if flexible
+			if isFlexible {
+				if err := elem.readTaggedFields(elemR, version); err != nil {
+					return nil, 0, err
+				}
+			}
+			consumed := len(data) - elemR.Len()
+			return elem, consumed, nil
+		}
 		if isFlexible {
-			var lengthUint uint32
 			lengthUint, err := protocol.ReadVaruint32(r)
 			if err != nil {
 				return err
 			}
 			if lengthUint == 0 {
 				m.StandbyTasks = nil
-			} else {
-				if lengthUint < 1 {
-					return errors.New("invalid compact array length")
-				}
-				length = int32(lengthUint - 1)
-				m.StandbyTasks = make([]TaskIds, length)
-				for i := int32(0); i < length; i++ {
-					// SubtopologyId
-					if version >= 0 && version <= 999 {
-						if isFlexible {
-							val, err := protocol.ReadCompactString(r)
-							if err != nil {
-								return err
-							}
-							m.StandbyTasks[i].SubtopologyId = val
-						} else {
-							val, err := protocol.ReadString(r)
-							if err != nil {
-								return err
-							}
-							m.StandbyTasks[i].SubtopologyId = val
+				return nil
+			}
+			if lengthUint < 1 {
+				return errors.New("invalid compact array length")
+			}
+			length := int32(lengthUint - 1)
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
+			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem TaskIds
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactString(r)
+						if err != nil {
+							return err
 						}
+						tempElem.SubtopologyId = val
+					} else {
+						val, err := protocol.ReadString(r)
+						if err != nil {
+							return err
+						}
+						tempElem.SubtopologyId = val
 					}
-					// Partitions
-					if version >= 0 && version <= 999 {
-						var length int32
-						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
-								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.StandbyTasks[i].Partitions = make([]int32, length)
-							for i := int32(0); i < length; i++ {
-								val, err := protocol.ReadInt32(r)
-								if err != nil {
-									return err
-								}
-								m.StandbyTasks[i].Partitions[i] = val
-							}
-						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
-								return err
-							}
-							m.StandbyTasks[i].Partitions = make([]int32, length)
-							for i := int32(0); i < length; i++ {
-								val, err := protocol.ReadInt32(r)
-								if err != nil {
-									return err
-								}
-								m.StandbyTasks[i].Partitions[i] = val
-							}
+				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactInt32Array(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Partitions = val
+					} else {
+						val, err := protocol.ReadInt32Array(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Partitions = val
+					}
+				}
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
 						}
 					}
 				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactInt32Array(elemW, tempElem.Partitions); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32Array(elemW, tempElem.Partitions); err != nil {
+							return err
+						}
+					}
+				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeCompactArray
+			lengthBytes := protocol.EncodeVaruint32(lengthUint)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.StandbyTasks = make([]TaskIds, len(decoded))
+			for i, item := range decoded {
+				m.StandbyTasks[i] = item.(TaskIds)
 			}
 		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			length, err := protocol.ReadInt32(r)
 			if err != nil {
 				return err
 			}
 			if length == -1 {
 				m.StandbyTasks = nil
-			} else {
-				m.StandbyTasks = make([]TaskIds, length)
-				for i := int32(0); i < length; i++ {
-					// SubtopologyId
-					if version >= 0 && version <= 999 {
-						if isFlexible {
-							val, err := protocol.ReadCompactString(r)
-							if err != nil {
-								return err
-							}
-							m.StandbyTasks[i].SubtopologyId = val
-						} else {
-							val, err := protocol.ReadString(r)
-							if err != nil {
-								return err
-							}
-							m.StandbyTasks[i].SubtopologyId = val
+				return nil
+			}
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
+			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem TaskIds
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactString(r)
+						if err != nil {
+							return err
 						}
+						tempElem.SubtopologyId = val
+					} else {
+						val, err := protocol.ReadString(r)
+						if err != nil {
+							return err
+						}
+						tempElem.SubtopologyId = val
 					}
-					// Partitions
-					if version >= 0 && version <= 999 {
-						var length int32
-						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
-								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.StandbyTasks[i].Partitions = make([]int32, length)
-							for i := int32(0); i < length; i++ {
-								val, err := protocol.ReadInt32(r)
-								if err != nil {
-									return err
-								}
-								m.StandbyTasks[i].Partitions[i] = val
-							}
-						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
-								return err
-							}
-							m.StandbyTasks[i].Partitions = make([]int32, length)
-							for i := int32(0); i < length; i++ {
-								val, err := protocol.ReadInt32(r)
-								if err != nil {
-									return err
-								}
-								m.StandbyTasks[i].Partitions[i] = val
-							}
+				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactInt32Array(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Partitions = val
+					} else {
+						val, err := protocol.ReadInt32Array(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Partitions = val
+					}
+				}
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
 						}
 					}
 				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactInt32Array(elemW, tempElem.Partitions); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32Array(elemW, tempElem.Partitions); err != nil {
+							return err
+						}
+					}
+				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeArray
+			lengthBytes := protocol.EncodeInt32(length)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.StandbyTasks = make([]TaskIds, len(decoded))
+			for i, item := range decoded {
+				m.StandbyTasks[i] = item.(TaskIds)
 			}
 		}
 	}
 	// WarmupTasks
 	if version >= 0 && version <= 999 {
-		var length int32
+		// Decode array using ArrayDecoder
+		decoder := func(data []byte) (interface{}, int, error) {
+			var elem TaskIds
+			elemR := bytes.NewReader(data)
+			// SubtopologyId
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					val, err := protocol.ReadCompactString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.SubtopologyId = val
+				} else {
+					val, err := protocol.ReadString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.SubtopologyId = val
+				}
+			}
+			// Partitions
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					val, err := protocol.ReadCompactInt32Array(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.Partitions = val
+				} else {
+					val, err := protocol.ReadInt32Array(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.Partitions = val
+				}
+			}
+			// Read tagged fields if flexible
+			if isFlexible {
+				if err := elem.readTaggedFields(elemR, version); err != nil {
+					return nil, 0, err
+				}
+			}
+			consumed := len(data) - elemR.Len()
+			return elem, consumed, nil
+		}
 		if isFlexible {
-			var lengthUint uint32
 			lengthUint, err := protocol.ReadVaruint32(r)
 			if err != nil {
 				return err
 			}
 			if lengthUint == 0 {
 				m.WarmupTasks = nil
-			} else {
-				if lengthUint < 1 {
-					return errors.New("invalid compact array length")
-				}
-				length = int32(lengthUint - 1)
-				m.WarmupTasks = make([]TaskIds, length)
-				for i := int32(0); i < length; i++ {
-					// SubtopologyId
-					if version >= 0 && version <= 999 {
-						if isFlexible {
-							val, err := protocol.ReadCompactString(r)
-							if err != nil {
-								return err
-							}
-							m.WarmupTasks[i].SubtopologyId = val
-						} else {
-							val, err := protocol.ReadString(r)
-							if err != nil {
-								return err
-							}
-							m.WarmupTasks[i].SubtopologyId = val
+				return nil
+			}
+			if lengthUint < 1 {
+				return errors.New("invalid compact array length")
+			}
+			length := int32(lengthUint - 1)
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
+			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem TaskIds
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactString(r)
+						if err != nil {
+							return err
 						}
+						tempElem.SubtopologyId = val
+					} else {
+						val, err := protocol.ReadString(r)
+						if err != nil {
+							return err
+						}
+						tempElem.SubtopologyId = val
 					}
-					// Partitions
-					if version >= 0 && version <= 999 {
-						var length int32
-						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
-								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.WarmupTasks[i].Partitions = make([]int32, length)
-							for i := int32(0); i < length; i++ {
-								val, err := protocol.ReadInt32(r)
-								if err != nil {
-									return err
-								}
-								m.WarmupTasks[i].Partitions[i] = val
-							}
-						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
-								return err
-							}
-							m.WarmupTasks[i].Partitions = make([]int32, length)
-							for i := int32(0); i < length; i++ {
-								val, err := protocol.ReadInt32(r)
-								if err != nil {
-									return err
-								}
-								m.WarmupTasks[i].Partitions[i] = val
-							}
+				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactInt32Array(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Partitions = val
+					} else {
+						val, err := protocol.ReadInt32Array(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Partitions = val
+					}
+				}
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
 						}
 					}
 				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactInt32Array(elemW, tempElem.Partitions); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32Array(elemW, tempElem.Partitions); err != nil {
+							return err
+						}
+					}
+				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeCompactArray
+			lengthBytes := protocol.EncodeVaruint32(lengthUint)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.WarmupTasks = make([]TaskIds, len(decoded))
+			for i, item := range decoded {
+				m.WarmupTasks[i] = item.(TaskIds)
 			}
 		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			length, err := protocol.ReadInt32(r)
 			if err != nil {
 				return err
 			}
 			if length == -1 {
 				m.WarmupTasks = nil
-			} else {
-				m.WarmupTasks = make([]TaskIds, length)
-				for i := int32(0); i < length; i++ {
-					// SubtopologyId
-					if version >= 0 && version <= 999 {
-						if isFlexible {
-							val, err := protocol.ReadCompactString(r)
-							if err != nil {
-								return err
-							}
-							m.WarmupTasks[i].SubtopologyId = val
-						} else {
-							val, err := protocol.ReadString(r)
-							if err != nil {
-								return err
-							}
-							m.WarmupTasks[i].SubtopologyId = val
+				return nil
+			}
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
+			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem TaskIds
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactString(r)
+						if err != nil {
+							return err
 						}
+						tempElem.SubtopologyId = val
+					} else {
+						val, err := protocol.ReadString(r)
+						if err != nil {
+							return err
+						}
+						tempElem.SubtopologyId = val
 					}
-					// Partitions
-					if version >= 0 && version <= 999 {
-						var length int32
-						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
-								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.WarmupTasks[i].Partitions = make([]int32, length)
-							for i := int32(0); i < length; i++ {
-								val, err := protocol.ReadInt32(r)
-								if err != nil {
-									return err
-								}
-								m.WarmupTasks[i].Partitions[i] = val
-							}
-						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
-								return err
-							}
-							m.WarmupTasks[i].Partitions = make([]int32, length)
-							for i := int32(0); i < length; i++ {
-								val, err := protocol.ReadInt32(r)
-								if err != nil {
-									return err
-								}
-								m.WarmupTasks[i].Partitions[i] = val
-							}
+				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactInt32Array(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Partitions = val
+					} else {
+						val, err := protocol.ReadInt32Array(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Partitions = val
+					}
+				}
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
 						}
 					}
 				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactInt32Array(elemW, tempElem.Partitions); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32Array(elemW, tempElem.Partitions); err != nil {
+							return err
+						}
+					}
+				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeArray
+			lengthBytes := protocol.EncodeInt32(length)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.WarmupTasks = make([]TaskIds, len(decoded))
+			for i, item := range decoded {
+				m.WarmupTasks[i] = item.(TaskIds)
 			}
 		}
 	}
@@ -3360,298 +5967,682 @@ func (m *StreamsGroupHeartbeatRequest) Read(r io.Reader, version int16) error {
 	}
 	// ClientTags
 	if version >= 0 && version <= 999 {
-		var length int32
+		// Decode array using ArrayDecoder
+		decoder := func(data []byte) (interface{}, int, error) {
+			var elem KeyValue
+			elemR := bytes.NewReader(data)
+			// Key
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					val, err := protocol.ReadCompactString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.Key = val
+				} else {
+					val, err := protocol.ReadString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.Key = val
+				}
+			}
+			// Value
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					val, err := protocol.ReadCompactString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.Value = val
+				} else {
+					val, err := protocol.ReadString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.Value = val
+				}
+			}
+			// Read tagged fields if flexible
+			if isFlexible {
+				if err := elem.readTaggedFields(elemR, version); err != nil {
+					return nil, 0, err
+				}
+			}
+			consumed := len(data) - elemR.Len()
+			return elem, consumed, nil
+		}
 		if isFlexible {
-			var lengthUint uint32
 			lengthUint, err := protocol.ReadVaruint32(r)
 			if err != nil {
 				return err
 			}
 			if lengthUint == 0 {
 				m.ClientTags = nil
-			} else {
-				if lengthUint < 1 {
-					return errors.New("invalid compact array length")
-				}
-				length = int32(lengthUint - 1)
-				m.ClientTags = make([]KeyValue, length)
-				for i := int32(0); i < length; i++ {
-					// Key
-					if version >= 0 && version <= 999 {
-						if isFlexible {
-							val, err := protocol.ReadCompactString(r)
-							if err != nil {
-								return err
-							}
-							m.ClientTags[i].Key = val
-						} else {
-							val, err := protocol.ReadString(r)
-							if err != nil {
-								return err
-							}
-							m.ClientTags[i].Key = val
+				return nil
+			}
+			if lengthUint < 1 {
+				return errors.New("invalid compact array length")
+			}
+			length := int32(lengthUint - 1)
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
+			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem KeyValue
+				// Key
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactString(r)
+						if err != nil {
+							return err
 						}
-					}
-					// Value
-					if version >= 0 && version <= 999 {
-						if isFlexible {
-							val, err := protocol.ReadCompactString(r)
-							if err != nil {
-								return err
-							}
-							m.ClientTags[i].Value = val
-						} else {
-							val, err := protocol.ReadString(r)
-							if err != nil {
-								return err
-							}
-							m.ClientTags[i].Value = val
+						tempElem.Key = val
+					} else {
+						val, err := protocol.ReadString(r)
+						if err != nil {
+							return err
 						}
+						tempElem.Key = val
 					}
 				}
+				// Value
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactString(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Value = val
+					} else {
+						val, err := protocol.ReadString(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Value = val
+					}
+				}
+				// Key
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.Key); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.Key); err != nil {
+							return err
+						}
+					}
+				}
+				// Value
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.Value); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.Value); err != nil {
+							return err
+						}
+					}
+				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeCompactArray
+			lengthBytes := protocol.EncodeVaruint32(lengthUint)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.ClientTags = make([]KeyValue, len(decoded))
+			for i, item := range decoded {
+				m.ClientTags[i] = item.(KeyValue)
 			}
 		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			length, err := protocol.ReadInt32(r)
 			if err != nil {
 				return err
 			}
 			if length == -1 {
 				m.ClientTags = nil
-			} else {
-				m.ClientTags = make([]KeyValue, length)
-				for i := int32(0); i < length; i++ {
-					// Key
-					if version >= 0 && version <= 999 {
-						if isFlexible {
-							val, err := protocol.ReadCompactString(r)
-							if err != nil {
-								return err
-							}
-							m.ClientTags[i].Key = val
-						} else {
-							val, err := protocol.ReadString(r)
-							if err != nil {
-								return err
-							}
-							m.ClientTags[i].Key = val
+				return nil
+			}
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
+			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem KeyValue
+				// Key
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactString(r)
+						if err != nil {
+							return err
 						}
+						tempElem.Key = val
+					} else {
+						val, err := protocol.ReadString(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Key = val
 					}
-					// Value
-					if version >= 0 && version <= 999 {
-						if isFlexible {
-							val, err := protocol.ReadCompactString(r)
-							if err != nil {
-								return err
-							}
-							m.ClientTags[i].Value = val
-						} else {
-							val, err := protocol.ReadString(r)
-							if err != nil {
-								return err
-							}
-							m.ClientTags[i].Value = val
+				}
+				// Value
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactString(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Value = val
+					} else {
+						val, err := protocol.ReadString(r)
+						if err != nil {
+							return err
+						}
+						tempElem.Value = val
+					}
+				}
+				// Key
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.Key); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.Key); err != nil {
+							return err
 						}
 					}
 				}
+				// Value
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.Value); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.Value); err != nil {
+							return err
+						}
+					}
+				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeArray
+			lengthBytes := protocol.EncodeInt32(length)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.ClientTags = make([]KeyValue, len(decoded))
+			for i, item := range decoded {
+				m.ClientTags[i] = item.(KeyValue)
 			}
 		}
 	}
 	// TaskOffsets
 	if version >= 0 && version <= 999 {
-		var length int32
+		// Decode array using ArrayDecoder
+		decoder := func(data []byte) (interface{}, int, error) {
+			var elem TaskOffset
+			elemR := bytes.NewReader(data)
+			// SubtopologyId
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					val, err := protocol.ReadCompactString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.SubtopologyId = val
+				} else {
+					val, err := protocol.ReadString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.SubtopologyId = val
+				}
+			}
+			// Partition
+			if version >= 0 && version <= 999 {
+				val, err := protocol.ReadInt32(elemR)
+				if err != nil {
+					return nil, 0, err
+				}
+				elem.Partition = val
+			}
+			// Offset
+			if version >= 0 && version <= 999 {
+				val, err := protocol.ReadInt64(elemR)
+				if err != nil {
+					return nil, 0, err
+				}
+				elem.Offset = val
+			}
+			// Read tagged fields if flexible
+			if isFlexible {
+				if err := elem.readTaggedFields(elemR, version); err != nil {
+					return nil, 0, err
+				}
+			}
+			consumed := len(data) - elemR.Len()
+			return elem, consumed, nil
+		}
 		if isFlexible {
-			var lengthUint uint32
 			lengthUint, err := protocol.ReadVaruint32(r)
 			if err != nil {
 				return err
 			}
 			if lengthUint == 0 {
 				m.TaskOffsets = nil
-			} else {
-				if lengthUint < 1 {
-					return errors.New("invalid compact array length")
-				}
-				length = int32(lengthUint - 1)
-				m.TaskOffsets = make([]TaskOffset, length)
-				for i := int32(0); i < length; i++ {
-					// SubtopologyId
-					if version >= 0 && version <= 999 {
-						if isFlexible {
-							val, err := protocol.ReadCompactString(r)
-							if err != nil {
-								return err
-							}
-							m.TaskOffsets[i].SubtopologyId = val
-						} else {
-							val, err := protocol.ReadString(r)
-							if err != nil {
-								return err
-							}
-							m.TaskOffsets[i].SubtopologyId = val
-						}
-					}
-					// Partition
-					if version >= 0 && version <= 999 {
-						val, err := protocol.ReadInt32(r)
+				return nil
+			}
+			if lengthUint < 1 {
+				return errors.New("invalid compact array length")
+			}
+			length := int32(lengthUint - 1)
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
+			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem TaskOffset
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactString(r)
 						if err != nil {
 							return err
 						}
-						m.TaskOffsets[i].Partition = val
-					}
-					// Offset
-					if version >= 0 && version <= 999 {
-						val, err := protocol.ReadInt64(r)
+						tempElem.SubtopologyId = val
+					} else {
+						val, err := protocol.ReadString(r)
 						if err != nil {
 							return err
 						}
-						m.TaskOffsets[i].Offset = val
+						tempElem.SubtopologyId = val
 					}
 				}
+				// Partition
+				if version >= 0 && version <= 999 {
+					val, err := protocol.ReadInt32(r)
+					if err != nil {
+						return err
+					}
+					tempElem.Partition = val
+				}
+				// Offset
+				if version >= 0 && version <= 999 {
+					val, err := protocol.ReadInt64(r)
+					if err != nil {
+						return err
+					}
+					tempElem.Offset = val
+				}
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
+						}
+					}
+				}
+				// Partition
+				if version >= 0 && version <= 999 {
+					if err := protocol.WriteInt32(elemW, tempElem.Partition); err != nil {
+						return err
+					}
+				}
+				// Offset
+				if version >= 0 && version <= 999 {
+					if err := protocol.WriteInt64(elemW, tempElem.Offset); err != nil {
+						return err
+					}
+				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeCompactArray
+			lengthBytes := protocol.EncodeVaruint32(lengthUint)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.TaskOffsets = make([]TaskOffset, len(decoded))
+			for i, item := range decoded {
+				m.TaskOffsets[i] = item.(TaskOffset)
 			}
 		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			length, err := protocol.ReadInt32(r)
 			if err != nil {
 				return err
 			}
 			if length == -1 {
 				m.TaskOffsets = nil
-			} else {
-				m.TaskOffsets = make([]TaskOffset, length)
-				for i := int32(0); i < length; i++ {
-					// SubtopologyId
-					if version >= 0 && version <= 999 {
-						if isFlexible {
-							val, err := protocol.ReadCompactString(r)
-							if err != nil {
-								return err
-							}
-							m.TaskOffsets[i].SubtopologyId = val
-						} else {
-							val, err := protocol.ReadString(r)
-							if err != nil {
-								return err
-							}
-							m.TaskOffsets[i].SubtopologyId = val
-						}
-					}
-					// Partition
-					if version >= 0 && version <= 999 {
-						val, err := protocol.ReadInt32(r)
+				return nil
+			}
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
+			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem TaskOffset
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactString(r)
 						if err != nil {
 							return err
 						}
-						m.TaskOffsets[i].Partition = val
-					}
-					// Offset
-					if version >= 0 && version <= 999 {
-						val, err := protocol.ReadInt64(r)
+						tempElem.SubtopologyId = val
+					} else {
+						val, err := protocol.ReadString(r)
 						if err != nil {
 							return err
 						}
-						m.TaskOffsets[i].Offset = val
+						tempElem.SubtopologyId = val
 					}
 				}
+				// Partition
+				if version >= 0 && version <= 999 {
+					val, err := protocol.ReadInt32(r)
+					if err != nil {
+						return err
+					}
+					tempElem.Partition = val
+				}
+				// Offset
+				if version >= 0 && version <= 999 {
+					val, err := protocol.ReadInt64(r)
+					if err != nil {
+						return err
+					}
+					tempElem.Offset = val
+				}
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
+						}
+					}
+				}
+				// Partition
+				if version >= 0 && version <= 999 {
+					if err := protocol.WriteInt32(elemW, tempElem.Partition); err != nil {
+						return err
+					}
+				}
+				// Offset
+				if version >= 0 && version <= 999 {
+					if err := protocol.WriteInt64(elemW, tempElem.Offset); err != nil {
+						return err
+					}
+				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeArray
+			lengthBytes := protocol.EncodeInt32(length)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.TaskOffsets = make([]TaskOffset, len(decoded))
+			for i, item := range decoded {
+				m.TaskOffsets[i] = item.(TaskOffset)
 			}
 		}
 	}
 	// TaskEndOffsets
 	if version >= 0 && version <= 999 {
-		var length int32
+		// Decode array using ArrayDecoder
+		decoder := func(data []byte) (interface{}, int, error) {
+			var elem TaskOffset
+			elemR := bytes.NewReader(data)
+			// SubtopologyId
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					val, err := protocol.ReadCompactString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.SubtopologyId = val
+				} else {
+					val, err := protocol.ReadString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.SubtopologyId = val
+				}
+			}
+			// Partition
+			if version >= 0 && version <= 999 {
+				val, err := protocol.ReadInt32(elemR)
+				if err != nil {
+					return nil, 0, err
+				}
+				elem.Partition = val
+			}
+			// Offset
+			if version >= 0 && version <= 999 {
+				val, err := protocol.ReadInt64(elemR)
+				if err != nil {
+					return nil, 0, err
+				}
+				elem.Offset = val
+			}
+			// Read tagged fields if flexible
+			if isFlexible {
+				if err := elem.readTaggedFields(elemR, version); err != nil {
+					return nil, 0, err
+				}
+			}
+			consumed := len(data) - elemR.Len()
+			return elem, consumed, nil
+		}
 		if isFlexible {
-			var lengthUint uint32
 			lengthUint, err := protocol.ReadVaruint32(r)
 			if err != nil {
 				return err
 			}
 			if lengthUint == 0 {
 				m.TaskEndOffsets = nil
-			} else {
-				if lengthUint < 1 {
-					return errors.New("invalid compact array length")
-				}
-				length = int32(lengthUint - 1)
-				m.TaskEndOffsets = make([]TaskOffset, length)
-				for i := int32(0); i < length; i++ {
-					// SubtopologyId
-					if version >= 0 && version <= 999 {
-						if isFlexible {
-							val, err := protocol.ReadCompactString(r)
-							if err != nil {
-								return err
-							}
-							m.TaskEndOffsets[i].SubtopologyId = val
-						} else {
-							val, err := protocol.ReadString(r)
-							if err != nil {
-								return err
-							}
-							m.TaskEndOffsets[i].SubtopologyId = val
-						}
-					}
-					// Partition
-					if version >= 0 && version <= 999 {
-						val, err := protocol.ReadInt32(r)
+				return nil
+			}
+			if lengthUint < 1 {
+				return errors.New("invalid compact array length")
+			}
+			length := int32(lengthUint - 1)
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
+			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem TaskOffset
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactString(r)
 						if err != nil {
 							return err
 						}
-						m.TaskEndOffsets[i].Partition = val
-					}
-					// Offset
-					if version >= 0 && version <= 999 {
-						val, err := protocol.ReadInt64(r)
+						tempElem.SubtopologyId = val
+					} else {
+						val, err := protocol.ReadString(r)
 						if err != nil {
 							return err
 						}
-						m.TaskEndOffsets[i].Offset = val
+						tempElem.SubtopologyId = val
 					}
 				}
+				// Partition
+				if version >= 0 && version <= 999 {
+					val, err := protocol.ReadInt32(r)
+					if err != nil {
+						return err
+					}
+					tempElem.Partition = val
+				}
+				// Offset
+				if version >= 0 && version <= 999 {
+					val, err := protocol.ReadInt64(r)
+					if err != nil {
+						return err
+					}
+					tempElem.Offset = val
+				}
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
+						}
+					}
+				}
+				// Partition
+				if version >= 0 && version <= 999 {
+					if err := protocol.WriteInt32(elemW, tempElem.Partition); err != nil {
+						return err
+					}
+				}
+				// Offset
+				if version >= 0 && version <= 999 {
+					if err := protocol.WriteInt64(elemW, tempElem.Offset); err != nil {
+						return err
+					}
+				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeCompactArray
+			lengthBytes := protocol.EncodeVaruint32(lengthUint)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.TaskEndOffsets = make([]TaskOffset, len(decoded))
+			for i, item := range decoded {
+				m.TaskEndOffsets[i] = item.(TaskOffset)
 			}
 		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			length, err := protocol.ReadInt32(r)
 			if err != nil {
 				return err
 			}
 			if length == -1 {
 				m.TaskEndOffsets = nil
-			} else {
-				m.TaskEndOffsets = make([]TaskOffset, length)
-				for i := int32(0); i < length; i++ {
-					// SubtopologyId
-					if version >= 0 && version <= 999 {
-						if isFlexible {
-							val, err := protocol.ReadCompactString(r)
-							if err != nil {
-								return err
-							}
-							m.TaskEndOffsets[i].SubtopologyId = val
-						} else {
-							val, err := protocol.ReadString(r)
-							if err != nil {
-								return err
-							}
-							m.TaskEndOffsets[i].SubtopologyId = val
-						}
-					}
-					// Partition
-					if version >= 0 && version <= 999 {
-						val, err := protocol.ReadInt32(r)
+				return nil
+			}
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
+			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem TaskOffset
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						val, err := protocol.ReadCompactString(r)
 						if err != nil {
 							return err
 						}
-						m.TaskEndOffsets[i].Partition = val
-					}
-					// Offset
-					if version >= 0 && version <= 999 {
-						val, err := protocol.ReadInt64(r)
+						tempElem.SubtopologyId = val
+					} else {
+						val, err := protocol.ReadString(r)
 						if err != nil {
 							return err
 						}
-						m.TaskEndOffsets[i].Offset = val
+						tempElem.SubtopologyId = val
 					}
 				}
+				// Partition
+				if version >= 0 && version <= 999 {
+					val, err := protocol.ReadInt32(r)
+					if err != nil {
+						return err
+					}
+					tempElem.Partition = val
+				}
+				// Offset
+				if version >= 0 && version <= 999 {
+					val, err := protocol.ReadInt64(r)
+					if err != nil {
+						return err
+					}
+					tempElem.Offset = val
+				}
+				// SubtopologyId
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.SubtopologyId); err != nil {
+							return err
+						}
+					}
+				}
+				// Partition
+				if version >= 0 && version <= 999 {
+					if err := protocol.WriteInt32(elemW, tempElem.Partition); err != nil {
+						return err
+					}
+				}
+				// Offset
+				if version >= 0 && version <= 999 {
+					if err := protocol.WriteInt64(elemW, tempElem.Offset); err != nil {
+						return err
+					}
+				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeArray
+			lengthBytes := protocol.EncodeInt32(length)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.TaskEndOffsets = make([]TaskOffset, len(decoded))
+			for i, item := range decoded {
+				m.TaskEndOffsets[i] = item.(TaskOffset)
 			}
 		}
 	}
@@ -3678,6 +6669,56 @@ type StreamsGroupHeartbeatRequestTopology struct {
 	Epoch int32 `json:"epoch" versions:"0-999"`
 	// The sub-topologies of the streams application.
 	Subtopologies []StreamsGroupHeartbeatRequestSubtopology `json:"subtopologies" versions:"0-999"`
+	// Tagged fields (for flexible versions)
+	_tagged_fields map[uint32]interface{} `json:"-"`
+}
+
+// writeTaggedFields writes tagged fields for StreamsGroupHeartbeatRequestTopology.
+func (m *StreamsGroupHeartbeatRequestTopology) writeTaggedFields(w io.Writer, version int16) error {
+	var taggedFieldsCount int
+	var taggedFieldsBuf bytes.Buffer
+
+	// Write tagged fields count
+	if err := protocol.WriteVaruint32(w, uint32(taggedFieldsCount)); err != nil {
+		return err
+	}
+
+	// Write tagged fields data
+	if taggedFieldsCount > 0 {
+		if _, err := w.Write(taggedFieldsBuf.Bytes()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// readTaggedFields reads tagged fields for StreamsGroupHeartbeatRequestTopology.
+func (m *StreamsGroupHeartbeatRequestTopology) readTaggedFields(r io.Reader, version int16) error {
+	// Read tagged fields count
+	count, err := protocol.ReadVaruint32(r)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	// Read tagged fields
+	for i := uint32(0); i < count; i++ {
+		tag, err := protocol.ReadVaruint32(r)
+		if err != nil {
+			return err
+		}
+
+		switch tag {
+		default:
+			// Unknown tag, skip it
+		}
+	}
+
+	return nil
 }
 
 // StreamsGroupHeartbeatRequestSubtopology represents The sub-topologies of the streams application..
@@ -3696,6 +6737,56 @@ type StreamsGroupHeartbeatRequestSubtopology struct {
 	RepartitionSourceTopics []TopicInfo `json:"repartitionsourcetopics" versions:"0-999"`
 	// A subset of source topics that must be copartitioned.
 	CopartitionGroups []StreamsGroupHeartbeatRequestCopartitionGroup `json:"copartitiongroups" versions:"0-999"`
+	// Tagged fields (for flexible versions)
+	_tagged_fields map[uint32]interface{} `json:"-"`
+}
+
+// writeTaggedFields writes tagged fields for StreamsGroupHeartbeatRequestSubtopology.
+func (m *StreamsGroupHeartbeatRequestSubtopology) writeTaggedFields(w io.Writer, version int16) error {
+	var taggedFieldsCount int
+	var taggedFieldsBuf bytes.Buffer
+
+	// Write tagged fields count
+	if err := protocol.WriteVaruint32(w, uint32(taggedFieldsCount)); err != nil {
+		return err
+	}
+
+	// Write tagged fields data
+	if taggedFieldsCount > 0 {
+		if _, err := w.Write(taggedFieldsBuf.Bytes()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// readTaggedFields reads tagged fields for StreamsGroupHeartbeatRequestSubtopology.
+func (m *StreamsGroupHeartbeatRequestSubtopology) readTaggedFields(r io.Reader, version int16) error {
+	// Read tagged fields count
+	count, err := protocol.ReadVaruint32(r)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	// Read tagged fields
+	for i := uint32(0); i < count; i++ {
+		tag, err := protocol.ReadVaruint32(r)
+		if err != nil {
+			return err
+		}
+
+		switch tag {
+		default:
+			// Unknown tag, skip it
+		}
+	}
+
+	return nil
 }
 
 // StreamsGroupHeartbeatRequestCopartitionGroup represents A subset of source topics that must be copartitioned..
@@ -3706,14 +6797,56 @@ type StreamsGroupHeartbeatRequestCopartitionGroup struct {
 	SourceTopicRegex []int16 `json:"sourcetopicregex" versions:"0-999"`
 	// The set of source topics that are internally created repartition topics. Index into the array on the subtopology level.
 	RepartitionSourceTopics []int16 `json:"repartitionsourcetopics" versions:"0-999"`
+	// Tagged fields (for flexible versions)
+	_tagged_fields map[uint32]interface{} `json:"-"`
 }
 
-// TopicPartition represents .
-type TopicPartition struct {
-	// topic name
-	Topic string `json:"topic" versions:"0-999"`
-	// partitions
-	Partitions []int32 `json:"partitions" versions:"0-999"`
+// writeTaggedFields writes tagged fields for StreamsGroupHeartbeatRequestCopartitionGroup.
+func (m *StreamsGroupHeartbeatRequestCopartitionGroup) writeTaggedFields(w io.Writer, version int16) error {
+	var taggedFieldsCount int
+	var taggedFieldsBuf bytes.Buffer
+
+	// Write tagged fields count
+	if err := protocol.WriteVaruint32(w, uint32(taggedFieldsCount)); err != nil {
+		return err
+	}
+
+	// Write tagged fields data
+	if taggedFieldsCount > 0 {
+		if _, err := w.Write(taggedFieldsBuf.Bytes()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// readTaggedFields reads tagged fields for StreamsGroupHeartbeatRequestCopartitionGroup.
+func (m *StreamsGroupHeartbeatRequestCopartitionGroup) readTaggedFields(r io.Reader, version int16) error {
+	// Read tagged fields count
+	count, err := protocol.ReadVaruint32(r)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	// Read tagged fields
+	for i := uint32(0); i < count; i++ {
+		tag, err := protocol.ReadVaruint32(r)
+		if err != nil {
+			return err
+		}
+
+		switch tag {
+		default:
+			// Unknown tag, skip it
+		}
+	}
+
+	return nil
 }
 
 // KeyValue represents .
@@ -3768,6 +6901,14 @@ type Status struct {
 	StatusCode int8 `json:"statuscode" versions:"0-999"`
 	// A string representation of the status.
 	StatusDetail string `json:"statusdetail" versions:"0-999"`
+}
+
+// TopicPartition represents .
+type TopicPartition struct {
+	// topic name
+	Topic string `json:"topic" versions:"0-999"`
+	// partitions
+	Partitions []int32 `json:"partitions" versions:"0-999"`
 }
 
 // writeTaggedFields writes tagged fields for StreamsGroupHeartbeatRequest.

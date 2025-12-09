@@ -308,7 +308,7 @@ func generateCode(def *MessageDef, validVersions []int, flexibleVersions []int, 
 	for name := range commonStructNames {
 		generatedStructNames[name] = true
 	}
-	generateNestedStructsWithTypesAndTracking(&buf, def.Fields, validVersions, flexibleVersions, def.Name, nestedStructTypes, generatedStructNames)
+	generateNestedStructsWithTypesAndTracking(&buf, def.Fields, validVersions, flexibleVersions, def.Name, nestedStructTypes, generatedStructNames, def.CommonStructs)
 
 	// Generate common structs (these are shared and not prefixed)
 	// Only generate common structs in the first file of a package to avoid redeclaration
@@ -330,7 +330,7 @@ func generateCode(def *MessageDef, validVersions []int, flexibleVersions []int, 
 				generateStructFieldsWithTypes(&buf, commonStruct.Fields, 1, validVersions, flexibleVersions, "", "", commonNestedTypes)
 				buf.WriteString("}\n\n")
 				// Recursively generate nested structs in common structs
-				generateNestedStructsWithTypesAndTracking(&buf, commonStruct.Fields, validVersions, flexibleVersions, "", commonNestedTypes, generatedStructNames)
+				generateNestedStructsWithTypesAndTracking(&buf, commonStruct.Fields, validVersions, flexibleVersions, "", commonNestedTypes, generatedStructNames, def.CommonStructs)
 			}
 		}
 	}
@@ -352,6 +352,420 @@ func generateHelperFunctions(buf *strings.Builder) {
 	// No helper functions needed anymore - bool is handled directly via protocol.WriteBool/ReadBool
 }
 
+// generateReadFieldsWithReader generates read code for struct fields using a custom reader variable name
+func generateReadFieldsWithReader(buf *strings.Builder, fields []Field, indent int, validVersions []int, flexibleVersions []int, prefix string, readerVar string, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
+	indentStr := strings.Repeat("\t", indent)
+
+	for _, field := range fields {
+		fieldVersions := parseVersionRange(field.Versions)
+		if len(fieldVersions) == 0 {
+			continue
+		}
+
+		fieldName := toExportedName(field.Name)
+		fieldPath := prefix + "." + fieldName
+
+		// Check if field should be read for this version
+		buf.WriteString(fmt.Sprintf("%s// %s\n", indentStr, field.Name))
+		maxVersion := fieldVersions[len(fieldVersions)-1]
+		if maxVersion == 999 {
+			maxVersion = 999
+		}
+		buf.WriteString(fmt.Sprintf("%sif version >= %d && version <= %d {\n",
+			indentStr, fieldVersions[0], maxVersion))
+
+		// Generate read code based on type, using custom reader variable
+		generateFieldReadWithReader(buf, field, fieldPath, indent+1, readerVar, parentName, nestedStructTypes, commonStructs)
+
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	}
+}
+
+// generateFieldReadWithReader generates read code for a field using a custom reader variable name
+func generateFieldReadWithReader(buf *strings.Builder, field Field, fieldPath string, indent int, readerVar string, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
+	indentStr := strings.Repeat("\t", indent)
+
+	// Handle tagged fields separately
+	if field.Tag != nil {
+		return // Tagged fields handled separately
+	}
+
+	switch {
+	case strings.HasPrefix(field.Type, "[]"):
+		// Array type - get the resolved Go type for the element
+		elemType := strings.TrimPrefix(field.Type, "[]")
+		generateArrayReadWithReader(buf, field, fieldPath, elemType, indent, readerVar, parentName, nestedStructTypes, commonStructs)
+	case field.Type == "bool":
+		buf.WriteString(fmt.Sprintf("%sval, err := protocol.ReadBool(%s)\n", indentStr, readerVar))
+		buf.WriteString(fmt.Sprintf("%sif err != nil {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\treturn nil, 0, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s%s = val\n", indentStr, fieldPath))
+	case field.Type == "int8":
+		buf.WriteString(fmt.Sprintf("%sval, err := protocol.ReadInt8(%s)\n", indentStr, readerVar))
+		buf.WriteString(fmt.Sprintf("%sif err != nil {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\treturn nil, 0, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s%s = val\n", indentStr, fieldPath))
+	case field.Type == "int16":
+		buf.WriteString(fmt.Sprintf("%sval, err := protocol.ReadInt16(%s)\n", indentStr, readerVar))
+		buf.WriteString(fmt.Sprintf("%sif err != nil {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\treturn nil, 0, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s%s = val\n", indentStr, fieldPath))
+	case field.Type == "int32":
+		buf.WriteString(fmt.Sprintf("%sval, err := protocol.ReadInt32(%s)\n", indentStr, readerVar))
+		buf.WriteString(fmt.Sprintf("%sif err != nil {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\treturn nil, 0, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s%s = val\n", indentStr, fieldPath))
+	case field.Type == "int64":
+		buf.WriteString(fmt.Sprintf("%sval, err := protocol.ReadInt64(%s)\n", indentStr, readerVar))
+		buf.WriteString(fmt.Sprintf("%sif err != nil {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\treturn nil, 0, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s%s = val\n", indentStr, fieldPath))
+	case field.Type == "string":
+		buf.WriteString(fmt.Sprintf("%sif isFlexible {\n", indentStr))
+		if field.NullableVersions != "" {
+			buf.WriteString(fmt.Sprintf("%s\tval, err := protocol.ReadCompactNullableString(%s)\n", indentStr, readerVar))
+		} else {
+			buf.WriteString(fmt.Sprintf("%s\tval, err := protocol.ReadCompactString(%s)\n", indentStr, readerVar))
+		}
+		buf.WriteString(fmt.Sprintf("%s\tif err != nil {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn nil, 0, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t%s = val\n", indentStr, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s} else {\n", indentStr))
+		if field.NullableVersions != "" {
+			buf.WriteString(fmt.Sprintf("%s\tval, err := protocol.ReadNullableString(%s)\n", indentStr, readerVar))
+		} else {
+			buf.WriteString(fmt.Sprintf("%s\tval, err := protocol.ReadString(%s)\n", indentStr, readerVar))
+		}
+		buf.WriteString(fmt.Sprintf("%s\tif err != nil {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn nil, 0, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t%s = val\n", indentStr, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	case field.Type == "uuid":
+		buf.WriteString(fmt.Sprintf("%sval, err := protocol.ReadUUID(%s)\n", indentStr, readerVar))
+		buf.WriteString(fmt.Sprintf("%sif err != nil {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\treturn nil, 0, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s%s = val\n", indentStr, fieldPath))
+	case field.Type == "bytes" || field.Type == "records":
+		// records type is always nullable (*[]byte), bytes can be nullable based on nullableVersions
+		isNullable := field.Type == "records" || field.NullableVersions != ""
+		buf.WriteString(fmt.Sprintf("%sif isFlexible {\n", indentStr))
+		if isNullable {
+			buf.WriteString(fmt.Sprintf("%s\tval, err := protocol.ReadCompactNullableBytes(%s)\n", indentStr, readerVar))
+		} else {
+			buf.WriteString(fmt.Sprintf("%s\tval, err := protocol.ReadCompactBytes(%s)\n", indentStr, readerVar))
+		}
+		buf.WriteString(fmt.Sprintf("%s\tif err != nil {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn nil, 0, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t%s = val\n", indentStr, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s} else {\n", indentStr))
+		if isNullable {
+			buf.WriteString(fmt.Sprintf("%s\tval, err := protocol.ReadNullableBytes(%s)\n", indentStr, readerVar))
+		} else {
+			buf.WriteString(fmt.Sprintf("%s\tval, err := protocol.ReadBytes(%s)\n", indentStr, readerVar))
+		}
+		buf.WriteString(fmt.Sprintf("%s\tif err != nil {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn nil, 0, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t%s = val\n", indentStr, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	default:
+		// Struct type - recursive read
+		if len(field.Fields) > 0 {
+			generateReadFieldsWithReader(buf, field.Fields, indent, []int{}, []int{}, fieldPath, readerVar, parentName, nestedStructTypes, commonStructs)
+		}
+	}
+}
+
+// generateArrayReadWithReader generates read code for an array using a custom reader variable
+func generateArrayReadWithReader(buf *strings.Builder, field Field, fieldPath string, elemType string, indent int, readerVar string, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
+	// For arrays within decoder, we need to handle them specially
+	// For now, fall back to manual generation with custom reader
+	indentStr := strings.Repeat("\t", indent)
+
+	// Check if we can use typed array methods (for primitive types)
+	if canUseTypedArrayMethods(elemType, field, commonStructs) {
+		// Use typed array methods
+		buf.WriteString(fmt.Sprintf("%sif isFlexible {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\tval, err := protocol.%s(%s)\n", indentStr, getTypedArrayMethodName(elemType, true, false), readerVar))
+		buf.WriteString(fmt.Sprintf("%s\tif err != nil {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn nil, 0, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t%s = val\n", indentStr, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s} else {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\tval, err := protocol.%s(%s)\n", indentStr, getTypedArrayMethodName(elemType, false, false), readerVar))
+		buf.WriteString(fmt.Sprintf("%s\tif err != nil {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn nil, 0, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t%s = val\n", indentStr, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+		return
+	}
+
+	// For struct arrays in decoder, we need manual handling
+	// This is a simplified version - in practice, nested arrays in decoders are rare
+	buf.WriteString(fmt.Sprintf("%s\t// Nested array in decoder - manual handling needed\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\treturn nil, 0, errors.New(\"nested arrays in decoder not fully supported\")\n", indentStr))
+}
+
+// generateWriteFieldsWithWriter generates write code for struct fields using a custom writer variable name
+func generateWriteFieldsWithWriter(buf *strings.Builder, fields []Field, indent int, validVersions []int, flexibleVersions []int, prefix string, writerVar string, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
+	indentStr := strings.Repeat("\t", indent)
+
+	for _, field := range fields {
+		fieldVersions := parseVersionRange(field.Versions)
+		if len(fieldVersions) == 0 {
+			continue
+		}
+
+		fieldName := toExportedName(field.Name)
+		fieldPath := prefix + "." + fieldName
+
+		// Check if field should be written for this version
+		buf.WriteString(fmt.Sprintf("%s// %s\n", indentStr, field.Name))
+		maxVersion := fieldVersions[len(fieldVersions)-1]
+		if maxVersion == 999 {
+			maxVersion = 999 // Use a large number for open-ended ranges
+		}
+		buf.WriteString(fmt.Sprintf("%sif version >= %d && version <= %d {\n",
+			indentStr, fieldVersions[0], maxVersion))
+
+		// Generate write code based on type, using custom writer variable
+		generateFieldWriteWithWriter(buf, field, fieldPath, indent+1, validVersions, flexibleVersions, writerVar, parentName, nestedStructTypes, commonStructs)
+
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	}
+}
+
+// generateFieldWriteWithWriter generates write code for a field using a custom writer variable name
+func generateFieldWriteWithWriter(buf *strings.Builder, field Field, fieldPath string, indent int, validVersions []int, flexibleVersions []int, writerVar string, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
+	indentStr := strings.Repeat("\t", indent)
+
+	// Handle tagged fields separately
+	if field.Tag != nil {
+		return // Tagged fields handled separately
+	}
+
+	switch {
+	case strings.HasPrefix(field.Type, "[]"):
+		// Array type - get the resolved Go type for the element
+		elemType := strings.TrimPrefix(field.Type, "[]")
+		// For arrays in encoder, we need to handle them specially
+		// For now, fall back to manual generation
+		generateArrayWriteWithWriter(buf, field, fieldPath, elemType, indent, validVersions, flexibleVersions, writerVar, parentName, nestedStructTypes, commonStructs)
+	case field.Type == "bool":
+		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteBool(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s\treturn nil, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	case field.Type == "int8":
+		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteInt8(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s\treturn nil, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	case field.Type == "int16":
+		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteInt16(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s\treturn nil, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	case field.Type == "int32":
+		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteInt32(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s\treturn nil, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	case field.Type == "int64":
+		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteInt64(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s\treturn nil, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	case field.Type == "string":
+		buf.WriteString(fmt.Sprintf("%sif isFlexible {\n", indentStr))
+		if field.NullableVersions != "" {
+			buf.WriteString(fmt.Sprintf("%s\tif err := protocol.WriteCompactNullableString(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		} else {
+			buf.WriteString(fmt.Sprintf("%s\tif err := protocol.WriteCompactString(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		}
+		buf.WriteString(fmt.Sprintf("%s\t\treturn nil, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s} else {\n", indentStr))
+		if field.NullableVersions != "" {
+			buf.WriteString(fmt.Sprintf("%s\tif err := protocol.WriteNullableString(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		} else {
+			buf.WriteString(fmt.Sprintf("%s\tif err := protocol.WriteString(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		}
+		buf.WriteString(fmt.Sprintf("%s\t\treturn nil, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	case field.Type == "uuid":
+		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteUUID(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s\treturn nil, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	case field.Type == "bytes" || field.Type == "records":
+		// records type is always nullable (*[]byte), bytes can be nullable based on nullableVersions
+		isNullable := field.Type == "records" || field.NullableVersions != ""
+		buf.WriteString(fmt.Sprintf("%sif isFlexible {\n", indentStr))
+		if isNullable {
+			buf.WriteString(fmt.Sprintf("%s\tif err := protocol.WriteCompactNullableBytes(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		} else {
+			buf.WriteString(fmt.Sprintf("%s\tif err := protocol.WriteCompactBytes(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		}
+		buf.WriteString(fmt.Sprintf("%s\t\treturn nil, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s} else {\n", indentStr))
+		if isNullable {
+			buf.WriteString(fmt.Sprintf("%s\tif err := protocol.WriteNullableBytes(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		} else {
+			buf.WriteString(fmt.Sprintf("%s\tif err := protocol.WriteBytes(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		}
+		buf.WriteString(fmt.Sprintf("%s\t\treturn nil, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	default:
+		// Struct type - recursive write
+		if len(field.Fields) > 0 {
+			generateWriteFieldsWithWriter(buf, field.Fields, indent, []int{}, []int{}, fieldPath, writerVar, parentName, nestedStructTypes, commonStructs)
+		}
+	}
+}
+
+// generateArrayWriteWithWriter generates write code for an array using a custom writer variable
+func generateArrayWriteWithWriter(buf *strings.Builder, field Field, fieldPath string, elemType string, indent int, validVersions []int, flexibleVersions []int, writerVar string, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
+	// For arrays within encoder, we can't use WriteArray/WriteCompactArray recursively
+	// So we fall back to manual generation with the custom writer
+	indentStr := strings.Repeat("\t", indent)
+
+	// Check if we can use typed array methods (for primitive types)
+	if canUseTypedArrayMethods(elemType, field, commonStructs) {
+		// Use typed array methods
+		buf.WriteString(fmt.Sprintf("%sif isFlexible {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\tif err := protocol.%s(%s, %s); err != nil {\n", indentStr, getTypedArrayMethodName(elemType, true, true), writerVar, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn nil, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s} else {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\tif err := protocol.%s(%s, %s); err != nil {\n", indentStr, getTypedArrayMethodName(elemType, false, true), writerVar, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn nil, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+		return
+	}
+
+	// For struct arrays in encoder, we need to handle them manually
+	// Write length
+	isNullable := field.NullableVersions != ""
+	if isNullable {
+		buf.WriteString(fmt.Sprintf("%sif %s == nil {\n", indentStr, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s\tif isFlexible {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\tif err := protocol.WriteVaruint32(%s, 0); err != nil {\n", indentStr, writerVar))
+		buf.WriteString(fmt.Sprintf("%s\t\t\treturn nil, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t} else {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\tif err := protocol.WriteInt32(%s, -1); err != nil {\n", indentStr, writerVar))
+		buf.WriteString(fmt.Sprintf("%s\t\t\treturn nil, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s} else {\n", indentStr))
+	}
+
+	buf.WriteString(fmt.Sprintf("%s\tif isFlexible {\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t\tlength := uint32(len(%s) + 1)\n", indentStr, fieldPath))
+	buf.WriteString(fmt.Sprintf("%s\t\tif err := protocol.WriteVaruint32(%s, length); err != nil {\n", indentStr, writerVar))
+	buf.WriteString(fmt.Sprintf("%s\t\t\treturn nil, err\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t\t}\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t} else {\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t\tif err := protocol.WriteInt32(%s, int32(len(%s))); err != nil {\n", indentStr, writerVar, fieldPath))
+	buf.WriteString(fmt.Sprintf("%s\t\t\treturn nil, err\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t\t}\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+
+	// Write elements
+	// Check if element is a struct (has fields or is a common struct)
+	isStructArray := len(field.Fields) > 0 || findCommonStruct(elemType, commonStructs) != nil
+	isFlexibleForElements := len(flexibleVersions) > 0 && len(validVersions) > 0 && isFlexibleVersion(validVersions[0], flexibleVersions)
+
+	buf.WriteString(fmt.Sprintf("%s\tfor i := range %s {\n", indentStr, fieldPath))
+	generateArrayElementWriteWithWriter(buf, field, fieldPath+"[i]", elemType, indent+2, validVersions, flexibleVersions, writerVar, parentName, nestedStructTypes, commonStructs)
+	// Write tagged fields for each struct element if flexible
+	if isStructArray && isFlexibleForElements {
+		buf.WriteString(fmt.Sprintf("%s\t\tif err := %s[i].writeTaggedFields(%s, version); err != nil {\n", indentStr, fieldPath, writerVar))
+		buf.WriteString(fmt.Sprintf("%s\t\t\treturn nil, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\t}\n", indentStr))
+	}
+	buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+
+	if isNullable {
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	}
+}
+
+// generateArrayElementWriteWithWriter generates write code for an array element using a custom writer variable
+func generateArrayElementWriteWithWriter(buf *strings.Builder, field Field, elemPath string, elemType string, indent int, validVersions []int, flexibleVersions []int, writerVar string, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
+	indentStr := strings.Repeat("\t", indent)
+
+	switch {
+	case elemType == "bool":
+		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteBool(%s, %s); err != nil {\n", indentStr, writerVar, elemPath))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn nil, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+	case elemType == "int8":
+		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteInt8(%s, %s); err != nil {\n", indentStr, writerVar, elemPath))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn nil, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+	case elemType == "int16":
+		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteInt16(%s, %s); err != nil {\n", indentStr, writerVar, elemPath))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn nil, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+	case elemType == "int32":
+		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteInt32(%s, %s); err != nil {\n", indentStr, writerVar, elemPath))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn nil, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+	case elemType == "int64":
+		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteInt64(%s, %s); err != nil {\n", indentStr, writerVar, elemPath))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn nil, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+	case elemType == "string":
+		buf.WriteString(fmt.Sprintf("%sif isFlexible {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\tif err := protocol.WriteCompactString(%s, %s); err != nil {\n", indentStr, writerVar, elemPath))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn nil, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s} else {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\tif err := protocol.WriteString(%s, %s); err != nil {\n", indentStr, writerVar, elemPath))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn nil, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	case elemType == "uuid":
+		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteUUID(%s, %s); err != nil {\n", indentStr, writerVar, elemPath))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn nil, err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+	default:
+		// Struct type - recursively write fields
+		isFlexible := len(flexibleVersions) > 0 && isFlexibleVersion(validVersions[0], flexibleVersions)
+		if len(field.Fields) > 0 {
+			generateWriteFieldsWithWriter(buf, field.Fields, indent, validVersions, flexibleVersions, elemPath, writerVar, parentName, nestedStructTypes, commonStructs)
+			// Write tagged fields if flexible
+			if isFlexible {
+				buf.WriteString(fmt.Sprintf("%sif err := %s.writeTaggedFields(%s, version); err != nil {\n", indentStr, elemPath, writerVar))
+				buf.WriteString(fmt.Sprintf("%s\t\treturn nil, err\n", indentStr))
+				buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+			}
+		} else {
+			// Check if it's a common struct
+			commonStruct := findCommonStruct(elemType, commonStructs)
+			if commonStruct != nil && len(commonStruct.Fields) > 0 {
+				generateWriteFieldsWithWriter(buf, commonStruct.Fields, indent, validVersions, flexibleVersions, elemPath, writerVar, parentName, nestedStructTypes, commonStructs)
+				// Write tagged fields if flexible
+				if isFlexible {
+					buf.WriteString(fmt.Sprintf("%sif err := %s.writeTaggedFields(%s, version); err != nil {\n", indentStr, elemPath, writerVar))
+					buf.WriteString(fmt.Sprintf("%s\t\treturn nil, err\n", indentStr))
+					buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+				}
+			}
+		}
+	}
+}
+
 func hasTaggedFields(fields []Field) bool {
 	for _, field := range fields {
 		if field.Tag != nil {
@@ -364,6 +778,228 @@ func hasTaggedFields(fields []Field) bool {
 		}
 	}
 	return false
+}
+
+// generateWriteFieldsForRead generates write code for struct fields in a read context (returns error, not ([]byte, error))
+func generateWriteFieldsForRead(buf *strings.Builder, fields []Field, indent int, validVersions []int, flexibleVersions []int, prefix string, writerVar string, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
+	indentStr := strings.Repeat("\t", indent)
+
+	for _, field := range fields {
+		fieldVersions := parseVersionRange(field.Versions)
+		if len(fieldVersions) == 0 {
+			continue
+		}
+
+		fieldName := toExportedName(field.Name)
+		fieldPath := prefix + "." + fieldName
+
+		// Check if field should be written for this version
+		buf.WriteString(fmt.Sprintf("%s// %s\n", indentStr, field.Name))
+		maxVersion := fieldVersions[len(fieldVersions)-1]
+		if maxVersion == 999 {
+			maxVersion = 999
+		}
+		buf.WriteString(fmt.Sprintf("%sif version >= %d && version <= %d {\n",
+			indentStr, fieldVersions[0], maxVersion))
+
+		// Generate write code based on type, using custom writer variable, returning error
+		generateFieldWriteForRead(buf, field, fieldPath, indent+1, writerVar, parentName, nestedStructTypes, commonStructs)
+
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	}
+}
+
+// generateFieldWriteForRead generates write code for a field in a read context (returns error, not ([]byte, error))
+func generateFieldWriteForRead(buf *strings.Builder, field Field, fieldPath string, indent int, writerVar string, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
+	indentStr := strings.Repeat("\t", indent)
+
+	// Handle tagged fields separately
+	if field.Tag != nil {
+		return // Tagged fields handled separately
+	}
+
+	switch {
+	case strings.HasPrefix(field.Type, "[]"):
+		// Array type - get the resolved Go type for the element
+		elemType := strings.TrimPrefix(field.Type, "[]")
+		generateArrayWriteForRead(buf, field, fieldPath, elemType, indent, writerVar, parentName, nestedStructTypes, commonStructs)
+	case field.Type == "bool":
+		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteBool(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	case field.Type == "int8":
+		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteInt8(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	case field.Type == "int16":
+		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteInt16(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	case field.Type == "int32":
+		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteInt32(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	case field.Type == "int64":
+		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteInt64(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	case field.Type == "string":
+		buf.WriteString(fmt.Sprintf("%sif isFlexible {\n", indentStr))
+		if field.NullableVersions != "" {
+			buf.WriteString(fmt.Sprintf("%s\tif err := protocol.WriteCompactNullableString(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		} else {
+			buf.WriteString(fmt.Sprintf("%s\tif err := protocol.WriteCompactString(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		}
+		buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s} else {\n", indentStr))
+		if field.NullableVersions != "" {
+			buf.WriteString(fmt.Sprintf("%s\tif err := protocol.WriteNullableString(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		} else {
+			buf.WriteString(fmt.Sprintf("%s\tif err := protocol.WriteString(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		}
+		buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	case field.Type == "uuid":
+		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteUUID(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	case field.Type == "bytes" || field.Type == "records":
+		// records type is always nullable (*[]byte), bytes can be nullable based on nullableVersions
+		isNullable := field.Type == "records" || field.NullableVersions != ""
+		buf.WriteString(fmt.Sprintf("%sif isFlexible {\n", indentStr))
+		if isNullable {
+			buf.WriteString(fmt.Sprintf("%s\tif err := protocol.WriteCompactNullableBytes(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		} else {
+			buf.WriteString(fmt.Sprintf("%s\tif err := protocol.WriteCompactBytes(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		}
+		buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s} else {\n", indentStr))
+		if isNullable {
+			buf.WriteString(fmt.Sprintf("%s\tif err := protocol.WriteNullableBytes(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		} else {
+			buf.WriteString(fmt.Sprintf("%s\tif err := protocol.WriteBytes(%s, %s); err != nil {\n", indentStr, writerVar, fieldPath))
+		}
+		buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	default:
+		// Struct type - recursive write
+		if len(field.Fields) > 0 {
+			generateWriteFieldsForRead(buf, field.Fields, indent, []int{}, []int{}, fieldPath, writerVar, parentName, nestedStructTypes, commonStructs)
+		}
+	}
+}
+
+// generateArrayWriteForRead generates write code for an array in a read context
+func generateArrayWriteForRead(buf *strings.Builder, field Field, fieldPath string, elemType string, indent int, writerVar string, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
+	indentStr := strings.Repeat("\t", indent)
+
+	// Check if we can use typed array methods (for primitive types)
+	if canUseTypedArrayMethods(elemType, field, commonStructs) {
+		// Use typed array methods
+		buf.WriteString(fmt.Sprintf("%sif isFlexible {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\tif err := protocol.%s(%s, %s); err != nil {\n", indentStr, getTypedArrayMethodName(elemType, true, true), writerVar, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s} else {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\tif err := protocol.%s(%s, %s); err != nil {\n", indentStr, getTypedArrayMethodName(elemType, false, true), writerVar, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+		return
+	}
+
+	// For struct arrays, use manual generation
+	isNullable := field.NullableVersions != ""
+	if isNullable {
+		buf.WriteString(fmt.Sprintf("%sif %s == nil {\n", indentStr, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s\tif isFlexible {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\tif err := protocol.WriteVaruint32(%s, 0); err != nil {\n", indentStr, writerVar))
+		buf.WriteString(fmt.Sprintf("%s\t\t\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t} else {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\tif err := protocol.WriteInt32(%s, -1); err != nil {\n", indentStr, writerVar))
+		buf.WriteString(fmt.Sprintf("%s\t\t\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s} else {\n", indentStr))
+	}
+
+	buf.WriteString(fmt.Sprintf("%s\tif isFlexible {\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t\tlength := uint32(len(%s) + 1)\n", indentStr, fieldPath))
+	buf.WriteString(fmt.Sprintf("%s\t\tif err := protocol.WriteVaruint32(%s, length); err != nil {\n", indentStr, writerVar))
+	buf.WriteString(fmt.Sprintf("%s\t\t\treturn err\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t\t}\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t} else {\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t\tif err := protocol.WriteInt32(%s, int32(len(%s))); err != nil {\n", indentStr, writerVar, fieldPath))
+	buf.WriteString(fmt.Sprintf("%s\t\t\treturn err\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t\t}\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+
+	// Write elements
+	buf.WriteString(fmt.Sprintf("%s\tfor i := range %s {\n", indentStr, fieldPath))
+	generateArrayElementWriteForRead(buf, field, fieldPath+"[i]", elemType, indent+2, writerVar, parentName, nestedStructTypes, commonStructs)
+	buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+
+	if isNullable {
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	}
+}
+
+// generateArrayElementWriteForRead generates write code for an array element in a read context
+func generateArrayElementWriteForRead(buf *strings.Builder, field Field, elemPath string, elemType string, indent int, writerVar string, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
+	indentStr := strings.Repeat("\t", indent)
+
+	switch {
+	case elemType == "bool":
+		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteBool(%s, %s); err != nil {\n", indentStr, writerVar, elemPath))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+	case elemType == "int8":
+		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteInt8(%s, %s); err != nil {\n", indentStr, writerVar, elemPath))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+	case elemType == "int16":
+		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteInt16(%s, %s); err != nil {\n", indentStr, writerVar, elemPath))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+	case elemType == "int32":
+		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteInt32(%s, %s); err != nil {\n", indentStr, writerVar, elemPath))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+	case elemType == "int64":
+		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteInt64(%s, %s); err != nil {\n", indentStr, writerVar, elemPath))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+	case elemType == "string":
+		buf.WriteString(fmt.Sprintf("%sif isFlexible {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\tif err := protocol.WriteCompactString(%s, %s); err != nil {\n", indentStr, writerVar, elemPath))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s} else {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\tif err := protocol.WriteString(%s, %s); err != nil {\n", indentStr, writerVar, elemPath))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+	case elemType == "uuid":
+		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteUUID(%s, %s); err != nil {\n", indentStr, writerVar, elemPath))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+	default:
+		// Struct element - recursively write fields
+		if len(field.Fields) > 0 {
+			generateWriteFieldsForRead(buf, field.Fields, indent, []int{}, []int{}, elemPath, writerVar, parentName, nestedStructTypes, commonStructs)
+		} else {
+			// Check if it's a common struct
+			commonStruct := findCommonStruct(elemType, commonStructs)
+			if commonStruct != nil && len(commonStruct.Fields) > 0 {
+				generateWriteFieldsForRead(buf, commonStruct.Fields, indent, []int{}, []int{}, elemPath, writerVar, parentName, nestedStructTypes, commonStructs)
+			}
+		}
+	}
 }
 
 func generateStructFields(buf *strings.Builder, fields []Field, indent int, validVersions []int, flexibleVersions []int, prefix string, parentName string) {
@@ -414,12 +1050,12 @@ func generateStructFieldsWithTypes(buf *strings.Builder, fields []Field, indent 
 	}
 }
 
-func generateNestedStructsWithTypes(buf *strings.Builder, fields []Field, validVersions []int, flexibleVersions []int, parentName string, nestedStructTypes map[string]bool) {
+func generateNestedStructsWithTypes(buf *strings.Builder, fields []Field, validVersions []int, flexibleVersions []int, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
 	generatedStructNames := make(map[string]bool)
-	generateNestedStructsWithTypesAndTracking(buf, fields, validVersions, flexibleVersions, parentName, nestedStructTypes, generatedStructNames)
+	generateNestedStructsWithTypesAndTracking(buf, fields, validVersions, flexibleVersions, parentName, nestedStructTypes, generatedStructNames, commonStructs)
 }
 
-func generateNestedStructsWithTypesAndTracking(buf *strings.Builder, fields []Field, validVersions []int, flexibleVersions []int, parentName string, nestedStructTypes map[string]bool, generatedStructNames map[string]bool) {
+func generateNestedStructsWithTypesAndTracking(buf *strings.Builder, fields []Field, validVersions []int, flexibleVersions []int, parentName string, nestedStructTypes map[string]bool, generatedStructNames map[string]bool, commonStructs []Field) {
 	for _, field := range fields {
 		if len(field.Fields) > 0 {
 			structName := getStructName(field.Type, field.Name, parentName)
@@ -428,11 +1064,21 @@ func generateNestedStructsWithTypesAndTracking(buf *strings.Builder, fields []Fi
 				buf.WriteString(fmt.Sprintf("// %s represents %s.\n", structName, field.About))
 				buf.WriteString(fmt.Sprintf("type %s struct {\n", structName))
 				generateStructFieldsWithTypes(buf, field.Fields, 1, validVersions, flexibleVersions, "", parentName, nestedStructTypes)
+				// Add _tagged_fields field for flexible versions
+				if len(flexibleVersions) > 0 {
+					buf.WriteString("\t// Tagged fields (for flexible versions)\n")
+					buf.WriteString("\t_tagged_fields map[uint32]interface{} `json:\"-\"`\n")
+				}
 				buf.WriteString("}\n\n")
+
+				// Generate tagged fields methods for nested structs in flexible versions
+				if len(flexibleVersions) > 0 {
+					generateTaggedFieldsMethodsForNestedStruct(buf, structName, field.Fields, validVersions, flexibleVersions, parentName, nestedStructTypes, commonStructs)
+				}
 			}
 
 			// Recursively generate nested structs
-			generateNestedStructsWithTypesAndTracking(buf, field.Fields, validVersions, flexibleVersions, parentName, nestedStructTypes, generatedStructNames)
+			generateNestedStructsWithTypesAndTracking(buf, field.Fields, validVersions, flexibleVersions, parentName, nestedStructTypes, generatedStructNames, commonStructs)
 		}
 	}
 }
@@ -441,7 +1087,7 @@ func generateNestedStructs(buf *strings.Builder, fields []Field, validVersions [
 	// This is a wrapper that collects nested types first
 	nestedStructTypes := make(map[string]bool)
 	collectNestedStructTypes(fields, nestedStructTypes)
-	generateNestedStructsWithTypes(buf, fields, validVersions, flexibleVersions, parentName, nestedStructTypes)
+	generateNestedStructsWithTypes(buf, fields, validVersions, flexibleVersions, parentName, nestedStructTypes, []Field{})
 }
 
 func collectNestedStructTypes(fields []Field, result map[string]bool) {
@@ -780,6 +1426,56 @@ func needsLoopIndex(elemType string, field Field, commonStructs []Field) bool {
 	return false
 }
 
+// canUseTypedArrayMethods checks if we can use typed array methods for this element type
+func canUseTypedArrayMethods(elemType string, field Field, commonStructs []Field) bool {
+	// Can use typed methods for primitive types
+	switch elemType {
+	case "bool", "int8", "int16", "int32", "int64", "uint16", "uint32", "float64", "string", "uuid":
+		return true
+	}
+	// Cannot use typed methods for structs (they need custom handling)
+	return false
+}
+
+// getTypedArrayMethodName returns the method name for typed array operations
+func getTypedArrayMethodName(elemType string, isFlexible bool, isWrite bool) string {
+	action := "Read"
+	if isWrite {
+		action = "Write"
+	}
+
+	var typeName string
+	switch elemType {
+	case "bool":
+		typeName = "Bool"
+	case "int8":
+		typeName = "Int8"
+	case "int16":
+		typeName = "Int16"
+	case "int32":
+		typeName = "Int32"
+	case "int64":
+		typeName = "Int64"
+	case "uint16":
+		typeName = "Uint16"
+	case "uint32":
+		typeName = "Uint32"
+	case "float64":
+		typeName = "Float64"
+	case "string":
+		typeName = "String"
+	case "uuid":
+		typeName = "UUID"
+	default:
+		return ""
+	}
+
+	if isFlexible {
+		return fmt.Sprintf("%sCompact%sArray", action, typeName)
+	}
+	return fmt.Sprintf("%s%sArray", action, typeName)
+}
+
 func generateWriteFields(buf *strings.Builder, fields []Field, indent int, validVersions []int, flexibleVersions []int, prefix string, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
 	indentStr := strings.Repeat("\t", indent)
 
@@ -802,13 +1498,13 @@ func generateWriteFields(buf *strings.Builder, fields []Field, indent int, valid
 			indentStr, fieldVersions[0], maxVersion))
 
 		// Generate write code based on type
-		generateFieldWrite(buf, field, fieldPath, indent+1, parentName, nestedStructTypes, commonStructs)
+		generateFieldWrite(buf, field, fieldPath, indent+1, validVersions, flexibleVersions, parentName, nestedStructTypes, commonStructs)
 
 		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
 	}
 }
 
-func generateFieldWrite(buf *strings.Builder, field Field, fieldPath string, indent int, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
+func generateFieldWrite(buf *strings.Builder, field Field, fieldPath string, indent int, validVersions []int, flexibleVersions []int, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
 	indentStr := strings.Repeat("\t", indent)
 
 	// Handle tagged fields separately
@@ -823,7 +1519,7 @@ func generateFieldWrite(buf *strings.Builder, field Field, fieldPath string, ind
 		// Use getGoType to resolve the element type properly (handles nested structs, common structs, etc.)
 		// We need parent name and nested struct types - get them from the field's context
 		// For now, use a simple approach: if it's a struct type, it should be prefixed
-		generateArrayWrite(buf, field, fieldPath, elemType, indent, parentName, nestedStructTypes, commonStructs)
+		generateArrayWrite(buf, field, fieldPath, elemType, indent, validVersions, flexibleVersions, parentName, nestedStructTypes, commonStructs)
 	case field.Type == "bool":
 		buf.WriteString(fmt.Sprintf("%sif err := protocol.WriteBool(w, %s); err != nil {\n", indentStr, fieldPath))
 		buf.WriteString(fmt.Sprintf("%s\treturn err\n", indentStr))
@@ -889,18 +1585,107 @@ func generateFieldWrite(buf *strings.Builder, field Field, fieldPath string, ind
 	default:
 		// Struct type - recursive write
 		if len(field.Fields) > 0 {
-			generateStructWrite(buf, field, fieldPath, indent, parentName, nestedStructTypes, commonStructs)
+			generateStructWrite(buf, field, fieldPath, indent, validVersions, flexibleVersions, parentName, nestedStructTypes, commonStructs)
 		}
 	}
 }
 
-func generateArrayWrite(buf *strings.Builder, field Field, fieldPath string, elemType string, indent int, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
+func generateArrayWrite(buf *strings.Builder, field Field, fieldPath string, elemType string, indent int, validVersions []int, flexibleVersions []int, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
 	indentStr := strings.Repeat("\t", indent)
 
+	// Check if we can use typed array methods (for primitive types)
+	if canUseTypedArrayMethods(elemType, field, commonStructs) {
+		// Use typed array methods - handle nullability first, then use helper methods
+		isNullable := field.NullableVersions != ""
+		if isNullable {
+			buf.WriteString(fmt.Sprintf("%sif %s == nil {\n", indentStr, fieldPath))
+			buf.WriteString(fmt.Sprintf("%s\tif isFlexible {\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s\t\tif err := protocol.WriteVaruint32(w, 0); err != nil {\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s\t\t\treturn err\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s\t\t}\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s\t} else {\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s\t\tif err := protocol.WriteInt32(w, -1); err != nil {\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s\t\t\treturn err\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s\t\t}\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s} else {\n", indentStr))
+		}
+		buf.WriteString(fmt.Sprintf("%s\tif isFlexible {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\tif err := protocol.%s(w, %s); err != nil {\n", indentStr, getTypedArrayMethodName(elemType, true, true), fieldPath))
+		buf.WriteString(fmt.Sprintf("%s\t\t\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t} else {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\tif err := protocol.%s(w, %s); err != nil {\n", indentStr, getTypedArrayMethodName(elemType, false, true), fieldPath))
+		buf.WriteString(fmt.Sprintf("%s\t\t\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		if isNullable {
+			buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+		}
+		return
+	}
+
+	// For struct arrays, use ArrayEncoder with WriteArray/WriteCompactArray
 	// Check if nullable
 	isNullable := field.NullableVersions != ""
 
-	// Write length
+	// Get the struct type name
+	goElemType := getGoType(elemType, "", []int{}, []int{}, false, parentName, nestedStructTypes)
+
+	// Find the field definition for the struct element
+	var elemField *Field
+	if len(field.Fields) > 0 {
+		// This is a nested struct array
+		elemField = &field
+	} else {
+		// Check if it's a common struct
+		elemField = findCommonStruct(elemType, commonStructs)
+	}
+
+	// Create encoder function
+	buf.WriteString(fmt.Sprintf("%s// Encode array using ArrayEncoder\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%sencoder := func(item interface{}) ([]byte, error) {\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\tif item == nil {\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t\treturn nil, nil\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\tstructItem, ok := item.(%s)\n", indentStr, goElemType))
+	buf.WriteString(fmt.Sprintf("%s\tif !ok {\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t\treturn nil, errors.New(\"invalid type for array element\")\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\tvar elemBuf bytes.Buffer\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t// Temporarily use elemBuf as writer\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\telemW := &elemBuf\n", indentStr))
+
+	// Write struct fields directly - need to generate code that uses elemW instead of w
+	if elemField != nil && len(elemField.Fields) > 0 {
+		// Generate code to write each field of the struct element
+		// We need to generate field writes that use elemW instead of w
+		generateWriteFieldsWithWriter(buf, elemField.Fields, indent+1, []int{}, []int{}, "structItem", "elemW", parentName, nestedStructTypes, commonStructs)
+		// Write tagged fields if flexible
+		if len(flexibleVersions) > 0 {
+			buf.WriteString(fmt.Sprintf("%s\t\t// Write tagged fields if flexible\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s\t\tif isFlexible {\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s\t\t\tif err := structItem.writeTaggedFields(elemW, version); err != nil {\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s\t\t\t\treturn nil, err\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s\t\t\t}\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s\t\t}\n", indentStr))
+		}
+	} else {
+		// Fallback: if we can't find the struct definition, we can't encode it
+		buf.WriteString(fmt.Sprintf("%s\t\t// Cannot encode: struct definition not found\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn nil, errors.New(\"struct definition not found\")\n", indentStr))
+	}
+
+	buf.WriteString(fmt.Sprintf("%s\treturn elemBuf.Bytes(), nil\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+
+	// Convert array to []interface{}
+	buf.WriteString(fmt.Sprintf("%sitems := make([]interface{}, len(%s))\n", indentStr, fieldPath))
+	buf.WriteString(fmt.Sprintf("%sfor i := range %s {\n", indentStr, fieldPath))
+	buf.WriteString(fmt.Sprintf("%s\titems[i] = %s[i]\n", indentStr, fieldPath))
+	buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+
+	// Write array using WriteArray/WriteCompactArray
 	if isNullable {
 		buf.WriteString(fmt.Sprintf("%sif %s == nil {\n", indentStr, fieldPath))
 		buf.WriteString(fmt.Sprintf("%s\tif isFlexible {\n", indentStr))
@@ -914,39 +1699,34 @@ func generateArrayWrite(buf *strings.Builder, field Field, fieldPath string, ele
 		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
 		buf.WriteString(fmt.Sprintf("%s} else {\n", indentStr))
 	}
-
-	// Write array length
 	buf.WriteString(fmt.Sprintf("%s\tif isFlexible {\n", indentStr))
-	buf.WriteString(fmt.Sprintf("%s\t\tlength := uint32(len(%s) + 1)\n", indentStr, fieldPath))
-	buf.WriteString(fmt.Sprintf("%s\t\tif err := protocol.WriteVaruint32(w, length); err != nil {\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t\tif err := protocol.WriteCompactArray(w, items, encoder); err != nil {\n", indentStr))
 	buf.WriteString(fmt.Sprintf("%s\t\t\treturn err\n", indentStr))
 	buf.WriteString(fmt.Sprintf("%s\t\t}\n", indentStr))
 	buf.WriteString(fmt.Sprintf("%s\t} else {\n", indentStr))
-	buf.WriteString(fmt.Sprintf("%s\t\tif err := protocol.WriteInt32(w, int32(len(%s))); err != nil {\n", indentStr, fieldPath))
+	buf.WriteString(fmt.Sprintf("%s\t\tif err := protocol.WriteArray(w, items, encoder); err != nil {\n", indentStr))
 	buf.WriteString(fmt.Sprintf("%s\t\t\treturn err\n", indentStr))
 	buf.WriteString(fmt.Sprintf("%s\t\t}\n", indentStr))
 	buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
-
-	// Write elements
-	// Check if we need the loop index by checking if the element write will generate code
-	needsIndex := needsLoopIndex(elemType, field, commonStructs)
-	buf.WriteString(fmt.Sprintf("%sfor i := range %s {\n", indentStr, fieldPath))
-	generateArrayElementWrite(buf, field, fieldPath+"[i]", elemType, indent+1, parentName, nestedStructTypes, commonStructs)
-	// If the index isn't needed, mark it as intentionally unused
-	if !needsIndex {
-		buf.WriteString(fmt.Sprintf("%s\t_ = i\n", indentStr))
-	}
-	buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
-
 	if isNullable {
 		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
 	}
 }
 
-func generateStructWrite(buf *strings.Builder, field Field, fieldPath string, indent int, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
+func generateStructWrite(buf *strings.Builder, field Field, fieldPath string, indent int, validVersions []int, flexibleVersions []int, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
+	indentStr := strings.Repeat("\t", indent)
 	// Recursively write struct fields
 	if len(field.Fields) > 0 {
 		generateWriteFields(buf, field.Fields, indent, []int{}, []int{}, fieldPath, parentName, nestedStructTypes, commonStructs)
+		// Write tagged fields if flexible
+		if len(flexibleVersions) > 0 {
+			buf.WriteString(fmt.Sprintf("%s// Write tagged fields if flexible\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%sif isFlexible {\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s\tif err := %s.writeTaggedFields(w, version); err != nil {\n", indentStr, fieldPath))
+			buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+		}
 	}
 }
 
@@ -972,13 +1752,13 @@ func generateReadFields(buf *strings.Builder, fields []Field, indent int, validV
 			indentStr, fieldVersions[0], maxVersion))
 
 		// Generate read code based on type
-		generateFieldRead(buf, field, fieldPath, indent+1, parentName, nestedStructTypes, commonStructs)
+		generateFieldRead(buf, field, fieldPath, indent+1, validVersions, flexibleVersions, parentName, nestedStructTypes, commonStructs)
 
 		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
 	}
 }
 
-func generateFieldRead(buf *strings.Builder, field Field, fieldPath string, indent int, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
+func generateFieldRead(buf *strings.Builder, field Field, fieldPath string, indent int, validVersions []int, flexibleVersions []int, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
 	indentStr := strings.Repeat("\t", indent)
 
 	// Handle tagged fields separately
@@ -990,7 +1770,7 @@ func generateFieldRead(buf *strings.Builder, field Field, fieldPath string, inde
 	case strings.HasPrefix(field.Type, "[]"):
 		// Array type - get the resolved Go type for the element
 		elemType := strings.TrimPrefix(field.Type, "[]")
-		generateArrayRead(buf, field, fieldPath, elemType, indent, parentName, nestedStructTypes, commonStructs)
+		generateArrayRead(buf, field, fieldPath, elemType, indent, validVersions, flexibleVersions, parentName, nestedStructTypes, commonStructs)
 	case field.Type == "bool":
 		buf.WriteString(fmt.Sprintf("%sval, err := protocol.ReadBool(r)\n", indentStr))
 		buf.WriteString(fmt.Sprintf("%sif err != nil {\n", indentStr))
@@ -1092,84 +1872,208 @@ func generateFieldRead(buf *strings.Builder, field Field, fieldPath string, inde
 	default:
 		// Struct type - recursive read
 		if len(field.Fields) > 0 {
-			generateStructRead(buf, field, fieldPath, indent, parentName, nestedStructTypes, commonStructs)
+			generateStructRead(buf, field, fieldPath, indent, validVersions, flexibleVersions, parentName, nestedStructTypes, commonStructs)
 		}
 	}
 }
 
-func generateArrayRead(buf *strings.Builder, field Field, fieldPath string, elemType string, indent int, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
+func generateArrayRead(buf *strings.Builder, field Field, fieldPath string, elemType string, indent int, validVersions []int, flexibleVersions []int, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
 	indentStr := strings.Repeat("\t", indent)
 
+	// Check if we can use typed array methods (for primitive types)
+	if canUseTypedArrayMethods(elemType, field, commonStructs) {
+		// Use typed array methods - they handle nullability automatically
+		buf.WriteString(fmt.Sprintf("%sif isFlexible {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\tval, err := protocol.%s(r)\n", indentStr, getTypedArrayMethodName(elemType, true, false)))
+		buf.WriteString(fmt.Sprintf("%s\tif err != nil {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t%s = val\n", indentStr, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s} else {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\tval, err := protocol.%s(r)\n", indentStr, getTypedArrayMethodName(elemType, false, false)))
+		buf.WriteString(fmt.Sprintf("%s\tif err != nil {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t%s = val\n", indentStr, fieldPath))
+		buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+		return
+	}
+
+	// For struct arrays, use ArrayDecoder with DecodeArray/DecodeCompactArray
 	// Check if nullable
 	isNullable := field.NullableVersions != ""
 
-	// Read length
-	buf.WriteString(fmt.Sprintf("%svar length int32\n", indentStr))
+	// Get the struct type name
+	goElemType := getGoType(elemType, "", []int{}, []int{}, false, parentName, nestedStructTypes)
+
+	// Find the field definition for the struct element
+	var elemField *Field
+	if len(field.Fields) > 0 {
+		// This is a nested struct array
+		elemField = &field
+	} else {
+		// Check if it's a common struct
+		elemField = findCommonStruct(elemType, commonStructs)
+	}
+
+	// For struct arrays, use ArrayDecoder with DecodeArray/DecodeCompactArray
+	// We'll read each element into a buffer, then decode it
+	buf.WriteString(fmt.Sprintf("%s// Decode array using ArrayDecoder\n", indentStr))
+
+	// Create decoder function that decodes from byte slice
+	buf.WriteString(fmt.Sprintf("%sdecoder := func(data []byte) (interface{}, int, error) {\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\tvar elem %s\n", indentStr, goElemType))
+	buf.WriteString(fmt.Sprintf("%s\telemR := bytes.NewReader(data)\n", indentStr))
+
+	// Read struct fields using the reader
+	if elemField != nil && len(elemField.Fields) > 0 {
+		generateReadFieldsWithReader(buf, elemField.Fields, indent+1, []int{}, []int{}, "elem", "elemR", parentName, nestedStructTypes, commonStructs)
+		// Read tagged fields if flexible
+		if len(flexibleVersions) > 0 {
+			buf.WriteString(fmt.Sprintf("%s\t// Read tagged fields if flexible\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s\tif isFlexible {\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s\t\tif err := elem.readTaggedFields(elemR, version); err != nil {\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s\t\t\treturn nil, 0, err\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s\t\t}\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		}
+	} else {
+		buf.WriteString(fmt.Sprintf("%s\t\t// Cannot decode: struct definition not found\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn nil, 0, errors.New(\"struct definition not found\")\n", indentStr))
+	}
+
+	buf.WriteString(fmt.Sprintf("%s\tconsumed := len(data) - elemR.Len()\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\treturn elem, consumed, nil\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+
+	// Read length and array data
 	buf.WriteString(fmt.Sprintf("%sif isFlexible {\n", indentStr))
-	buf.WriteString(fmt.Sprintf("%s\tvar lengthUint uint32\n", indentStr))
-	buf.WriteString(fmt.Sprintf("%s\tlengthUint, err := protocol.ReadVaruint32(r)\n", indentStr))
-	buf.WriteString(fmt.Sprintf("%s\tif err != nil {\n", indentStr))
-	buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
-	buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
 	if isNullable {
+		buf.WriteString(fmt.Sprintf("%s\tlengthUint, err := protocol.ReadVaruint32(r)\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\tif err != nil {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
 		buf.WriteString(fmt.Sprintf("%s\tif lengthUint == 0 {\n", indentStr))
 		buf.WriteString(fmt.Sprintf("%s\t\t%s = nil\n", indentStr, fieldPath))
-		buf.WriteString(fmt.Sprintf("%s\t} else {\n", indentStr))
-		buf.WriteString(fmt.Sprintf("%s\t\tif lengthUint < 1 {\n", indentStr))
-		buf.WriteString(fmt.Sprintf("%s\t\t\treturn errors.New(\"invalid compact array length\")\n", indentStr))
-		buf.WriteString(fmt.Sprintf("%s\t\t}\n", indentStr))
-		buf.WriteString(fmt.Sprintf("%s\t\tlength = int32(lengthUint - 1)\n", indentStr))
-		// Resolve element type using getGoType
-		goElemType := getGoType(elemType, "", []int{}, []int{}, false, parentName, nestedStructTypes)
-		buf.WriteString(fmt.Sprintf("%s\t\t%s = make([]%s, length)\n", indentStr, fieldPath, goElemType))
-		buf.WriteString(fmt.Sprintf("%s\t\tfor i := int32(0); i < length; i++ {\n", indentStr))
-		generateArrayElementRead(buf, field, fieldPath+"[i]", elemType, indent+2, parentName, nestedStructTypes, commonStructs)
-		buf.WriteString(fmt.Sprintf("%s\t\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn nil\n", indentStr))
 		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
-	} else {
 		buf.WriteString(fmt.Sprintf("%s\tif lengthUint < 1 {\n", indentStr))
 		buf.WriteString(fmt.Sprintf("%s\t\treturn errors.New(\"invalid compact array length\")\n", indentStr))
 		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
-		buf.WriteString(fmt.Sprintf("%s\tlength = int32(lengthUint - 1)\n", indentStr))
-		// Resolve element type using getGoType
-		goElemType := getGoType(elemType, "", []int{}, []int{}, false, parentName, nestedStructTypes)
-		buf.WriteString(fmt.Sprintf("%s\t%s = make([]%s, length)\n", indentStr, fieldPath, goElemType))
-		buf.WriteString(fmt.Sprintf("%s\tfor i := int32(0); i < length; i++ {\n", indentStr))
-		generateArrayElementRead(buf, field, fieldPath+"[i]", elemType, indent+1, parentName, nestedStructTypes, commonStructs)
+		buf.WriteString(fmt.Sprintf("%s\tlength := int32(lengthUint - 1)\n", indentStr))
+	} else {
+		buf.WriteString(fmt.Sprintf("%s\tlengthUint, err := protocol.ReadVaruint32(r)\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\tif err != nil {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
 		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\tif lengthUint < 1 {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn errors.New(\"invalid compact array length\")\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\tlength := int32(lengthUint - 1)\n", indentStr))
 	}
-	buf.WriteString(fmt.Sprintf("%s} else {\n", indentStr))
-	buf.WriteString(fmt.Sprintf("%s\tvar err error\n", indentStr))
-	buf.WriteString(fmt.Sprintf("%s\tlength, err = protocol.ReadInt32(r)\n", indentStr))
+
+	// Collect all array elements into a buffer, then use DecodeCompactArray
+	buf.WriteString(fmt.Sprintf("%s\t// Collect all array elements into a buffer\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\tvar arrayBuf bytes.Buffer\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\tfor i := int32(0); i < length; i++ {\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t\t// Read element into struct and encode to buffer\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t\tvar elemBuf bytes.Buffer\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t\telemW := &elemBuf\n", indentStr))
+	// Read struct fields directly into a temporary struct
+	buf.WriteString(fmt.Sprintf("%s\t\tvar tempElem %s\n", indentStr, goElemType))
+	if elemField != nil && len(elemField.Fields) > 0 {
+		generateReadFields(buf, elemField.Fields, indent+2, []int{}, []int{}, "tempElem", parentName, nestedStructTypes, commonStructs)
+	}
+	// Encode the struct to buffer
+	if elemField != nil && len(elemField.Fields) > 0 {
+		generateWriteFieldsForRead(buf, elemField.Fields, indent+2, []int{}, []int{}, "tempElem", "elemW", parentName, nestedStructTypes, commonStructs)
+	}
+	buf.WriteString(fmt.Sprintf("%s\t\t// Append to array buffer\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t\tarrayBuf.Write(elemBuf.Bytes())\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+
+	// Prepend length and decode using DecodeCompactArray
+	buf.WriteString(fmt.Sprintf("%s\t// Prepend length and decode using DecodeCompactArray\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\tlengthBytes := protocol.EncodeVaruint32(lengthUint)\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\tfullData := append(lengthBytes, arrayBuf.Bytes()...)\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\tdecoded, _, err := protocol.DecodeCompactArray(fullData, decoder)\n", indentStr))
 	buf.WriteString(fmt.Sprintf("%s\tif err != nil {\n", indentStr))
 	buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
 	buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t// Convert []interface{} to typed slice\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t%s = make([]%s, len(decoded))\n", indentStr, fieldPath, goElemType))
+	buf.WriteString(fmt.Sprintf("%s\tfor i, item := range decoded {\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t\t%s[i] = item.(%s)\n", indentStr, fieldPath, goElemType))
+	buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+
+	buf.WriteString(fmt.Sprintf("%s} else {\n", indentStr))
+	// Standard array
 	if isNullable {
+		buf.WriteString(fmt.Sprintf("%s\tlength, err := protocol.ReadInt32(r)\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\tif err != nil {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
 		buf.WriteString(fmt.Sprintf("%s\tif length == -1 {\n", indentStr))
 		buf.WriteString(fmt.Sprintf("%s\t\t%s = nil\n", indentStr, fieldPath))
-		buf.WriteString(fmt.Sprintf("%s\t} else {\n", indentStr))
-		// Resolve element type using getGoType
-		goElemType := getGoType(elemType, "", []int{}, []int{}, false, parentName, nestedStructTypes)
-		buf.WriteString(fmt.Sprintf("%s\t\t%s = make([]%s, length)\n", indentStr, fieldPath, goElemType))
-		buf.WriteString(fmt.Sprintf("%s\t\tfor i := int32(0); i < length; i++ {\n", indentStr))
-		generateArrayElementRead(buf, field, fieldPath+"[i]", elemType, indent+2, parentName, nestedStructTypes, commonStructs)
-		buf.WriteString(fmt.Sprintf("%s\t\t}\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn nil\n", indentStr))
 		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
 	} else {
-		// Resolve element type using getGoType
-		goElemType := getGoType(elemType, "", []int{}, []int{}, false, parentName, nestedStructTypes)
-		buf.WriteString(fmt.Sprintf("%s\t%s = make([]%s, length)\n", indentStr, fieldPath, goElemType))
-		buf.WriteString(fmt.Sprintf("%s\tfor i := int32(0); i < length; i++ {\n", indentStr))
-		generateArrayElementRead(buf, field, fieldPath+"[i]", elemType, indent+1, parentName, nestedStructTypes, commonStructs)
+		buf.WriteString(fmt.Sprintf("%s\tlength, err := protocol.ReadInt32(r)\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\tif err != nil {\n", indentStr))
+		buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
 		buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
 	}
+
+	// Collect all array elements into a buffer, then use DecodeCompactArray
+	buf.WriteString(fmt.Sprintf("%s\t// Collect all array elements into a buffer\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\tvar arrayBuf bytes.Buffer\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\tfor i := int32(0); i < length; i++ {\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t\t// Read element into struct and encode to buffer\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t\tvar elemBuf bytes.Buffer\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t\telemW := &elemBuf\n", indentStr))
+	// Read struct fields directly into a temporary struct
+	buf.WriteString(fmt.Sprintf("%s\t\tvar tempElem %s\n", indentStr, goElemType))
+	if elemField != nil && len(elemField.Fields) > 0 {
+		generateReadFields(buf, elemField.Fields, indent+2, []int{}, []int{}, "tempElem", parentName, nestedStructTypes, commonStructs)
+	}
+	// Encode the struct to buffer
+	if elemField != nil && len(elemField.Fields) > 0 {
+		generateWriteFieldsForRead(buf, elemField.Fields, indent+2, []int{}, []int{}, "tempElem", "elemW", parentName, nestedStructTypes, commonStructs)
+	}
+	buf.WriteString(fmt.Sprintf("%s\t\t// Append to array buffer\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t\tarrayBuf.Write(elemBuf.Bytes())\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+
+	// Prepend length and decode using DecodeArray
+	buf.WriteString(fmt.Sprintf("%s\t// Prepend length and decode using DecodeArray\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\tlengthBytes := protocol.EncodeInt32(length)\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\tfullData := append(lengthBytes, arrayBuf.Bytes()...)\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\tdecoded, _, err := protocol.DecodeArray(fullData, decoder)\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\tif err != nil {\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t// Convert []interface{} to typed slice\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t%s = make([]%s, len(decoded))\n", indentStr, fieldPath, goElemType))
+	buf.WriteString(fmt.Sprintf("%s\tfor i, item := range decoded {\n", indentStr))
+	buf.WriteString(fmt.Sprintf("%s\t\t%s[i] = item.(%s)\n", indentStr, fieldPath, goElemType))
+	buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
 	buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
 }
 
-func generateStructRead(buf *strings.Builder, field Field, fieldPath string, indent int, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
+func generateStructRead(buf *strings.Builder, field Field, fieldPath string, indent int, validVersions []int, flexibleVersions []int, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
+	indentStr := strings.Repeat("\t", indent)
 	// Recursively read struct fields
 	if len(field.Fields) > 0 {
 		generateReadFields(buf, field.Fields, indent, []int{}, []int{}, fieldPath, parentName, nestedStructTypes, commonStructs)
+		// Read tagged fields if flexible
+		if len(flexibleVersions) > 0 {
+			buf.WriteString(fmt.Sprintf("%s// Read tagged fields if flexible\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%sif isFlexible {\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s\tif err := %s.readTaggedFields(r, version); err != nil {\n", indentStr, fieldPath))
+			buf.WriteString(fmt.Sprintf("%s\t\treturn err\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s\t}\n", indentStr))
+			buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+		}
 	}
 }
 
@@ -1227,7 +2131,7 @@ func generateArrayElementWrite(buf *strings.Builder, field Field, elemPath strin
 	}
 }
 
-func generateArrayElementRead(buf *strings.Builder, field Field, elemPath string, elemType string, indent int, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
+func generateArrayElementRead(buf *strings.Builder, field Field, elemPath string, elemType string, indent int, validVersions []int, flexibleVersions []int, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
 	indentStr := strings.Repeat("\t", indent)
 
 	switch {
@@ -1283,14 +2187,27 @@ func generateArrayElementRead(buf *strings.Builder, field Field, elemPath string
 		buf.WriteString(fmt.Sprintf("%s%s = val\n", indentStr, elemPath))
 	default:
 		// Struct type - need to find the field definition
+		isFlexible := len(flexibleVersions) > 0 && isFlexibleVersion(validVersions[0], flexibleVersions)
 		if len(field.Fields) > 0 {
 			// Recursively read struct
-			generateReadFields(buf, field.Fields, indent, []int{}, []int{}, elemPath, parentName, nestedStructTypes, commonStructs)
+			generateReadFields(buf, field.Fields, indent, validVersions, flexibleVersions, elemPath, parentName, nestedStructTypes, commonStructs)
+			// Read tagged fields if flexible
+			if isFlexible {
+				buf.WriteString(fmt.Sprintf("%sif err := %s.readTaggedFields(r, version); err != nil {\n", indentStr, elemPath))
+				buf.WriteString(fmt.Sprintf("%s\treturn err\n", indentStr))
+				buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+			}
 		} else {
 			// Check if it's a common struct
 			commonStruct := findCommonStruct(elemType, commonStructs)
 			if commonStruct != nil && len(commonStruct.Fields) > 0 {
-				generateReadFields(buf, commonStruct.Fields, indent, []int{}, []int{}, elemPath, parentName, nestedStructTypes, commonStructs)
+				generateReadFields(buf, commonStruct.Fields, indent, validVersions, flexibleVersions, elemPath, parentName, nestedStructTypes, commonStructs)
+				// Read tagged fields if flexible
+				if isFlexible {
+					buf.WriteString(fmt.Sprintf("%sif err := %s.readTaggedFields(r, version); err != nil {\n", indentStr, elemPath))
+					buf.WriteString(fmt.Sprintf("%s\treturn err\n", indentStr))
+					buf.WriteString(fmt.Sprintf("%s}\n", indentStr))
+				}
 			}
 		}
 	}
@@ -1468,6 +2385,120 @@ func collectTaggedFields(fields []Field, validVersions []int, flexibleVersions [
 		// They should be handled separately in their own writeTaggedFields methods
 	}
 	return tagged
+}
+
+// generateTaggedFieldsMethodsForNestedStruct generates writeTaggedFields and readTaggedFields methods for a nested struct
+func generateTaggedFieldsMethodsForNestedStruct(buf *strings.Builder, structName string, fields []Field, validVersions []int, flexibleVersions []int, parentName string, nestedStructTypes map[string]bool, commonStructs []Field) {
+	// Collect tagged fields for this nested struct
+	taggedFields := collectTaggedFields(fields, validVersions, flexibleVersions)
+
+	// Check if any tagged field uses isFlexible
+	needsIsFlexible := false
+	for _, tf := range taggedFields {
+		if tf.Type == "string" || strings.HasPrefix(tf.Type, "[]") {
+			needsIsFlexible = true
+			break
+		}
+		if len(tf.Fields) > 0 {
+			if hasStringType(tf.Fields) {
+				needsIsFlexible = true
+				break
+			}
+		}
+	}
+
+	// Generate writeTaggedFields method
+	buf.WriteString(fmt.Sprintf("// writeTaggedFields writes tagged fields for %s.\n", structName))
+	buf.WriteString(fmt.Sprintf("func (m *%s) writeTaggedFields(w io.Writer, version int16) error {\n", structName))
+	buf.WriteString("\tvar taggedFieldsCount int\n")
+	buf.WriteString("\tvar taggedFieldsBuf bytes.Buffer\n\n")
+	if needsIsFlexible && len(flexibleVersions) > 0 {
+		buf.WriteString(fmt.Sprintf("\tisFlexible := version >= %d\n\n", flexibleVersions[0]))
+	}
+
+	if len(taggedFields) > 0 {
+		for _, tf := range taggedFields {
+			fieldVersions := parseVersionRange(tf.Versions)
+			taggedVersions := parseVersionRange(tf.TaggedVersions)
+			if len(taggedVersions) == 0 {
+				taggedVersions = fieldVersions
+			}
+
+			fieldName := toExportedName(tf.Name)
+			fieldPath := "m." + fieldName
+
+			buf.WriteString(fmt.Sprintf("\t// %s (tag %d)\n", tf.Name, *tf.Tag))
+			buf.WriteString(fmt.Sprintf("\tif version >= %d {\n", taggedVersions[0]))
+			buf.WriteString("\t\tif ")
+			writeNonDefaultCheck(buf, tf, "m."+fieldName)
+			buf.WriteString(" {\n")
+			buf.WriteString(fmt.Sprintf("\t\t\tif err := protocol.WriteVaruint32(&taggedFieldsBuf, uint32(%d)); err != nil {\n", *tf.Tag))
+			buf.WriteString("\t\t\t\treturn err\n")
+			buf.WriteString("\t\t\t}\n")
+			generateTaggedFieldWrite(buf, tf, fieldPath, 2, parentName, nestedStructTypes, commonStructs)
+			buf.WriteString("\t\t\ttaggedFieldsCount++\n")
+			buf.WriteString("\t\t}\n")
+			buf.WriteString("\t}\n\n")
+		}
+	}
+
+	buf.WriteString("\t// Write tagged fields count\n")
+	buf.WriteString("\tif err := protocol.WriteVaruint32(w, uint32(taggedFieldsCount)); err != nil {\n")
+	buf.WriteString("\t\treturn err\n")
+	buf.WriteString("\t}\n\n")
+	buf.WriteString("\t// Write tagged fields data\n")
+	buf.WriteString("\tif taggedFieldsCount > 0 {\n")
+	buf.WriteString("\t\tif _, err := w.Write(taggedFieldsBuf.Bytes()); err != nil {\n")
+	buf.WriteString("\t\t\treturn err\n")
+	buf.WriteString("\t\t}\n")
+	buf.WriteString("\t}\n\n")
+	buf.WriteString("\treturn nil\n")
+	buf.WriteString("}\n\n")
+
+	// Generate readTaggedFields method
+	buf.WriteString(fmt.Sprintf("// readTaggedFields reads tagged fields for %s.\n", structName))
+	buf.WriteString(fmt.Sprintf("func (m *%s) readTaggedFields(r io.Reader, version int16) error {\n", structName))
+	if needsIsFlexible && len(flexibleVersions) > 0 {
+		buf.WriteString(fmt.Sprintf("\tisFlexible := version >= %d\n\n", flexibleVersions[0]))
+	}
+	buf.WriteString("\t// Read tagged fields count\n")
+	buf.WriteString("\tcount, err := protocol.ReadVaruint32(r)\n")
+	buf.WriteString("\tif err != nil {\n")
+	buf.WriteString("\t\treturn err\n")
+	buf.WriteString("\t}\n\n")
+	buf.WriteString("\tif count == 0 {\n")
+	buf.WriteString("\t\treturn nil\n")
+	buf.WriteString("\t}\n\n")
+	buf.WriteString("\t// Read tagged fields\n")
+	buf.WriteString("\tfor i := uint32(0); i < count; i++ {\n")
+	buf.WriteString("\t\ttag, err := protocol.ReadVaruint32(r)\n")
+	buf.WriteString("\t\tif err != nil {\n")
+	buf.WriteString("\t\t\treturn err\n")
+	buf.WriteString("\t\t}\n\n")
+	buf.WriteString("\t\tswitch tag {\n")
+
+	if len(taggedFields) > 0 {
+		for _, tf := range taggedFields {
+			fieldName := toExportedName(tf.Name)
+			fieldPath := "m." + fieldName
+			taggedVersions := parseVersionRange(tf.TaggedVersions)
+			if len(taggedVersions) == 0 {
+				taggedVersions = parseVersionRange(tf.Versions)
+			}
+
+			buf.WriteString(fmt.Sprintf("\t\tcase %d: // %s\n", *tf.Tag, tf.Name))
+			buf.WriteString(fmt.Sprintf("\t\t\tif version >= %d {\n", taggedVersions[0]))
+			generateTaggedFieldRead(buf, tf, fieldPath, 3, parentName, nestedStructTypes, commonStructs)
+			buf.WriteString("\t\t\t}\n")
+		}
+	}
+
+	buf.WriteString("\t\tdefault:\n")
+	buf.WriteString("\t\t\t// Unknown tag, skip it\n")
+	buf.WriteString("\t\t}\n")
+	buf.WriteString("\t}\n\n")
+	buf.WriteString("\treturn nil\n")
+	buf.WriteString("}\n\n")
 }
 
 func writeTaggedFieldCondition(buf *strings.Builder, field Field, fieldName string) {
@@ -1783,4 +2814,3 @@ func generateTaggedArrayElementRead(buf *strings.Builder, field Field, elemPath 
 		}
 	}
 }
-

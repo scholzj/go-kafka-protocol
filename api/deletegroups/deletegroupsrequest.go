@@ -48,26 +48,13 @@ func (m *DeleteGroupsRequest) Write(w io.Writer, version int16) error {
 	// GroupsNames
 	if version >= 0 && version <= 999 {
 		if isFlexible {
-			length := uint32(len(m.GroupsNames) + 1)
-			if err := protocol.WriteVaruint32(w, length); err != nil {
+			if err := protocol.WriteCompactStringArray(w, m.GroupsNames); err != nil {
 				return err
 			}
 		} else {
-			if err := protocol.WriteInt32(w, int32(len(m.GroupsNames))); err != nil {
+			if err := protocol.WriteStringArray(w, m.GroupsNames); err != nil {
 				return err
 			}
-		}
-		for i := range m.GroupsNames {
-			if isFlexible {
-				if err := protocol.WriteCompactString(w, m.GroupsNames[i]); err != nil {
-					return err
-				}
-			} else {
-				if err := protocol.WriteString(w, m.GroupsNames[i]); err != nil {
-					return err
-				}
-			}
-			_ = i
 		}
 	}
 	// Write tagged fields if flexible
@@ -92,55 +79,18 @@ func (m *DeleteGroupsRequest) Read(r io.Reader, version int16) error {
 
 	// GroupsNames
 	if version >= 0 && version <= 999 {
-		var length int32
 		if isFlexible {
-			var lengthUint uint32
-			lengthUint, err := protocol.ReadVaruint32(r)
+			val, err := protocol.ReadCompactStringArray(r)
 			if err != nil {
 				return err
 			}
-			if lengthUint < 1 {
-				return errors.New("invalid compact array length")
-			}
-			length = int32(lengthUint - 1)
-			m.GroupsNames = make([]string, length)
-			for i := int32(0); i < length; i++ {
-				if isFlexible {
-					val, err := protocol.ReadCompactString(r)
-					if err != nil {
-						return err
-					}
-					m.GroupsNames[i] = val
-				} else {
-					val, err := protocol.ReadString(r)
-					if err != nil {
-						return err
-					}
-					m.GroupsNames[i] = val
-				}
-			}
+			m.GroupsNames = val
 		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			val, err := protocol.ReadStringArray(r)
 			if err != nil {
 				return err
 			}
-			m.GroupsNames = make([]string, length)
-			for i := int32(0); i < length; i++ {
-				if isFlexible {
-					val, err := protocol.ReadCompactString(r)
-					if err != nil {
-						return err
-					}
-					m.GroupsNames[i] = val
-				} else {
-					val, err := protocol.ReadString(r)
-					if err != nil {
-						return err
-					}
-					m.GroupsNames[i] = val
-				}
-			}
+			m.GroupsNames = val
 		}
 	}
 	// Read tagged fields if flexible

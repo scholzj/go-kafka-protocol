@@ -50,26 +50,13 @@ func (m *StreamsGroupDescribeRequest) Write(w io.Writer, version int16) error {
 	// GroupIds
 	if version >= 0 && version <= 999 {
 		if isFlexible {
-			length := uint32(len(m.GroupIds) + 1)
-			if err := protocol.WriteVaruint32(w, length); err != nil {
+			if err := protocol.WriteCompactStringArray(w, m.GroupIds); err != nil {
 				return err
 			}
 		} else {
-			if err := protocol.WriteInt32(w, int32(len(m.GroupIds))); err != nil {
+			if err := protocol.WriteStringArray(w, m.GroupIds); err != nil {
 				return err
 			}
-		}
-		for i := range m.GroupIds {
-			if isFlexible {
-				if err := protocol.WriteCompactString(w, m.GroupIds[i]); err != nil {
-					return err
-				}
-			} else {
-				if err := protocol.WriteString(w, m.GroupIds[i]); err != nil {
-					return err
-				}
-			}
-			_ = i
 		}
 	}
 	// IncludeAuthorizedOperations
@@ -100,55 +87,18 @@ func (m *StreamsGroupDescribeRequest) Read(r io.Reader, version int16) error {
 
 	// GroupIds
 	if version >= 0 && version <= 999 {
-		var length int32
 		if isFlexible {
-			var lengthUint uint32
-			lengthUint, err := protocol.ReadVaruint32(r)
+			val, err := protocol.ReadCompactStringArray(r)
 			if err != nil {
 				return err
 			}
-			if lengthUint < 1 {
-				return errors.New("invalid compact array length")
-			}
-			length = int32(lengthUint - 1)
-			m.GroupIds = make([]string, length)
-			for i := int32(0); i < length; i++ {
-				if isFlexible {
-					val, err := protocol.ReadCompactString(r)
-					if err != nil {
-						return err
-					}
-					m.GroupIds[i] = val
-				} else {
-					val, err := protocol.ReadString(r)
-					if err != nil {
-						return err
-					}
-					m.GroupIds[i] = val
-				}
-			}
+			m.GroupIds = val
 		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			val, err := protocol.ReadStringArray(r)
 			if err != nil {
 				return err
 			}
-			m.GroupIds = make([]string, length)
-			for i := int32(0); i < length; i++ {
-				if isFlexible {
-					val, err := protocol.ReadCompactString(r)
-					if err != nil {
-						return err
-					}
-					m.GroupIds[i] = val
-				} else {
-					val, err := protocol.ReadString(r)
-					if err != nil {
-						return err
-					}
-					m.GroupIds[i] = val
-				}
-			}
+			m.GroupIds = val
 		}
 	}
 	// IncludeAuthorizedOperations
@@ -166,6 +116,24 @@ func (m *StreamsGroupDescribeRequest) Read(r io.Reader, version int16) error {
 		}
 	}
 	return nil
+}
+
+// Assignment represents .
+type Assignment struct {
+	// Active tasks for this client.
+	ActiveTasks []TaskIds `json:"activetasks" versions:"0-999"`
+	// Standby tasks for this client.
+	StandbyTasks []TaskIds `json:"standbytasks" versions:"0-999"`
+	// Warm-up tasks for this client.
+	WarmupTasks []TaskIds `json:"warmuptasks" versions:"0-999"`
+}
+
+// TaskIds represents .
+type TaskIds struct {
+	// The subtopology identifier.
+	SubtopologyId string `json:"subtopologyid" versions:"0-999"`
+	// The partitions of the input topics processed by this member.
+	Partitions []int32 `json:"partitions" versions:"0-999"`
 }
 
 // KeyValue represents .
@@ -204,24 +172,6 @@ type TaskOffset struct {
 	Partition int32 `json:"partition" versions:"0-999"`
 	// The offset.
 	Offset int64 `json:"offset" versions:"0-999"`
-}
-
-// Assignment represents .
-type Assignment struct {
-	// Active tasks for this client.
-	ActiveTasks []TaskIds `json:"activetasks" versions:"0-999"`
-	// Standby tasks for this client.
-	StandbyTasks []TaskIds `json:"standbytasks" versions:"0-999"`
-	// Warm-up tasks for this client.
-	WarmupTasks []TaskIds `json:"warmuptasks" versions:"0-999"`
-}
-
-// TaskIds represents .
-type TaskIds struct {
-	// The subtopology identifier.
-	SubtopologyId string `json:"subtopologyid" versions:"0-999"`
-	// The partitions of the input topics processed by this member.
-	Partitions []int32 `json:"partitions" versions:"0-999"`
 }
 
 // writeTaggedFields writes tagged fields for StreamsGroupDescribeRequest.

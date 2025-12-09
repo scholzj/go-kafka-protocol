@@ -50,51 +50,25 @@ func (m *ListGroupsRequest) Write(w io.Writer, version int16) error {
 	// StatesFilter
 	if version >= 4 && version <= 999 {
 		if isFlexible {
-			length := uint32(len(m.StatesFilter) + 1)
-			if err := protocol.WriteVaruint32(w, length); err != nil {
+			if err := protocol.WriteCompactStringArray(w, m.StatesFilter); err != nil {
 				return err
 			}
 		} else {
-			if err := protocol.WriteInt32(w, int32(len(m.StatesFilter))); err != nil {
+			if err := protocol.WriteStringArray(w, m.StatesFilter); err != nil {
 				return err
 			}
-		}
-		for i := range m.StatesFilter {
-			if isFlexible {
-				if err := protocol.WriteCompactString(w, m.StatesFilter[i]); err != nil {
-					return err
-				}
-			} else {
-				if err := protocol.WriteString(w, m.StatesFilter[i]); err != nil {
-					return err
-				}
-			}
-			_ = i
 		}
 	}
 	// TypesFilter
 	if version >= 5 && version <= 999 {
 		if isFlexible {
-			length := uint32(len(m.TypesFilter) + 1)
-			if err := protocol.WriteVaruint32(w, length); err != nil {
+			if err := protocol.WriteCompactStringArray(w, m.TypesFilter); err != nil {
 				return err
 			}
 		} else {
-			if err := protocol.WriteInt32(w, int32(len(m.TypesFilter))); err != nil {
+			if err := protocol.WriteStringArray(w, m.TypesFilter); err != nil {
 				return err
 			}
-		}
-		for i := range m.TypesFilter {
-			if isFlexible {
-				if err := protocol.WriteCompactString(w, m.TypesFilter[i]); err != nil {
-					return err
-				}
-			} else {
-				if err := protocol.WriteString(w, m.TypesFilter[i]); err != nil {
-					return err
-				}
-			}
-			_ = i
 		}
 	}
 	// Write tagged fields if flexible
@@ -119,108 +93,34 @@ func (m *ListGroupsRequest) Read(r io.Reader, version int16) error {
 
 	// StatesFilter
 	if version >= 4 && version <= 999 {
-		var length int32
 		if isFlexible {
-			var lengthUint uint32
-			lengthUint, err := protocol.ReadVaruint32(r)
+			val, err := protocol.ReadCompactStringArray(r)
 			if err != nil {
 				return err
 			}
-			if lengthUint < 1 {
-				return errors.New("invalid compact array length")
-			}
-			length = int32(lengthUint - 1)
-			m.StatesFilter = make([]string, length)
-			for i := int32(0); i < length; i++ {
-				if isFlexible {
-					val, err := protocol.ReadCompactString(r)
-					if err != nil {
-						return err
-					}
-					m.StatesFilter[i] = val
-				} else {
-					val, err := protocol.ReadString(r)
-					if err != nil {
-						return err
-					}
-					m.StatesFilter[i] = val
-				}
-			}
+			m.StatesFilter = val
 		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			val, err := protocol.ReadStringArray(r)
 			if err != nil {
 				return err
 			}
-			m.StatesFilter = make([]string, length)
-			for i := int32(0); i < length; i++ {
-				if isFlexible {
-					val, err := protocol.ReadCompactString(r)
-					if err != nil {
-						return err
-					}
-					m.StatesFilter[i] = val
-				} else {
-					val, err := protocol.ReadString(r)
-					if err != nil {
-						return err
-					}
-					m.StatesFilter[i] = val
-				}
-			}
+			m.StatesFilter = val
 		}
 	}
 	// TypesFilter
 	if version >= 5 && version <= 999 {
-		var length int32
 		if isFlexible {
-			var lengthUint uint32
-			lengthUint, err := protocol.ReadVaruint32(r)
+			val, err := protocol.ReadCompactStringArray(r)
 			if err != nil {
 				return err
 			}
-			if lengthUint < 1 {
-				return errors.New("invalid compact array length")
-			}
-			length = int32(lengthUint - 1)
-			m.TypesFilter = make([]string, length)
-			for i := int32(0); i < length; i++ {
-				if isFlexible {
-					val, err := protocol.ReadCompactString(r)
-					if err != nil {
-						return err
-					}
-					m.TypesFilter[i] = val
-				} else {
-					val, err := protocol.ReadString(r)
-					if err != nil {
-						return err
-					}
-					m.TypesFilter[i] = val
-				}
-			}
+			m.TypesFilter = val
 		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			val, err := protocol.ReadStringArray(r)
 			if err != nil {
 				return err
 			}
-			m.TypesFilter = make([]string, length)
-			for i := int32(0); i < length; i++ {
-				if isFlexible {
-					val, err := protocol.ReadCompactString(r)
-					if err != nil {
-						return err
-					}
-					m.TypesFilter[i] = val
-				} else {
-					val, err := protocol.ReadString(r)
-					if err != nil {
-						return err
-					}
-					m.TypesFilter[i] = val
-				}
-			}
+			m.TypesFilter = val
 		}
 	}
 	// Read tagged fields if flexible

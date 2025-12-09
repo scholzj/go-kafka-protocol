@@ -48,20 +48,13 @@ func (m *ListConfigResourcesRequest) Write(w io.Writer, version int16) error {
 	// ResourceTypes
 	if version >= 1 && version <= 999 {
 		if isFlexible {
-			length := uint32(len(m.ResourceTypes) + 1)
-			if err := protocol.WriteVaruint32(w, length); err != nil {
+			if err := protocol.WriteCompactInt8Array(w, m.ResourceTypes); err != nil {
 				return err
 			}
 		} else {
-			if err := protocol.WriteInt32(w, int32(len(m.ResourceTypes))); err != nil {
+			if err := protocol.WriteInt8Array(w, m.ResourceTypes); err != nil {
 				return err
 			}
-		}
-		for i := range m.ResourceTypes {
-			if err := protocol.WriteInt8(w, m.ResourceTypes[i]); err != nil {
-				return err
-			}
-			_ = i
 		}
 	}
 	// Write tagged fields if flexible
@@ -86,39 +79,18 @@ func (m *ListConfigResourcesRequest) Read(r io.Reader, version int16) error {
 
 	// ResourceTypes
 	if version >= 1 && version <= 999 {
-		var length int32
 		if isFlexible {
-			var lengthUint uint32
-			lengthUint, err := protocol.ReadVaruint32(r)
+			val, err := protocol.ReadCompactInt8Array(r)
 			if err != nil {
 				return err
 			}
-			if lengthUint < 1 {
-				return errors.New("invalid compact array length")
-			}
-			length = int32(lengthUint - 1)
-			m.ResourceTypes = make([]int8, length)
-			for i := int32(0); i < length; i++ {
-				val, err := protocol.ReadInt8(r)
-				if err != nil {
-					return err
-				}
-				m.ResourceTypes[i] = val
-			}
+			m.ResourceTypes = val
 		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			val, err := protocol.ReadInt8Array(r)
 			if err != nil {
 				return err
 			}
-			m.ResourceTypes = make([]int8, length)
-			for i := int32(0); i < length; i++ {
-				val, err := protocol.ReadInt8(r)
-				if err != nil {
-					return err
-				}
-				m.ResourceTypes[i] = val
-			}
+			m.ResourceTypes = val
 		}
 	}
 	// Read tagged fields if flexible

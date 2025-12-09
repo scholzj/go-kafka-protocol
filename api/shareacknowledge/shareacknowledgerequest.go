@@ -92,89 +92,103 @@ func (m *ShareAcknowledgeRequest) Write(w io.Writer, version int16) error {
 	}
 	// Topics
 	if version >= 0 && version <= 999 {
-		if isFlexible {
-			length := uint32(len(m.Topics) + 1)
-			if err := protocol.WriteVaruint32(w, length); err != nil {
-				return err
+		// Encode array using ArrayEncoder
+		encoder := func(item interface{}) ([]byte, error) {
+			if item == nil {
+				return nil, nil
 			}
-		} else {
-			if err := protocol.WriteInt32(w, int32(len(m.Topics))); err != nil {
-				return err
+			structItem, ok := item.(ShareAcknowledgeRequestAcknowledgeTopic)
+			if !ok {
+				return nil, errors.New("invalid type for array element")
 			}
-		}
-		for i := range m.Topics {
+			var elemBuf bytes.Buffer
+			// Temporarily use elemBuf as writer
+			elemW := &elemBuf
 			// TopicId
 			if version >= 0 && version <= 999 {
-				if err := protocol.WriteUUID(w, m.Topics[i].TopicId); err != nil {
-					return err
+				if err := protocol.WriteUUID(elemW, structItem.TopicId); err != nil {
+					return nil, err
 				}
 			}
 			// Partitions
 			if version >= 0 && version <= 999 {
 				if isFlexible {
-					length := uint32(len(m.Topics[i].Partitions) + 1)
-					if err := protocol.WriteVaruint32(w, length); err != nil {
-						return err
+					length := uint32(len(structItem.Partitions) + 1)
+					if err := protocol.WriteVaruint32(elemW, length); err != nil {
+						return nil, err
 					}
 				} else {
-					if err := protocol.WriteInt32(w, int32(len(m.Topics[i].Partitions))); err != nil {
-						return err
+					if err := protocol.WriteInt32(elemW, int32(len(structItem.Partitions))); err != nil {
+						return nil, err
 					}
 				}
-				for i := range m.Topics[i].Partitions {
+				for i := range structItem.Partitions {
 					// PartitionIndex
 					if version >= 0 && version <= 999 {
-						if err := protocol.WriteInt32(w, m.Topics[i].Partitions[i].PartitionIndex); err != nil {
-							return err
+						if err := protocol.WriteInt32(elemW, structItem.Partitions[i].PartitionIndex); err != nil {
+							return nil, err
 						}
 					}
 					// AcknowledgementBatches
 					if version >= 0 && version <= 999 {
 						if isFlexible {
-							length := uint32(len(m.Topics[i].Partitions[i].AcknowledgementBatches) + 1)
-							if err := protocol.WriteVaruint32(w, length); err != nil {
-								return err
+							length := uint32(len(structItem.Partitions[i].AcknowledgementBatches) + 1)
+							if err := protocol.WriteVaruint32(elemW, length); err != nil {
+								return nil, err
 							}
 						} else {
-							if err := protocol.WriteInt32(w, int32(len(m.Topics[i].Partitions[i].AcknowledgementBatches))); err != nil {
-								return err
+							if err := protocol.WriteInt32(elemW, int32(len(structItem.Partitions[i].AcknowledgementBatches))); err != nil {
+								return nil, err
 							}
 						}
-						for i := range m.Topics[i].Partitions[i].AcknowledgementBatches {
+						for i := range structItem.Partitions[i].AcknowledgementBatches {
 							// FirstOffset
 							if version >= 0 && version <= 999 {
-								if err := protocol.WriteInt64(w, m.Topics[i].Partitions[i].AcknowledgementBatches[i].FirstOffset); err != nil {
-									return err
+								if err := protocol.WriteInt64(elemW, structItem.Partitions[i].AcknowledgementBatches[i].FirstOffset); err != nil {
+									return nil, err
 								}
 							}
 							// LastOffset
 							if version >= 0 && version <= 999 {
-								if err := protocol.WriteInt64(w, m.Topics[i].Partitions[i].AcknowledgementBatches[i].LastOffset); err != nil {
-									return err
+								if err := protocol.WriteInt64(elemW, structItem.Partitions[i].AcknowledgementBatches[i].LastOffset); err != nil {
+									return nil, err
 								}
 							}
 							// AcknowledgeTypes
 							if version >= 0 && version <= 999 {
 								if isFlexible {
-									length := uint32(len(m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes) + 1)
-									if err := protocol.WriteVaruint32(w, length); err != nil {
-										return err
+									if err := protocol.WriteCompactInt8Array(elemW, structItem.Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes); err != nil {
+										return nil, err
 									}
 								} else {
-									if err := protocol.WriteInt32(w, int32(len(m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes))); err != nil {
-										return err
+									if err := protocol.WriteInt8Array(elemW, structItem.Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes); err != nil {
+										return nil, err
 									}
-								}
-								for i := range m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes {
-									if err := protocol.WriteInt8(w, m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes[i]); err != nil {
-										return err
-									}
-									_ = i
 								}
 							}
 						}
 					}
 				}
+			}
+			// Write tagged fields if flexible
+			if isFlexible {
+				if err := structItem.writeTaggedFields(elemW, version); err != nil {
+					return nil, err
+				}
+			}
+			return elemBuf.Bytes(), nil
+		}
+		items := make([]interface{}, len(m.Topics))
+		for i := range m.Topics {
+			items[i] = m.Topics[i]
+		}
+		if isFlexible {
+			if err := protocol.WriteCompactArray(w, items, encoder); err != nil {
+				return err
+			}
+		} else {
+			if err := protocol.WriteArray(w, items, encoder); err != nil {
+				return err
 			}
 		}
 	}
@@ -248,9 +262,33 @@ func (m *ShareAcknowledgeRequest) Read(r io.Reader, version int16) error {
 	}
 	// Topics
 	if version >= 0 && version <= 999 {
-		var length int32
+		// Decode array using ArrayDecoder
+		decoder := func(data []byte) (interface{}, int, error) {
+			var elem ShareAcknowledgeRequestAcknowledgeTopic
+			elemR := bytes.NewReader(data)
+			// TopicId
+			if version >= 0 && version <= 999 {
+				val, err := protocol.ReadUUID(elemR)
+				if err != nil {
+					return nil, 0, err
+				}
+				elem.TopicId = val
+			}
+			// Partitions
+			if version >= 0 && version <= 999 {
+				// Nested array in decoder - manual handling needed
+				return nil, 0, errors.New("nested arrays in decoder not fully supported")
+			}
+			// Read tagged fields if flexible
+			if isFlexible {
+				if err := elem.readTaggedFields(elemR, version); err != nil {
+					return nil, 0, err
+				}
+			}
+			consumed := len(data) - elemR.Len()
+			return elem, consumed, nil
+		}
 		if isFlexible {
-			var lengthUint uint32
 			lengthUint, err := protocol.ReadVaruint32(r)
 			if err != nil {
 				return err
@@ -258,22 +296,45 @@ func (m *ShareAcknowledgeRequest) Read(r io.Reader, version int16) error {
 			if lengthUint < 1 {
 				return errors.New("invalid compact array length")
 			}
-			length = int32(lengthUint - 1)
-			m.Topics = make([]ShareAcknowledgeRequestAcknowledgeTopic, length)
+			length := int32(lengthUint - 1)
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
 			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem ShareAcknowledgeRequestAcknowledgeTopic
 				// TopicId
 				if version >= 0 && version <= 999 {
 					val, err := protocol.ReadUUID(r)
 					if err != nil {
 						return err
 					}
-					m.Topics[i].TopicId = val
+					tempElem.TopicId = val
 				}
 				// Partitions
 				if version >= 0 && version <= 999 {
-					var length int32
+					// Decode array using ArrayDecoder
+					decoder := func(data []byte) (interface{}, int, error) {
+						var elem ShareAcknowledgeRequestAcknowledgePartition
+						elemR := bytes.NewReader(data)
+						// PartitionIndex
+						if version >= 0 && version <= 999 {
+							val, err := protocol.ReadInt32(elemR)
+							if err != nil {
+								return nil, 0, err
+							}
+							elem.PartitionIndex = val
+						}
+						// AcknowledgementBatches
+						if version >= 0 && version <= 999 {
+							// Nested array in decoder - manual handling needed
+							return nil, 0, errors.New("nested arrays in decoder not fully supported")
+						}
+						consumed := len(data) - elemR.Len()
+						return elem, consumed, nil
+					}
 					if isFlexible {
-						var lengthUint uint32
 						lengthUint, err := protocol.ReadVaruint32(r)
 						if err != nil {
 							return err
@@ -281,22 +342,64 @@ func (m *ShareAcknowledgeRequest) Read(r io.Reader, version int16) error {
 						if lengthUint < 1 {
 							return errors.New("invalid compact array length")
 						}
-						length = int32(lengthUint - 1)
-						m.Topics[i].Partitions = make([]ShareAcknowledgeRequestAcknowledgePartition, length)
+						length := int32(lengthUint - 1)
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
 						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem ShareAcknowledgeRequestAcknowledgePartition
 							// PartitionIndex
 							if version >= 0 && version <= 999 {
 								val, err := protocol.ReadInt32(r)
 								if err != nil {
 									return err
 								}
-								m.Topics[i].Partitions[i].PartitionIndex = val
+								tempElem.PartitionIndex = val
 							}
 							// AcknowledgementBatches
 							if version >= 0 && version <= 999 {
-								var length int32
+								// Decode array using ArrayDecoder
+								decoder := func(data []byte) (interface{}, int, error) {
+									var elem ShareAcknowledgeRequestAcknowledgementBatch
+									elemR := bytes.NewReader(data)
+									// FirstOffset
+									if version >= 0 && version <= 999 {
+										val, err := protocol.ReadInt64(elemR)
+										if err != nil {
+											return nil, 0, err
+										}
+										elem.FirstOffset = val
+									}
+									// LastOffset
+									if version >= 0 && version <= 999 {
+										val, err := protocol.ReadInt64(elemR)
+										if err != nil {
+											return nil, 0, err
+										}
+										elem.LastOffset = val
+									}
+									// AcknowledgeTypes
+									if version >= 0 && version <= 999 {
+										if isFlexible {
+											val, err := protocol.ReadCompactInt8Array(elemR)
+											if err != nil {
+												return nil, 0, err
+											}
+											elem.AcknowledgeTypes = val
+										} else {
+											val, err := protocol.ReadInt8Array(elemR)
+											if err != nil {
+												return nil, 0, err
+											}
+											elem.AcknowledgeTypes = val
+										}
+									}
+									consumed := len(data) - elemR.Len()
+									return elem, consumed, nil
+								}
 								if isFlexible {
-									var lengthUint uint32
 									lengthUint, err := protocol.ReadVaruint32(r)
 									if err != nil {
 										return err
@@ -304,16 +407,21 @@ func (m *ShareAcknowledgeRequest) Read(r io.Reader, version int16) error {
 									if lengthUint < 1 {
 										return errors.New("invalid compact array length")
 									}
-									length = int32(lengthUint - 1)
-									m.Topics[i].Partitions[i].AcknowledgementBatches = make([]ShareAcknowledgeRequestAcknowledgementBatch, length)
+									length := int32(lengthUint - 1)
+									// Collect all array elements into a buffer
+									var arrayBuf bytes.Buffer
 									for i := int32(0); i < length; i++ {
+										// Read element into struct and encode to buffer
+										var elemBuf bytes.Buffer
+										elemW := &elemBuf
+										var tempElem ShareAcknowledgeRequestAcknowledgementBatch
 										// FirstOffset
 										if version >= 0 && version <= 999 {
 											val, err := protocol.ReadInt64(r)
 											if err != nil {
 												return err
 											}
-											m.Topics[i].Partitions[i].AcknowledgementBatches[i].FirstOffset = val
+											tempElem.FirstOffset = val
 										}
 										// LastOffset
 										if version >= 0 && version <= 999 {
@@ -321,61 +429,82 @@ func (m *ShareAcknowledgeRequest) Read(r io.Reader, version int16) error {
 											if err != nil {
 												return err
 											}
-											m.Topics[i].Partitions[i].AcknowledgementBatches[i].LastOffset = val
+											tempElem.LastOffset = val
 										}
 										// AcknowledgeTypes
 										if version >= 0 && version <= 999 {
-											var length int32
 											if isFlexible {
-												var lengthUint uint32
-												lengthUint, err := protocol.ReadVaruint32(r)
+												val, err := protocol.ReadCompactInt8Array(r)
 												if err != nil {
 													return err
 												}
-												if lengthUint < 1 {
-													return errors.New("invalid compact array length")
+												tempElem.AcknowledgeTypes = val
+											} else {
+												val, err := protocol.ReadInt8Array(r)
+												if err != nil {
+													return err
 												}
-												length = int32(lengthUint - 1)
-												m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes = make([]int8, length)
-												for i := int32(0); i < length; i++ {
-													val, err := protocol.ReadInt8(r)
-													if err != nil {
-														return err
-													}
-													m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes[i] = val
+												tempElem.AcknowledgeTypes = val
+											}
+										}
+										// FirstOffset
+										if version >= 0 && version <= 999 {
+											if err := protocol.WriteInt64(elemW, tempElem.FirstOffset); err != nil {
+												return err
+											}
+										}
+										// LastOffset
+										if version >= 0 && version <= 999 {
+											if err := protocol.WriteInt64(elemW, tempElem.LastOffset); err != nil {
+												return err
+											}
+										}
+										// AcknowledgeTypes
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactInt8Array(elemW, tempElem.AcknowledgeTypes); err != nil {
+													return err
 												}
 											} else {
-												var err error
-												length, err = protocol.ReadInt32(r)
-												if err != nil {
+												if err := protocol.WriteInt8Array(elemW, tempElem.AcknowledgeTypes); err != nil {
 													return err
-												}
-												m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes = make([]int8, length)
-												for i := int32(0); i < length; i++ {
-													val, err := protocol.ReadInt8(r)
-													if err != nil {
-														return err
-													}
-													m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes[i] = val
 												}
 											}
 										}
+										// Append to array buffer
+										arrayBuf.Write(elemBuf.Bytes())
 									}
-								} else {
-									var err error
-									length, err = protocol.ReadInt32(r)
+									// Prepend length and decode using DecodeCompactArray
+									lengthBytes := protocol.EncodeVaruint32(lengthUint)
+									fullData := append(lengthBytes, arrayBuf.Bytes()...)
+									decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
 									if err != nil {
 										return err
 									}
-									m.Topics[i].Partitions[i].AcknowledgementBatches = make([]ShareAcknowledgeRequestAcknowledgementBatch, length)
+									// Convert []interface{} to typed slice
+									tempElem.AcknowledgementBatches = make([]ShareAcknowledgeRequestAcknowledgementBatch, len(decoded))
+									for i, item := range decoded {
+										tempElem.AcknowledgementBatches[i] = item.(ShareAcknowledgeRequestAcknowledgementBatch)
+									}
+								} else {
+									length, err := protocol.ReadInt32(r)
+									if err != nil {
+										return err
+									}
+									// Collect all array elements into a buffer
+									var arrayBuf bytes.Buffer
 									for i := int32(0); i < length; i++ {
+										// Read element into struct and encode to buffer
+										var elemBuf bytes.Buffer
+										elemW := &elemBuf
+										var tempElem ShareAcknowledgeRequestAcknowledgementBatch
 										// FirstOffset
 										if version >= 0 && version <= 999 {
 											val, err := protocol.ReadInt64(r)
 											if err != nil {
 												return err
 											}
-											m.Topics[i].Partitions[i].AcknowledgementBatches[i].FirstOffset = val
+											tempElem.FirstOffset = val
 										}
 										// LastOffset
 										if version >= 0 && version <= 999 {
@@ -383,70 +512,187 @@ func (m *ShareAcknowledgeRequest) Read(r io.Reader, version int16) error {
 											if err != nil {
 												return err
 											}
-											m.Topics[i].Partitions[i].AcknowledgementBatches[i].LastOffset = val
+											tempElem.LastOffset = val
 										}
 										// AcknowledgeTypes
 										if version >= 0 && version <= 999 {
-											var length int32
 											if isFlexible {
-												var lengthUint uint32
-												lengthUint, err := protocol.ReadVaruint32(r)
+												val, err := protocol.ReadCompactInt8Array(r)
 												if err != nil {
 													return err
 												}
-												if lengthUint < 1 {
-													return errors.New("invalid compact array length")
+												tempElem.AcknowledgeTypes = val
+											} else {
+												val, err := protocol.ReadInt8Array(r)
+												if err != nil {
+													return err
 												}
-												length = int32(lengthUint - 1)
-												m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes = make([]int8, length)
-												for i := int32(0); i < length; i++ {
-													val, err := protocol.ReadInt8(r)
-													if err != nil {
-														return err
-													}
-													m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes[i] = val
+												tempElem.AcknowledgeTypes = val
+											}
+										}
+										// FirstOffset
+										if version >= 0 && version <= 999 {
+											if err := protocol.WriteInt64(elemW, tempElem.FirstOffset); err != nil {
+												return err
+											}
+										}
+										// LastOffset
+										if version >= 0 && version <= 999 {
+											if err := protocol.WriteInt64(elemW, tempElem.LastOffset); err != nil {
+												return err
+											}
+										}
+										// AcknowledgeTypes
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactInt8Array(elemW, tempElem.AcknowledgeTypes); err != nil {
+													return err
 												}
 											} else {
-												var err error
-												length, err = protocol.ReadInt32(r)
-												if err != nil {
+												if err := protocol.WriteInt8Array(elemW, tempElem.AcknowledgeTypes); err != nil {
 													return err
 												}
-												m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes = make([]int8, length)
-												for i := int32(0); i < length; i++ {
-													val, err := protocol.ReadInt8(r)
-													if err != nil {
-														return err
-													}
-													m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes[i] = val
-												}
+											}
+										}
+										// Append to array buffer
+										arrayBuf.Write(elemBuf.Bytes())
+									}
+									// Prepend length and decode using DecodeArray
+									lengthBytes := protocol.EncodeInt32(length)
+									fullData := append(lengthBytes, arrayBuf.Bytes()...)
+									decoded, _, err := protocol.DecodeArray(fullData, decoder)
+									if err != nil {
+										return err
+									}
+									// Convert []interface{} to typed slice
+									tempElem.AcknowledgementBatches = make([]ShareAcknowledgeRequestAcknowledgementBatch, len(decoded))
+									for i, item := range decoded {
+										tempElem.AcknowledgementBatches[i] = item.(ShareAcknowledgeRequestAcknowledgementBatch)
+									}
+								}
+							}
+							// PartitionIndex
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt32(elemW, tempElem.PartitionIndex); err != nil {
+									return err
+								}
+							}
+							// AcknowledgementBatches
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									length := uint32(len(tempElem.AcknowledgementBatches) + 1)
+									if err := protocol.WriteVaruint32(elemW, length); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt32(elemW, int32(len(tempElem.AcknowledgementBatches))); err != nil {
+										return err
+									}
+								}
+								for i := range tempElem.AcknowledgementBatches {
+									// FirstOffset
+									if version >= 0 && version <= 999 {
+										if err := protocol.WriteInt64(elemW, tempElem.AcknowledgementBatches[i].FirstOffset); err != nil {
+											return err
+										}
+									}
+									// LastOffset
+									if version >= 0 && version <= 999 {
+										if err := protocol.WriteInt64(elemW, tempElem.AcknowledgementBatches[i].LastOffset); err != nil {
+											return err
+										}
+									}
+									// AcknowledgeTypes
+									if version >= 0 && version <= 999 {
+										if isFlexible {
+											if err := protocol.WriteCompactInt8Array(elemW, tempElem.AcknowledgementBatches[i].AcknowledgeTypes); err != nil {
+												return err
+											}
+										} else {
+											if err := protocol.WriteInt8Array(elemW, tempElem.AcknowledgementBatches[i].AcknowledgeTypes); err != nil {
+												return err
 											}
 										}
 									}
 								}
 							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
 						}
-					} else {
-						var err error
-						length, err = protocol.ReadInt32(r)
+						// Prepend length and decode using DecodeCompactArray
+						lengthBytes := protocol.EncodeVaruint32(lengthUint)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
 						if err != nil {
 							return err
 						}
-						m.Topics[i].Partitions = make([]ShareAcknowledgeRequestAcknowledgePartition, length)
+						// Convert []interface{} to typed slice
+						tempElem.Partitions = make([]ShareAcknowledgeRequestAcknowledgePartition, len(decoded))
+						for i, item := range decoded {
+							tempElem.Partitions[i] = item.(ShareAcknowledgeRequestAcknowledgePartition)
+						}
+					} else {
+						length, err := protocol.ReadInt32(r)
+						if err != nil {
+							return err
+						}
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
 						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem ShareAcknowledgeRequestAcknowledgePartition
 							// PartitionIndex
 							if version >= 0 && version <= 999 {
 								val, err := protocol.ReadInt32(r)
 								if err != nil {
 									return err
 								}
-								m.Topics[i].Partitions[i].PartitionIndex = val
+								tempElem.PartitionIndex = val
 							}
 							// AcknowledgementBatches
 							if version >= 0 && version <= 999 {
-								var length int32
+								// Decode array using ArrayDecoder
+								decoder := func(data []byte) (interface{}, int, error) {
+									var elem ShareAcknowledgeRequestAcknowledgementBatch
+									elemR := bytes.NewReader(data)
+									// FirstOffset
+									if version >= 0 && version <= 999 {
+										val, err := protocol.ReadInt64(elemR)
+										if err != nil {
+											return nil, 0, err
+										}
+										elem.FirstOffset = val
+									}
+									// LastOffset
+									if version >= 0 && version <= 999 {
+										val, err := protocol.ReadInt64(elemR)
+										if err != nil {
+											return nil, 0, err
+										}
+										elem.LastOffset = val
+									}
+									// AcknowledgeTypes
+									if version >= 0 && version <= 999 {
+										if isFlexible {
+											val, err := protocol.ReadCompactInt8Array(elemR)
+											if err != nil {
+												return nil, 0, err
+											}
+											elem.AcknowledgeTypes = val
+										} else {
+											val, err := protocol.ReadInt8Array(elemR)
+											if err != nil {
+												return nil, 0, err
+											}
+											elem.AcknowledgeTypes = val
+										}
+									}
+									consumed := len(data) - elemR.Len()
+									return elem, consumed, nil
+								}
 								if isFlexible {
-									var lengthUint uint32
 									lengthUint, err := protocol.ReadVaruint32(r)
 									if err != nil {
 										return err
@@ -454,16 +700,21 @@ func (m *ShareAcknowledgeRequest) Read(r io.Reader, version int16) error {
 									if lengthUint < 1 {
 										return errors.New("invalid compact array length")
 									}
-									length = int32(lengthUint - 1)
-									m.Topics[i].Partitions[i].AcknowledgementBatches = make([]ShareAcknowledgeRequestAcknowledgementBatch, length)
+									length := int32(lengthUint - 1)
+									// Collect all array elements into a buffer
+									var arrayBuf bytes.Buffer
 									for i := int32(0); i < length; i++ {
+										// Read element into struct and encode to buffer
+										var elemBuf bytes.Buffer
+										elemW := &elemBuf
+										var tempElem ShareAcknowledgeRequestAcknowledgementBatch
 										// FirstOffset
 										if version >= 0 && version <= 999 {
 											val, err := protocol.ReadInt64(r)
 											if err != nil {
 												return err
 											}
-											m.Topics[i].Partitions[i].AcknowledgementBatches[i].FirstOffset = val
+											tempElem.FirstOffset = val
 										}
 										// LastOffset
 										if version >= 0 && version <= 999 {
@@ -471,61 +722,82 @@ func (m *ShareAcknowledgeRequest) Read(r io.Reader, version int16) error {
 											if err != nil {
 												return err
 											}
-											m.Topics[i].Partitions[i].AcknowledgementBatches[i].LastOffset = val
+											tempElem.LastOffset = val
 										}
 										// AcknowledgeTypes
 										if version >= 0 && version <= 999 {
-											var length int32
 											if isFlexible {
-												var lengthUint uint32
-												lengthUint, err := protocol.ReadVaruint32(r)
+												val, err := protocol.ReadCompactInt8Array(r)
 												if err != nil {
 													return err
 												}
-												if lengthUint < 1 {
-													return errors.New("invalid compact array length")
+												tempElem.AcknowledgeTypes = val
+											} else {
+												val, err := protocol.ReadInt8Array(r)
+												if err != nil {
+													return err
 												}
-												length = int32(lengthUint - 1)
-												m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes = make([]int8, length)
-												for i := int32(0); i < length; i++ {
-													val, err := protocol.ReadInt8(r)
-													if err != nil {
-														return err
-													}
-													m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes[i] = val
+												tempElem.AcknowledgeTypes = val
+											}
+										}
+										// FirstOffset
+										if version >= 0 && version <= 999 {
+											if err := protocol.WriteInt64(elemW, tempElem.FirstOffset); err != nil {
+												return err
+											}
+										}
+										// LastOffset
+										if version >= 0 && version <= 999 {
+											if err := protocol.WriteInt64(elemW, tempElem.LastOffset); err != nil {
+												return err
+											}
+										}
+										// AcknowledgeTypes
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactInt8Array(elemW, tempElem.AcknowledgeTypes); err != nil {
+													return err
 												}
 											} else {
-												var err error
-												length, err = protocol.ReadInt32(r)
-												if err != nil {
+												if err := protocol.WriteInt8Array(elemW, tempElem.AcknowledgeTypes); err != nil {
 													return err
-												}
-												m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes = make([]int8, length)
-												for i := int32(0); i < length; i++ {
-													val, err := protocol.ReadInt8(r)
-													if err != nil {
-														return err
-													}
-													m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes[i] = val
 												}
 											}
 										}
+										// Append to array buffer
+										arrayBuf.Write(elemBuf.Bytes())
 									}
-								} else {
-									var err error
-									length, err = protocol.ReadInt32(r)
+									// Prepend length and decode using DecodeCompactArray
+									lengthBytes := protocol.EncodeVaruint32(lengthUint)
+									fullData := append(lengthBytes, arrayBuf.Bytes()...)
+									decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
 									if err != nil {
 										return err
 									}
-									m.Topics[i].Partitions[i].AcknowledgementBatches = make([]ShareAcknowledgeRequestAcknowledgementBatch, length)
+									// Convert []interface{} to typed slice
+									tempElem.AcknowledgementBatches = make([]ShareAcknowledgeRequestAcknowledgementBatch, len(decoded))
+									for i, item := range decoded {
+										tempElem.AcknowledgementBatches[i] = item.(ShareAcknowledgeRequestAcknowledgementBatch)
+									}
+								} else {
+									length, err := protocol.ReadInt32(r)
+									if err != nil {
+										return err
+									}
+									// Collect all array elements into a buffer
+									var arrayBuf bytes.Buffer
 									for i := int32(0); i < length; i++ {
+										// Read element into struct and encode to buffer
+										var elemBuf bytes.Buffer
+										elemW := &elemBuf
+										var tempElem ShareAcknowledgeRequestAcknowledgementBatch
 										// FirstOffset
 										if version >= 0 && version <= 999 {
 											val, err := protocol.ReadInt64(r)
 											if err != nil {
 												return err
 											}
-											m.Topics[i].Partitions[i].AcknowledgementBatches[i].FirstOffset = val
+											tempElem.FirstOffset = val
 										}
 										// LastOffset
 										if version >= 0 && version <= 999 {
@@ -533,44 +805,186 @@ func (m *ShareAcknowledgeRequest) Read(r io.Reader, version int16) error {
 											if err != nil {
 												return err
 											}
-											m.Topics[i].Partitions[i].AcknowledgementBatches[i].LastOffset = val
+											tempElem.LastOffset = val
 										}
 										// AcknowledgeTypes
 										if version >= 0 && version <= 999 {
-											var length int32
 											if isFlexible {
-												var lengthUint uint32
-												lengthUint, err := protocol.ReadVaruint32(r)
+												val, err := protocol.ReadCompactInt8Array(r)
 												if err != nil {
 													return err
 												}
-												if lengthUint < 1 {
-													return errors.New("invalid compact array length")
+												tempElem.AcknowledgeTypes = val
+											} else {
+												val, err := protocol.ReadInt8Array(r)
+												if err != nil {
+													return err
 												}
-												length = int32(lengthUint - 1)
-												m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes = make([]int8, length)
-												for i := int32(0); i < length; i++ {
-													val, err := protocol.ReadInt8(r)
-													if err != nil {
-														return err
-													}
-													m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes[i] = val
+												tempElem.AcknowledgeTypes = val
+											}
+										}
+										// FirstOffset
+										if version >= 0 && version <= 999 {
+											if err := protocol.WriteInt64(elemW, tempElem.FirstOffset); err != nil {
+												return err
+											}
+										}
+										// LastOffset
+										if version >= 0 && version <= 999 {
+											if err := protocol.WriteInt64(elemW, tempElem.LastOffset); err != nil {
+												return err
+											}
+										}
+										// AcknowledgeTypes
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactInt8Array(elemW, tempElem.AcknowledgeTypes); err != nil {
+													return err
 												}
 											} else {
-												var err error
-												length, err = protocol.ReadInt32(r)
-												if err != nil {
+												if err := protocol.WriteInt8Array(elemW, tempElem.AcknowledgeTypes); err != nil {
 													return err
 												}
-												m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes = make([]int8, length)
-												for i := int32(0); i < length; i++ {
-													val, err := protocol.ReadInt8(r)
-													if err != nil {
-														return err
-													}
-													m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes[i] = val
-												}
 											}
+										}
+										// Append to array buffer
+										arrayBuf.Write(elemBuf.Bytes())
+									}
+									// Prepend length and decode using DecodeArray
+									lengthBytes := protocol.EncodeInt32(length)
+									fullData := append(lengthBytes, arrayBuf.Bytes()...)
+									decoded, _, err := protocol.DecodeArray(fullData, decoder)
+									if err != nil {
+										return err
+									}
+									// Convert []interface{} to typed slice
+									tempElem.AcknowledgementBatches = make([]ShareAcknowledgeRequestAcknowledgementBatch, len(decoded))
+									for i, item := range decoded {
+										tempElem.AcknowledgementBatches[i] = item.(ShareAcknowledgeRequestAcknowledgementBatch)
+									}
+								}
+							}
+							// PartitionIndex
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt32(elemW, tempElem.PartitionIndex); err != nil {
+									return err
+								}
+							}
+							// AcknowledgementBatches
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									length := uint32(len(tempElem.AcknowledgementBatches) + 1)
+									if err := protocol.WriteVaruint32(elemW, length); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt32(elemW, int32(len(tempElem.AcknowledgementBatches))); err != nil {
+										return err
+									}
+								}
+								for i := range tempElem.AcknowledgementBatches {
+									// FirstOffset
+									if version >= 0 && version <= 999 {
+										if err := protocol.WriteInt64(elemW, tempElem.AcknowledgementBatches[i].FirstOffset); err != nil {
+											return err
+										}
+									}
+									// LastOffset
+									if version >= 0 && version <= 999 {
+										if err := protocol.WriteInt64(elemW, tempElem.AcknowledgementBatches[i].LastOffset); err != nil {
+											return err
+										}
+									}
+									// AcknowledgeTypes
+									if version >= 0 && version <= 999 {
+										if isFlexible {
+											if err := protocol.WriteCompactInt8Array(elemW, tempElem.AcknowledgementBatches[i].AcknowledgeTypes); err != nil {
+												return err
+											}
+										} else {
+											if err := protocol.WriteInt8Array(elemW, tempElem.AcknowledgementBatches[i].AcknowledgeTypes); err != nil {
+												return err
+											}
+										}
+									}
+								}
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
+						}
+						// Prepend length and decode using DecodeArray
+						lengthBytes := protocol.EncodeInt32(length)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeArray(fullData, decoder)
+						if err != nil {
+							return err
+						}
+						// Convert []interface{} to typed slice
+						tempElem.Partitions = make([]ShareAcknowledgeRequestAcknowledgePartition, len(decoded))
+						for i, item := range decoded {
+							tempElem.Partitions[i] = item.(ShareAcknowledgeRequestAcknowledgePartition)
+						}
+					}
+				}
+				// TopicId
+				if version >= 0 && version <= 999 {
+					if err := protocol.WriteUUID(elemW, tempElem.TopicId); err != nil {
+						return err
+					}
+				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						length := uint32(len(tempElem.Partitions) + 1)
+						if err := protocol.WriteVaruint32(elemW, length); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32(elemW, int32(len(tempElem.Partitions))); err != nil {
+							return err
+						}
+					}
+					for i := range tempElem.Partitions {
+						// PartitionIndex
+						if version >= 0 && version <= 999 {
+							if err := protocol.WriteInt32(elemW, tempElem.Partitions[i].PartitionIndex); err != nil {
+								return err
+							}
+						}
+						// AcknowledgementBatches
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								length := uint32(len(tempElem.Partitions[i].AcknowledgementBatches) + 1)
+								if err := protocol.WriteVaruint32(elemW, length); err != nil {
+									return err
+								}
+							} else {
+								if err := protocol.WriteInt32(elemW, int32(len(tempElem.Partitions[i].AcknowledgementBatches))); err != nil {
+									return err
+								}
+							}
+							for i := range tempElem.Partitions[i].AcknowledgementBatches {
+								// FirstOffset
+								if version >= 0 && version <= 999 {
+									if err := protocol.WriteInt64(elemW, tempElem.Partitions[i].AcknowledgementBatches[i].FirstOffset); err != nil {
+										return err
+									}
+								}
+								// LastOffset
+								if version >= 0 && version <= 999 {
+									if err := protocol.WriteInt64(elemW, tempElem.Partitions[i].AcknowledgementBatches[i].LastOffset); err != nil {
+										return err
+									}
+								}
+								// AcknowledgeTypes
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										if err := protocol.WriteCompactInt8Array(elemW, tempElem.Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteInt8Array(elemW, tempElem.Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes); err != nil {
+											return err
 										}
 									}
 								}
@@ -578,28 +992,64 @@ func (m *ShareAcknowledgeRequest) Read(r io.Reader, version int16) error {
 						}
 					}
 				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
 			}
-		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			// Prepend length and decode using DecodeCompactArray
+			lengthBytes := protocol.EncodeVaruint32(lengthUint)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
 			if err != nil {
 				return err
 			}
-			m.Topics = make([]ShareAcknowledgeRequestAcknowledgeTopic, length)
+			// Convert []interface{} to typed slice
+			m.Topics = make([]ShareAcknowledgeRequestAcknowledgeTopic, len(decoded))
+			for i, item := range decoded {
+				m.Topics[i] = item.(ShareAcknowledgeRequestAcknowledgeTopic)
+			}
+		} else {
+			length, err := protocol.ReadInt32(r)
+			if err != nil {
+				return err
+			}
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
 			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem ShareAcknowledgeRequestAcknowledgeTopic
 				// TopicId
 				if version >= 0 && version <= 999 {
 					val, err := protocol.ReadUUID(r)
 					if err != nil {
 						return err
 					}
-					m.Topics[i].TopicId = val
+					tempElem.TopicId = val
 				}
 				// Partitions
 				if version >= 0 && version <= 999 {
-					var length int32
+					// Decode array using ArrayDecoder
+					decoder := func(data []byte) (interface{}, int, error) {
+						var elem ShareAcknowledgeRequestAcknowledgePartition
+						elemR := bytes.NewReader(data)
+						// PartitionIndex
+						if version >= 0 && version <= 999 {
+							val, err := protocol.ReadInt32(elemR)
+							if err != nil {
+								return nil, 0, err
+							}
+							elem.PartitionIndex = val
+						}
+						// AcknowledgementBatches
+						if version >= 0 && version <= 999 {
+							// Nested array in decoder - manual handling needed
+							return nil, 0, errors.New("nested arrays in decoder not fully supported")
+						}
+						consumed := len(data) - elemR.Len()
+						return elem, consumed, nil
+					}
 					if isFlexible {
-						var lengthUint uint32
 						lengthUint, err := protocol.ReadVaruint32(r)
 						if err != nil {
 							return err
@@ -607,22 +1057,64 @@ func (m *ShareAcknowledgeRequest) Read(r io.Reader, version int16) error {
 						if lengthUint < 1 {
 							return errors.New("invalid compact array length")
 						}
-						length = int32(lengthUint - 1)
-						m.Topics[i].Partitions = make([]ShareAcknowledgeRequestAcknowledgePartition, length)
+						length := int32(lengthUint - 1)
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
 						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem ShareAcknowledgeRequestAcknowledgePartition
 							// PartitionIndex
 							if version >= 0 && version <= 999 {
 								val, err := protocol.ReadInt32(r)
 								if err != nil {
 									return err
 								}
-								m.Topics[i].Partitions[i].PartitionIndex = val
+								tempElem.PartitionIndex = val
 							}
 							// AcknowledgementBatches
 							if version >= 0 && version <= 999 {
-								var length int32
+								// Decode array using ArrayDecoder
+								decoder := func(data []byte) (interface{}, int, error) {
+									var elem ShareAcknowledgeRequestAcknowledgementBatch
+									elemR := bytes.NewReader(data)
+									// FirstOffset
+									if version >= 0 && version <= 999 {
+										val, err := protocol.ReadInt64(elemR)
+										if err != nil {
+											return nil, 0, err
+										}
+										elem.FirstOffset = val
+									}
+									// LastOffset
+									if version >= 0 && version <= 999 {
+										val, err := protocol.ReadInt64(elemR)
+										if err != nil {
+											return nil, 0, err
+										}
+										elem.LastOffset = val
+									}
+									// AcknowledgeTypes
+									if version >= 0 && version <= 999 {
+										if isFlexible {
+											val, err := protocol.ReadCompactInt8Array(elemR)
+											if err != nil {
+												return nil, 0, err
+											}
+											elem.AcknowledgeTypes = val
+										} else {
+											val, err := protocol.ReadInt8Array(elemR)
+											if err != nil {
+												return nil, 0, err
+											}
+											elem.AcknowledgeTypes = val
+										}
+									}
+									consumed := len(data) - elemR.Len()
+									return elem, consumed, nil
+								}
 								if isFlexible {
-									var lengthUint uint32
 									lengthUint, err := protocol.ReadVaruint32(r)
 									if err != nil {
 										return err
@@ -630,16 +1122,21 @@ func (m *ShareAcknowledgeRequest) Read(r io.Reader, version int16) error {
 									if lengthUint < 1 {
 										return errors.New("invalid compact array length")
 									}
-									length = int32(lengthUint - 1)
-									m.Topics[i].Partitions[i].AcknowledgementBatches = make([]ShareAcknowledgeRequestAcknowledgementBatch, length)
+									length := int32(lengthUint - 1)
+									// Collect all array elements into a buffer
+									var arrayBuf bytes.Buffer
 									for i := int32(0); i < length; i++ {
+										// Read element into struct and encode to buffer
+										var elemBuf bytes.Buffer
+										elemW := &elemBuf
+										var tempElem ShareAcknowledgeRequestAcknowledgementBatch
 										// FirstOffset
 										if version >= 0 && version <= 999 {
 											val, err := protocol.ReadInt64(r)
 											if err != nil {
 												return err
 											}
-											m.Topics[i].Partitions[i].AcknowledgementBatches[i].FirstOffset = val
+											tempElem.FirstOffset = val
 										}
 										// LastOffset
 										if version >= 0 && version <= 999 {
@@ -647,61 +1144,82 @@ func (m *ShareAcknowledgeRequest) Read(r io.Reader, version int16) error {
 											if err != nil {
 												return err
 											}
-											m.Topics[i].Partitions[i].AcknowledgementBatches[i].LastOffset = val
+											tempElem.LastOffset = val
 										}
 										// AcknowledgeTypes
 										if version >= 0 && version <= 999 {
-											var length int32
 											if isFlexible {
-												var lengthUint uint32
-												lengthUint, err := protocol.ReadVaruint32(r)
+												val, err := protocol.ReadCompactInt8Array(r)
 												if err != nil {
 													return err
 												}
-												if lengthUint < 1 {
-													return errors.New("invalid compact array length")
+												tempElem.AcknowledgeTypes = val
+											} else {
+												val, err := protocol.ReadInt8Array(r)
+												if err != nil {
+													return err
 												}
-												length = int32(lengthUint - 1)
-												m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes = make([]int8, length)
-												for i := int32(0); i < length; i++ {
-													val, err := protocol.ReadInt8(r)
-													if err != nil {
-														return err
-													}
-													m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes[i] = val
+												tempElem.AcknowledgeTypes = val
+											}
+										}
+										// FirstOffset
+										if version >= 0 && version <= 999 {
+											if err := protocol.WriteInt64(elemW, tempElem.FirstOffset); err != nil {
+												return err
+											}
+										}
+										// LastOffset
+										if version >= 0 && version <= 999 {
+											if err := protocol.WriteInt64(elemW, tempElem.LastOffset); err != nil {
+												return err
+											}
+										}
+										// AcknowledgeTypes
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactInt8Array(elemW, tempElem.AcknowledgeTypes); err != nil {
+													return err
 												}
 											} else {
-												var err error
-												length, err = protocol.ReadInt32(r)
-												if err != nil {
+												if err := protocol.WriteInt8Array(elemW, tempElem.AcknowledgeTypes); err != nil {
 													return err
-												}
-												m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes = make([]int8, length)
-												for i := int32(0); i < length; i++ {
-													val, err := protocol.ReadInt8(r)
-													if err != nil {
-														return err
-													}
-													m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes[i] = val
 												}
 											}
 										}
+										// Append to array buffer
+										arrayBuf.Write(elemBuf.Bytes())
 									}
-								} else {
-									var err error
-									length, err = protocol.ReadInt32(r)
+									// Prepend length and decode using DecodeCompactArray
+									lengthBytes := protocol.EncodeVaruint32(lengthUint)
+									fullData := append(lengthBytes, arrayBuf.Bytes()...)
+									decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
 									if err != nil {
 										return err
 									}
-									m.Topics[i].Partitions[i].AcknowledgementBatches = make([]ShareAcknowledgeRequestAcknowledgementBatch, length)
+									// Convert []interface{} to typed slice
+									tempElem.AcknowledgementBatches = make([]ShareAcknowledgeRequestAcknowledgementBatch, len(decoded))
+									for i, item := range decoded {
+										tempElem.AcknowledgementBatches[i] = item.(ShareAcknowledgeRequestAcknowledgementBatch)
+									}
+								} else {
+									length, err := protocol.ReadInt32(r)
+									if err != nil {
+										return err
+									}
+									// Collect all array elements into a buffer
+									var arrayBuf bytes.Buffer
 									for i := int32(0); i < length; i++ {
+										// Read element into struct and encode to buffer
+										var elemBuf bytes.Buffer
+										elemW := &elemBuf
+										var tempElem ShareAcknowledgeRequestAcknowledgementBatch
 										// FirstOffset
 										if version >= 0 && version <= 999 {
 											val, err := protocol.ReadInt64(r)
 											if err != nil {
 												return err
 											}
-											m.Topics[i].Partitions[i].AcknowledgementBatches[i].FirstOffset = val
+											tempElem.FirstOffset = val
 										}
 										// LastOffset
 										if version >= 0 && version <= 999 {
@@ -709,70 +1227,187 @@ func (m *ShareAcknowledgeRequest) Read(r io.Reader, version int16) error {
 											if err != nil {
 												return err
 											}
-											m.Topics[i].Partitions[i].AcknowledgementBatches[i].LastOffset = val
+											tempElem.LastOffset = val
 										}
 										// AcknowledgeTypes
 										if version >= 0 && version <= 999 {
-											var length int32
 											if isFlexible {
-												var lengthUint uint32
-												lengthUint, err := protocol.ReadVaruint32(r)
+												val, err := protocol.ReadCompactInt8Array(r)
 												if err != nil {
 													return err
 												}
-												if lengthUint < 1 {
-													return errors.New("invalid compact array length")
+												tempElem.AcknowledgeTypes = val
+											} else {
+												val, err := protocol.ReadInt8Array(r)
+												if err != nil {
+													return err
 												}
-												length = int32(lengthUint - 1)
-												m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes = make([]int8, length)
-												for i := int32(0); i < length; i++ {
-													val, err := protocol.ReadInt8(r)
-													if err != nil {
-														return err
-													}
-													m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes[i] = val
+												tempElem.AcknowledgeTypes = val
+											}
+										}
+										// FirstOffset
+										if version >= 0 && version <= 999 {
+											if err := protocol.WriteInt64(elemW, tempElem.FirstOffset); err != nil {
+												return err
+											}
+										}
+										// LastOffset
+										if version >= 0 && version <= 999 {
+											if err := protocol.WriteInt64(elemW, tempElem.LastOffset); err != nil {
+												return err
+											}
+										}
+										// AcknowledgeTypes
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactInt8Array(elemW, tempElem.AcknowledgeTypes); err != nil {
+													return err
 												}
 											} else {
-												var err error
-												length, err = protocol.ReadInt32(r)
-												if err != nil {
+												if err := protocol.WriteInt8Array(elemW, tempElem.AcknowledgeTypes); err != nil {
 													return err
 												}
-												m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes = make([]int8, length)
-												for i := int32(0); i < length; i++ {
-													val, err := protocol.ReadInt8(r)
-													if err != nil {
-														return err
-													}
-													m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes[i] = val
-												}
+											}
+										}
+										// Append to array buffer
+										arrayBuf.Write(elemBuf.Bytes())
+									}
+									// Prepend length and decode using DecodeArray
+									lengthBytes := protocol.EncodeInt32(length)
+									fullData := append(lengthBytes, arrayBuf.Bytes()...)
+									decoded, _, err := protocol.DecodeArray(fullData, decoder)
+									if err != nil {
+										return err
+									}
+									// Convert []interface{} to typed slice
+									tempElem.AcknowledgementBatches = make([]ShareAcknowledgeRequestAcknowledgementBatch, len(decoded))
+									for i, item := range decoded {
+										tempElem.AcknowledgementBatches[i] = item.(ShareAcknowledgeRequestAcknowledgementBatch)
+									}
+								}
+							}
+							// PartitionIndex
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt32(elemW, tempElem.PartitionIndex); err != nil {
+									return err
+								}
+							}
+							// AcknowledgementBatches
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									length := uint32(len(tempElem.AcknowledgementBatches) + 1)
+									if err := protocol.WriteVaruint32(elemW, length); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt32(elemW, int32(len(tempElem.AcknowledgementBatches))); err != nil {
+										return err
+									}
+								}
+								for i := range tempElem.AcknowledgementBatches {
+									// FirstOffset
+									if version >= 0 && version <= 999 {
+										if err := protocol.WriteInt64(elemW, tempElem.AcknowledgementBatches[i].FirstOffset); err != nil {
+											return err
+										}
+									}
+									// LastOffset
+									if version >= 0 && version <= 999 {
+										if err := protocol.WriteInt64(elemW, tempElem.AcknowledgementBatches[i].LastOffset); err != nil {
+											return err
+										}
+									}
+									// AcknowledgeTypes
+									if version >= 0 && version <= 999 {
+										if isFlexible {
+											if err := protocol.WriteCompactInt8Array(elemW, tempElem.AcknowledgementBatches[i].AcknowledgeTypes); err != nil {
+												return err
+											}
+										} else {
+											if err := protocol.WriteInt8Array(elemW, tempElem.AcknowledgementBatches[i].AcknowledgeTypes); err != nil {
+												return err
 											}
 										}
 									}
 								}
 							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
 						}
-					} else {
-						var err error
-						length, err = protocol.ReadInt32(r)
+						// Prepend length and decode using DecodeCompactArray
+						lengthBytes := protocol.EncodeVaruint32(lengthUint)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
 						if err != nil {
 							return err
 						}
-						m.Topics[i].Partitions = make([]ShareAcknowledgeRequestAcknowledgePartition, length)
+						// Convert []interface{} to typed slice
+						tempElem.Partitions = make([]ShareAcknowledgeRequestAcknowledgePartition, len(decoded))
+						for i, item := range decoded {
+							tempElem.Partitions[i] = item.(ShareAcknowledgeRequestAcknowledgePartition)
+						}
+					} else {
+						length, err := protocol.ReadInt32(r)
+						if err != nil {
+							return err
+						}
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
 						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem ShareAcknowledgeRequestAcknowledgePartition
 							// PartitionIndex
 							if version >= 0 && version <= 999 {
 								val, err := protocol.ReadInt32(r)
 								if err != nil {
 									return err
 								}
-								m.Topics[i].Partitions[i].PartitionIndex = val
+								tempElem.PartitionIndex = val
 							}
 							// AcknowledgementBatches
 							if version >= 0 && version <= 999 {
-								var length int32
+								// Decode array using ArrayDecoder
+								decoder := func(data []byte) (interface{}, int, error) {
+									var elem ShareAcknowledgeRequestAcknowledgementBatch
+									elemR := bytes.NewReader(data)
+									// FirstOffset
+									if version >= 0 && version <= 999 {
+										val, err := protocol.ReadInt64(elemR)
+										if err != nil {
+											return nil, 0, err
+										}
+										elem.FirstOffset = val
+									}
+									// LastOffset
+									if version >= 0 && version <= 999 {
+										val, err := protocol.ReadInt64(elemR)
+										if err != nil {
+											return nil, 0, err
+										}
+										elem.LastOffset = val
+									}
+									// AcknowledgeTypes
+									if version >= 0 && version <= 999 {
+										if isFlexible {
+											val, err := protocol.ReadCompactInt8Array(elemR)
+											if err != nil {
+												return nil, 0, err
+											}
+											elem.AcknowledgeTypes = val
+										} else {
+											val, err := protocol.ReadInt8Array(elemR)
+											if err != nil {
+												return nil, 0, err
+											}
+											elem.AcknowledgeTypes = val
+										}
+									}
+									consumed := len(data) - elemR.Len()
+									return elem, consumed, nil
+								}
 								if isFlexible {
-									var lengthUint uint32
 									lengthUint, err := protocol.ReadVaruint32(r)
 									if err != nil {
 										return err
@@ -780,16 +1415,21 @@ func (m *ShareAcknowledgeRequest) Read(r io.Reader, version int16) error {
 									if lengthUint < 1 {
 										return errors.New("invalid compact array length")
 									}
-									length = int32(lengthUint - 1)
-									m.Topics[i].Partitions[i].AcknowledgementBatches = make([]ShareAcknowledgeRequestAcknowledgementBatch, length)
+									length := int32(lengthUint - 1)
+									// Collect all array elements into a buffer
+									var arrayBuf bytes.Buffer
 									for i := int32(0); i < length; i++ {
+										// Read element into struct and encode to buffer
+										var elemBuf bytes.Buffer
+										elemW := &elemBuf
+										var tempElem ShareAcknowledgeRequestAcknowledgementBatch
 										// FirstOffset
 										if version >= 0 && version <= 999 {
 											val, err := protocol.ReadInt64(r)
 											if err != nil {
 												return err
 											}
-											m.Topics[i].Partitions[i].AcknowledgementBatches[i].FirstOffset = val
+											tempElem.FirstOffset = val
 										}
 										// LastOffset
 										if version >= 0 && version <= 999 {
@@ -797,61 +1437,82 @@ func (m *ShareAcknowledgeRequest) Read(r io.Reader, version int16) error {
 											if err != nil {
 												return err
 											}
-											m.Topics[i].Partitions[i].AcknowledgementBatches[i].LastOffset = val
+											tempElem.LastOffset = val
 										}
 										// AcknowledgeTypes
 										if version >= 0 && version <= 999 {
-											var length int32
 											if isFlexible {
-												var lengthUint uint32
-												lengthUint, err := protocol.ReadVaruint32(r)
+												val, err := protocol.ReadCompactInt8Array(r)
 												if err != nil {
 													return err
 												}
-												if lengthUint < 1 {
-													return errors.New("invalid compact array length")
+												tempElem.AcknowledgeTypes = val
+											} else {
+												val, err := protocol.ReadInt8Array(r)
+												if err != nil {
+													return err
 												}
-												length = int32(lengthUint - 1)
-												m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes = make([]int8, length)
-												for i := int32(0); i < length; i++ {
-													val, err := protocol.ReadInt8(r)
-													if err != nil {
-														return err
-													}
-													m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes[i] = val
+												tempElem.AcknowledgeTypes = val
+											}
+										}
+										// FirstOffset
+										if version >= 0 && version <= 999 {
+											if err := protocol.WriteInt64(elemW, tempElem.FirstOffset); err != nil {
+												return err
+											}
+										}
+										// LastOffset
+										if version >= 0 && version <= 999 {
+											if err := protocol.WriteInt64(elemW, tempElem.LastOffset); err != nil {
+												return err
+											}
+										}
+										// AcknowledgeTypes
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactInt8Array(elemW, tempElem.AcknowledgeTypes); err != nil {
+													return err
 												}
 											} else {
-												var err error
-												length, err = protocol.ReadInt32(r)
-												if err != nil {
+												if err := protocol.WriteInt8Array(elemW, tempElem.AcknowledgeTypes); err != nil {
 													return err
-												}
-												m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes = make([]int8, length)
-												for i := int32(0); i < length; i++ {
-													val, err := protocol.ReadInt8(r)
-													if err != nil {
-														return err
-													}
-													m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes[i] = val
 												}
 											}
 										}
+										// Append to array buffer
+										arrayBuf.Write(elemBuf.Bytes())
 									}
-								} else {
-									var err error
-									length, err = protocol.ReadInt32(r)
+									// Prepend length and decode using DecodeCompactArray
+									lengthBytes := protocol.EncodeVaruint32(lengthUint)
+									fullData := append(lengthBytes, arrayBuf.Bytes()...)
+									decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
 									if err != nil {
 										return err
 									}
-									m.Topics[i].Partitions[i].AcknowledgementBatches = make([]ShareAcknowledgeRequestAcknowledgementBatch, length)
+									// Convert []interface{} to typed slice
+									tempElem.AcknowledgementBatches = make([]ShareAcknowledgeRequestAcknowledgementBatch, len(decoded))
+									for i, item := range decoded {
+										tempElem.AcknowledgementBatches[i] = item.(ShareAcknowledgeRequestAcknowledgementBatch)
+									}
+								} else {
+									length, err := protocol.ReadInt32(r)
+									if err != nil {
+										return err
+									}
+									// Collect all array elements into a buffer
+									var arrayBuf bytes.Buffer
 									for i := int32(0); i < length; i++ {
+										// Read element into struct and encode to buffer
+										var elemBuf bytes.Buffer
+										elemW := &elemBuf
+										var tempElem ShareAcknowledgeRequestAcknowledgementBatch
 										// FirstOffset
 										if version >= 0 && version <= 999 {
 											val, err := protocol.ReadInt64(r)
 											if err != nil {
 												return err
 											}
-											m.Topics[i].Partitions[i].AcknowledgementBatches[i].FirstOffset = val
+											tempElem.FirstOffset = val
 										}
 										// LastOffset
 										if version >= 0 && version <= 999 {
@@ -859,44 +1520,186 @@ func (m *ShareAcknowledgeRequest) Read(r io.Reader, version int16) error {
 											if err != nil {
 												return err
 											}
-											m.Topics[i].Partitions[i].AcknowledgementBatches[i].LastOffset = val
+											tempElem.LastOffset = val
 										}
 										// AcknowledgeTypes
 										if version >= 0 && version <= 999 {
-											var length int32
 											if isFlexible {
-												var lengthUint uint32
-												lengthUint, err := protocol.ReadVaruint32(r)
+												val, err := protocol.ReadCompactInt8Array(r)
 												if err != nil {
 													return err
 												}
-												if lengthUint < 1 {
-													return errors.New("invalid compact array length")
+												tempElem.AcknowledgeTypes = val
+											} else {
+												val, err := protocol.ReadInt8Array(r)
+												if err != nil {
+													return err
 												}
-												length = int32(lengthUint - 1)
-												m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes = make([]int8, length)
-												for i := int32(0); i < length; i++ {
-													val, err := protocol.ReadInt8(r)
-													if err != nil {
-														return err
-													}
-													m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes[i] = val
+												tempElem.AcknowledgeTypes = val
+											}
+										}
+										// FirstOffset
+										if version >= 0 && version <= 999 {
+											if err := protocol.WriteInt64(elemW, tempElem.FirstOffset); err != nil {
+												return err
+											}
+										}
+										// LastOffset
+										if version >= 0 && version <= 999 {
+											if err := protocol.WriteInt64(elemW, tempElem.LastOffset); err != nil {
+												return err
+											}
+										}
+										// AcknowledgeTypes
+										if version >= 0 && version <= 999 {
+											if isFlexible {
+												if err := protocol.WriteCompactInt8Array(elemW, tempElem.AcknowledgeTypes); err != nil {
+													return err
 												}
 											} else {
-												var err error
-												length, err = protocol.ReadInt32(r)
-												if err != nil {
+												if err := protocol.WriteInt8Array(elemW, tempElem.AcknowledgeTypes); err != nil {
 													return err
 												}
-												m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes = make([]int8, length)
-												for i := int32(0); i < length; i++ {
-													val, err := protocol.ReadInt8(r)
-													if err != nil {
-														return err
-													}
-													m.Topics[i].Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes[i] = val
-												}
 											}
+										}
+										// Append to array buffer
+										arrayBuf.Write(elemBuf.Bytes())
+									}
+									// Prepend length and decode using DecodeArray
+									lengthBytes := protocol.EncodeInt32(length)
+									fullData := append(lengthBytes, arrayBuf.Bytes()...)
+									decoded, _, err := protocol.DecodeArray(fullData, decoder)
+									if err != nil {
+										return err
+									}
+									// Convert []interface{} to typed slice
+									tempElem.AcknowledgementBatches = make([]ShareAcknowledgeRequestAcknowledgementBatch, len(decoded))
+									for i, item := range decoded {
+										tempElem.AcknowledgementBatches[i] = item.(ShareAcknowledgeRequestAcknowledgementBatch)
+									}
+								}
+							}
+							// PartitionIndex
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt32(elemW, tempElem.PartitionIndex); err != nil {
+									return err
+								}
+							}
+							// AcknowledgementBatches
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									length := uint32(len(tempElem.AcknowledgementBatches) + 1)
+									if err := protocol.WriteVaruint32(elemW, length); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteInt32(elemW, int32(len(tempElem.AcknowledgementBatches))); err != nil {
+										return err
+									}
+								}
+								for i := range tempElem.AcknowledgementBatches {
+									// FirstOffset
+									if version >= 0 && version <= 999 {
+										if err := protocol.WriteInt64(elemW, tempElem.AcknowledgementBatches[i].FirstOffset); err != nil {
+											return err
+										}
+									}
+									// LastOffset
+									if version >= 0 && version <= 999 {
+										if err := protocol.WriteInt64(elemW, tempElem.AcknowledgementBatches[i].LastOffset); err != nil {
+											return err
+										}
+									}
+									// AcknowledgeTypes
+									if version >= 0 && version <= 999 {
+										if isFlexible {
+											if err := protocol.WriteCompactInt8Array(elemW, tempElem.AcknowledgementBatches[i].AcknowledgeTypes); err != nil {
+												return err
+											}
+										} else {
+											if err := protocol.WriteInt8Array(elemW, tempElem.AcknowledgementBatches[i].AcknowledgeTypes); err != nil {
+												return err
+											}
+										}
+									}
+								}
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
+						}
+						// Prepend length and decode using DecodeArray
+						lengthBytes := protocol.EncodeInt32(length)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeArray(fullData, decoder)
+						if err != nil {
+							return err
+						}
+						// Convert []interface{} to typed slice
+						tempElem.Partitions = make([]ShareAcknowledgeRequestAcknowledgePartition, len(decoded))
+						for i, item := range decoded {
+							tempElem.Partitions[i] = item.(ShareAcknowledgeRequestAcknowledgePartition)
+						}
+					}
+				}
+				// TopicId
+				if version >= 0 && version <= 999 {
+					if err := protocol.WriteUUID(elemW, tempElem.TopicId); err != nil {
+						return err
+					}
+				}
+				// Partitions
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						length := uint32(len(tempElem.Partitions) + 1)
+						if err := protocol.WriteVaruint32(elemW, length); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32(elemW, int32(len(tempElem.Partitions))); err != nil {
+							return err
+						}
+					}
+					for i := range tempElem.Partitions {
+						// PartitionIndex
+						if version >= 0 && version <= 999 {
+							if err := protocol.WriteInt32(elemW, tempElem.Partitions[i].PartitionIndex); err != nil {
+								return err
+							}
+						}
+						// AcknowledgementBatches
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								length := uint32(len(tempElem.Partitions[i].AcknowledgementBatches) + 1)
+								if err := protocol.WriteVaruint32(elemW, length); err != nil {
+									return err
+								}
+							} else {
+								if err := protocol.WriteInt32(elemW, int32(len(tempElem.Partitions[i].AcknowledgementBatches))); err != nil {
+									return err
+								}
+							}
+							for i := range tempElem.Partitions[i].AcknowledgementBatches {
+								// FirstOffset
+								if version >= 0 && version <= 999 {
+									if err := protocol.WriteInt64(elemW, tempElem.Partitions[i].AcknowledgementBatches[i].FirstOffset); err != nil {
+										return err
+									}
+								}
+								// LastOffset
+								if version >= 0 && version <= 999 {
+									if err := protocol.WriteInt64(elemW, tempElem.Partitions[i].AcknowledgementBatches[i].LastOffset); err != nil {
+										return err
+									}
+								}
+								// AcknowledgeTypes
+								if version >= 0 && version <= 999 {
+									if isFlexible {
+										if err := protocol.WriteCompactInt8Array(elemW, tempElem.Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes); err != nil {
+											return err
+										}
+									} else {
+										if err := protocol.WriteInt8Array(elemW, tempElem.Partitions[i].AcknowledgementBatches[i].AcknowledgeTypes); err != nil {
+											return err
 										}
 									}
 								}
@@ -904,6 +1707,20 @@ func (m *ShareAcknowledgeRequest) Read(r io.Reader, version int16) error {
 						}
 					}
 				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeArray
+			lengthBytes := protocol.EncodeInt32(length)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.Topics = make([]ShareAcknowledgeRequestAcknowledgeTopic, len(decoded))
+			for i, item := range decoded {
+				m.Topics[i] = item.(ShareAcknowledgeRequestAcknowledgeTopic)
 			}
 		}
 	}
@@ -922,6 +1739,56 @@ type ShareAcknowledgeRequestAcknowledgeTopic struct {
 	TopicId uuid.UUID `json:"topicid" versions:"0-999"`
 	// The partitions containing records to acknowledge.
 	Partitions []ShareAcknowledgeRequestAcknowledgePartition `json:"partitions" versions:"0-999"`
+	// Tagged fields (for flexible versions)
+	_tagged_fields map[uint32]interface{} `json:"-"`
+}
+
+// writeTaggedFields writes tagged fields for ShareAcknowledgeRequestAcknowledgeTopic.
+func (m *ShareAcknowledgeRequestAcknowledgeTopic) writeTaggedFields(w io.Writer, version int16) error {
+	var taggedFieldsCount int
+	var taggedFieldsBuf bytes.Buffer
+
+	// Write tagged fields count
+	if err := protocol.WriteVaruint32(w, uint32(taggedFieldsCount)); err != nil {
+		return err
+	}
+
+	// Write tagged fields data
+	if taggedFieldsCount > 0 {
+		if _, err := w.Write(taggedFieldsBuf.Bytes()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// readTaggedFields reads tagged fields for ShareAcknowledgeRequestAcknowledgeTopic.
+func (m *ShareAcknowledgeRequestAcknowledgeTopic) readTaggedFields(r io.Reader, version int16) error {
+	// Read tagged fields count
+	count, err := protocol.ReadVaruint32(r)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	// Read tagged fields
+	for i := uint32(0); i < count; i++ {
+		tag, err := protocol.ReadVaruint32(r)
+		if err != nil {
+			return err
+		}
+
+		switch tag {
+		default:
+			// Unknown tag, skip it
+		}
+	}
+
+	return nil
 }
 
 // ShareAcknowledgeRequestAcknowledgePartition represents The partitions containing records to acknowledge..
@@ -930,6 +1797,56 @@ type ShareAcknowledgeRequestAcknowledgePartition struct {
 	PartitionIndex int32 `json:"partitionindex" versions:"0-999"`
 	// Record batches to acknowledge.
 	AcknowledgementBatches []ShareAcknowledgeRequestAcknowledgementBatch `json:"acknowledgementbatches" versions:"0-999"`
+	// Tagged fields (for flexible versions)
+	_tagged_fields map[uint32]interface{} `json:"-"`
+}
+
+// writeTaggedFields writes tagged fields for ShareAcknowledgeRequestAcknowledgePartition.
+func (m *ShareAcknowledgeRequestAcknowledgePartition) writeTaggedFields(w io.Writer, version int16) error {
+	var taggedFieldsCount int
+	var taggedFieldsBuf bytes.Buffer
+
+	// Write tagged fields count
+	if err := protocol.WriteVaruint32(w, uint32(taggedFieldsCount)); err != nil {
+		return err
+	}
+
+	// Write tagged fields data
+	if taggedFieldsCount > 0 {
+		if _, err := w.Write(taggedFieldsBuf.Bytes()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// readTaggedFields reads tagged fields for ShareAcknowledgeRequestAcknowledgePartition.
+func (m *ShareAcknowledgeRequestAcknowledgePartition) readTaggedFields(r io.Reader, version int16) error {
+	// Read tagged fields count
+	count, err := protocol.ReadVaruint32(r)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	// Read tagged fields
+	for i := uint32(0); i < count; i++ {
+		tag, err := protocol.ReadVaruint32(r)
+		if err != nil {
+			return err
+		}
+
+		switch tag {
+		default:
+			// Unknown tag, skip it
+		}
+	}
+
+	return nil
 }
 
 // ShareAcknowledgeRequestAcknowledgementBatch represents Record batches to acknowledge..
@@ -940,6 +1857,56 @@ type ShareAcknowledgeRequestAcknowledgementBatch struct {
 	LastOffset int64 `json:"lastoffset" versions:"0-999"`
 	// Array of acknowledge types - 0:Gap,1:Accept,2:Release,3:Reject,4:Renew.
 	AcknowledgeTypes []int8 `json:"acknowledgetypes" versions:"0-999"`
+	// Tagged fields (for flexible versions)
+	_tagged_fields map[uint32]interface{} `json:"-"`
+}
+
+// writeTaggedFields writes tagged fields for ShareAcknowledgeRequestAcknowledgementBatch.
+func (m *ShareAcknowledgeRequestAcknowledgementBatch) writeTaggedFields(w io.Writer, version int16) error {
+	var taggedFieldsCount int
+	var taggedFieldsBuf bytes.Buffer
+
+	// Write tagged fields count
+	if err := protocol.WriteVaruint32(w, uint32(taggedFieldsCount)); err != nil {
+		return err
+	}
+
+	// Write tagged fields data
+	if taggedFieldsCount > 0 {
+		if _, err := w.Write(taggedFieldsBuf.Bytes()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// readTaggedFields reads tagged fields for ShareAcknowledgeRequestAcknowledgementBatch.
+func (m *ShareAcknowledgeRequestAcknowledgementBatch) readTaggedFields(r io.Reader, version int16) error {
+	// Read tagged fields count
+	count, err := protocol.ReadVaruint32(r)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	// Read tagged fields
+	for i := uint32(0); i < count; i++ {
+		tag, err := protocol.ReadVaruint32(r)
+		if err != nil {
+			return err
+		}
+
+		switch tag {
+		default:
+			// Unknown tag, skip it
+		}
+	}
+
+	return nil
 }
 
 // writeTaggedFields writes tagged fields for ShareAcknowledgeRequest.

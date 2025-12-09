@@ -77,6 +77,99 @@ func (m *DescribeClientQuotasResponse) Write(w io.Writer, version int16) error {
 	}
 	// Entries
 	if version >= 0 && version <= 999 {
+		// Encode array using ArrayEncoder
+		encoder := func(item interface{}) ([]byte, error) {
+			if item == nil {
+				return nil, nil
+			}
+			structItem, ok := item.(DescribeClientQuotasResponseEntryData)
+			if !ok {
+				return nil, errors.New("invalid type for array element")
+			}
+			var elemBuf bytes.Buffer
+			// Temporarily use elemBuf as writer
+			elemW := &elemBuf
+			// Entity
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					length := uint32(len(structItem.Entity) + 1)
+					if err := protocol.WriteVaruint32(elemW, length); err != nil {
+						return nil, err
+					}
+				} else {
+					if err := protocol.WriteInt32(elemW, int32(len(structItem.Entity))); err != nil {
+						return nil, err
+					}
+				}
+				for i := range structItem.Entity {
+					// EntityType
+					if version >= 0 && version <= 999 {
+						if isFlexible {
+							if err := protocol.WriteCompactString(elemW, structItem.Entity[i].EntityType); err != nil {
+								return nil, err
+							}
+						} else {
+							if err := protocol.WriteString(elemW, structItem.Entity[i].EntityType); err != nil {
+								return nil, err
+							}
+						}
+					}
+					// EntityName
+					if version >= 0 && version <= 999 {
+						if isFlexible {
+							if err := protocol.WriteCompactNullableString(elemW, structItem.Entity[i].EntityName); err != nil {
+								return nil, err
+							}
+						} else {
+							if err := protocol.WriteNullableString(elemW, structItem.Entity[i].EntityName); err != nil {
+								return nil, err
+							}
+						}
+					}
+				}
+			}
+			// Values
+			if version >= 0 && version <= 999 {
+				if isFlexible {
+					length := uint32(len(structItem.Values) + 1)
+					if err := protocol.WriteVaruint32(elemW, length); err != nil {
+						return nil, err
+					}
+				} else {
+					if err := protocol.WriteInt32(elemW, int32(len(structItem.Values))); err != nil {
+						return nil, err
+					}
+				}
+				for i := range structItem.Values {
+					// Key
+					if version >= 0 && version <= 999 {
+						if isFlexible {
+							if err := protocol.WriteCompactString(elemW, structItem.Values[i].Key); err != nil {
+								return nil, err
+							}
+						} else {
+							if err := protocol.WriteString(elemW, structItem.Values[i].Key); err != nil {
+								return nil, err
+							}
+						}
+					}
+					// Value
+					if version >= 0 && version <= 999 {
+					}
+				}
+			}
+			// Write tagged fields if flexible
+			if isFlexible {
+				if err := structItem.writeTaggedFields(elemW, version); err != nil {
+					return nil, err
+				}
+			}
+			return elemBuf.Bytes(), nil
+		}
+		items := make([]interface{}, len(m.Entries))
+		for i := range m.Entries {
+			items[i] = m.Entries[i]
+		}
 		if m.Entries == nil {
 			if isFlexible {
 				if err := protocol.WriteVaruint32(w, 0); err != nil {
@@ -89,84 +182,12 @@ func (m *DescribeClientQuotasResponse) Write(w io.Writer, version int16) error {
 			}
 		} else {
 			if isFlexible {
-				length := uint32(len(m.Entries) + 1)
-				if err := protocol.WriteVaruint32(w, length); err != nil {
+				if err := protocol.WriteCompactArray(w, items, encoder); err != nil {
 					return err
 				}
 			} else {
-				if err := protocol.WriteInt32(w, int32(len(m.Entries))); err != nil {
+				if err := protocol.WriteArray(w, items, encoder); err != nil {
 					return err
-				}
-			}
-			for i := range m.Entries {
-				// Entity
-				if version >= 0 && version <= 999 {
-					if isFlexible {
-						length := uint32(len(m.Entries[i].Entity) + 1)
-						if err := protocol.WriteVaruint32(w, length); err != nil {
-							return err
-						}
-					} else {
-						if err := protocol.WriteInt32(w, int32(len(m.Entries[i].Entity))); err != nil {
-							return err
-						}
-					}
-					for i := range m.Entries[i].Entity {
-						// EntityType
-						if version >= 0 && version <= 999 {
-							if isFlexible {
-								if err := protocol.WriteCompactString(w, m.Entries[i].Entity[i].EntityType); err != nil {
-									return err
-								}
-							} else {
-								if err := protocol.WriteString(w, m.Entries[i].Entity[i].EntityType); err != nil {
-									return err
-								}
-							}
-						}
-						// EntityName
-						if version >= 0 && version <= 999 {
-							if isFlexible {
-								if err := protocol.WriteCompactNullableString(w, m.Entries[i].Entity[i].EntityName); err != nil {
-									return err
-								}
-							} else {
-								if err := protocol.WriteNullableString(w, m.Entries[i].Entity[i].EntityName); err != nil {
-									return err
-								}
-							}
-						}
-					}
-				}
-				// Values
-				if version >= 0 && version <= 999 {
-					if isFlexible {
-						length := uint32(len(m.Entries[i].Values) + 1)
-						if err := protocol.WriteVaruint32(w, length); err != nil {
-							return err
-						}
-					} else {
-						if err := protocol.WriteInt32(w, int32(len(m.Entries[i].Values))); err != nil {
-							return err
-						}
-					}
-					for i := range m.Entries[i].Values {
-						// Key
-						if version >= 0 && version <= 999 {
-							if isFlexible {
-								if err := protocol.WriteCompactString(w, m.Entries[i].Values[i].Key); err != nil {
-									return err
-								}
-							} else {
-								if err := protocol.WriteString(w, m.Entries[i].Values[i].Key); err != nil {
-									return err
-								}
-							}
-						}
-						// Value
-						if version >= 0 && version <= 999 {
-						}
-					}
 				}
 			}
 		}
@@ -225,348 +246,970 @@ func (m *DescribeClientQuotasResponse) Read(r io.Reader, version int16) error {
 	}
 	// Entries
 	if version >= 0 && version <= 999 {
-		var length int32
+		// Decode array using ArrayDecoder
+		decoder := func(data []byte) (interface{}, int, error) {
+			var elem DescribeClientQuotasResponseEntryData
+			elemR := bytes.NewReader(data)
+			// Entity
+			if version >= 0 && version <= 999 {
+				// Nested array in decoder - manual handling needed
+				return nil, 0, errors.New("nested arrays in decoder not fully supported")
+			}
+			// Values
+			if version >= 0 && version <= 999 {
+				// Nested array in decoder - manual handling needed
+				return nil, 0, errors.New("nested arrays in decoder not fully supported")
+			}
+			// Read tagged fields if flexible
+			if isFlexible {
+				if err := elem.readTaggedFields(elemR, version); err != nil {
+					return nil, 0, err
+				}
+			}
+			consumed := len(data) - elemR.Len()
+			return elem, consumed, nil
+		}
 		if isFlexible {
-			var lengthUint uint32
 			lengthUint, err := protocol.ReadVaruint32(r)
 			if err != nil {
 				return err
 			}
 			if lengthUint == 0 {
 				m.Entries = nil
-			} else {
-				if lengthUint < 1 {
-					return errors.New("invalid compact array length")
+				return nil
+			}
+			if lengthUint < 1 {
+				return errors.New("invalid compact array length")
+			}
+			length := int32(lengthUint - 1)
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
+			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem DescribeClientQuotasResponseEntryData
+				// Entity
+				if version >= 0 && version <= 999 {
+					// Decode array using ArrayDecoder
+					decoder := func(data []byte) (interface{}, int, error) {
+						var elem DescribeClientQuotasResponseEntityData
+						elemR := bytes.NewReader(data)
+						// EntityType
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								val, err := protocol.ReadCompactString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.EntityType = val
+							} else {
+								val, err := protocol.ReadString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.EntityType = val
+							}
+						}
+						// EntityName
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								val, err := protocol.ReadCompactNullableString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.EntityName = val
+							} else {
+								val, err := protocol.ReadNullableString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.EntityName = val
+							}
+						}
+						consumed := len(data) - elemR.Len()
+						return elem, consumed, nil
+					}
+					if isFlexible {
+						lengthUint, err := protocol.ReadVaruint32(r)
+						if err != nil {
+							return err
+						}
+						if lengthUint < 1 {
+							return errors.New("invalid compact array length")
+						}
+						length := int32(lengthUint - 1)
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
+						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem DescribeClientQuotasResponseEntityData
+							// EntityType
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.EntityType = val
+								} else {
+									val, err := protocol.ReadString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.EntityType = val
+								}
+							}
+							// EntityName
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactNullableString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.EntityName = val
+								} else {
+									val, err := protocol.ReadNullableString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.EntityName = val
+								}
+							}
+							// EntityType
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactString(elemW, tempElem.EntityType); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteString(elemW, tempElem.EntityType); err != nil {
+										return err
+									}
+								}
+							}
+							// EntityName
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactNullableString(elemW, tempElem.EntityName); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteNullableString(elemW, tempElem.EntityName); err != nil {
+										return err
+									}
+								}
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
+						}
+						// Prepend length and decode using DecodeCompactArray
+						lengthBytes := protocol.EncodeVaruint32(lengthUint)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+						if err != nil {
+							return err
+						}
+						// Convert []interface{} to typed slice
+						tempElem.Entity = make([]DescribeClientQuotasResponseEntityData, len(decoded))
+						for i, item := range decoded {
+							tempElem.Entity[i] = item.(DescribeClientQuotasResponseEntityData)
+						}
+					} else {
+						length, err := protocol.ReadInt32(r)
+						if err != nil {
+							return err
+						}
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
+						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem DescribeClientQuotasResponseEntityData
+							// EntityType
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.EntityType = val
+								} else {
+									val, err := protocol.ReadString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.EntityType = val
+								}
+							}
+							// EntityName
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactNullableString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.EntityName = val
+								} else {
+									val, err := protocol.ReadNullableString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.EntityName = val
+								}
+							}
+							// EntityType
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactString(elemW, tempElem.EntityType); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteString(elemW, tempElem.EntityType); err != nil {
+										return err
+									}
+								}
+							}
+							// EntityName
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactNullableString(elemW, tempElem.EntityName); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteNullableString(elemW, tempElem.EntityName); err != nil {
+										return err
+									}
+								}
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
+						}
+						// Prepend length and decode using DecodeArray
+						lengthBytes := protocol.EncodeInt32(length)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeArray(fullData, decoder)
+						if err != nil {
+							return err
+						}
+						// Convert []interface{} to typed slice
+						tempElem.Entity = make([]DescribeClientQuotasResponseEntityData, len(decoded))
+						for i, item := range decoded {
+							tempElem.Entity[i] = item.(DescribeClientQuotasResponseEntityData)
+						}
+					}
 				}
-				length = int32(lengthUint - 1)
-				m.Entries = make([]DescribeClientQuotasResponseEntryData, length)
-				for i := int32(0); i < length; i++ {
-					// Entity
-					if version >= 0 && version <= 999 {
-						var length int32
-						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
-								return err
+				// Values
+				if version >= 0 && version <= 999 {
+					// Decode array using ArrayDecoder
+					decoder := func(data []byte) (interface{}, int, error) {
+						var elem DescribeClientQuotasResponseValueData
+						elemR := bytes.NewReader(data)
+						// Key
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								val, err := protocol.ReadCompactString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Key = val
+							} else {
+								val, err := protocol.ReadString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Key = val
 							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
+						}
+						// Value
+						if version >= 0 && version <= 999 {
+						}
+						consumed := len(data) - elemR.Len()
+						return elem, consumed, nil
+					}
+					if isFlexible {
+						lengthUint, err := protocol.ReadVaruint32(r)
+						if err != nil {
+							return err
+						}
+						if lengthUint < 1 {
+							return errors.New("invalid compact array length")
+						}
+						length := int32(lengthUint - 1)
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
+						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem DescribeClientQuotasResponseValueData
+							// Key
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Key = val
+								} else {
+									val, err := protocol.ReadString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Key = val
+								}
 							}
-							length = int32(lengthUint - 1)
-							m.Entries[i].Entity = make([]DescribeClientQuotasResponseEntityData, length)
-							for i := int32(0); i < length; i++ {
-								// EntityType
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactString(r)
-										if err != nil {
-											return err
-										}
-										m.Entries[i].Entity[i].EntityType = val
-									} else {
-										val, err := protocol.ReadString(r)
-										if err != nil {
-											return err
-										}
-										m.Entries[i].Entity[i].EntityType = val
+							// Value
+							if version >= 0 && version <= 999 {
+							}
+							// Key
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactString(elemW, tempElem.Key); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteString(elemW, tempElem.Key); err != nil {
+										return err
 									}
 								}
-								// EntityName
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactNullableString(r)
-										if err != nil {
-											return err
-										}
-										m.Entries[i].Entity[i].EntityName = val
-									} else {
-										val, err := protocol.ReadNullableString(r)
-										if err != nil {
-											return err
-										}
-										m.Entries[i].Entity[i].EntityName = val
+							}
+							// Value
+							if version >= 0 && version <= 999 {
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
+						}
+						// Prepend length and decode using DecodeCompactArray
+						lengthBytes := protocol.EncodeVaruint32(lengthUint)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+						if err != nil {
+							return err
+						}
+						// Convert []interface{} to typed slice
+						tempElem.Values = make([]DescribeClientQuotasResponseValueData, len(decoded))
+						for i, item := range decoded {
+							tempElem.Values[i] = item.(DescribeClientQuotasResponseValueData)
+						}
+					} else {
+						length, err := protocol.ReadInt32(r)
+						if err != nil {
+							return err
+						}
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
+						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem DescribeClientQuotasResponseValueData
+							// Key
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Key = val
+								} else {
+									val, err := protocol.ReadString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Key = val
+								}
+							}
+							// Value
+							if version >= 0 && version <= 999 {
+							}
+							// Key
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactString(elemW, tempElem.Key); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteString(elemW, tempElem.Key); err != nil {
+										return err
 									}
 								}
 							}
-						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
-								return err
+							// Value
+							if version >= 0 && version <= 999 {
 							}
-							m.Entries[i].Entity = make([]DescribeClientQuotasResponseEntityData, length)
-							for i := int32(0); i < length; i++ {
-								// EntityType
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactString(r)
-										if err != nil {
-											return err
-										}
-										m.Entries[i].Entity[i].EntityType = val
-									} else {
-										val, err := protocol.ReadString(r)
-										if err != nil {
-											return err
-										}
-										m.Entries[i].Entity[i].EntityType = val
-									}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
+						}
+						// Prepend length and decode using DecodeArray
+						lengthBytes := protocol.EncodeInt32(length)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeArray(fullData, decoder)
+						if err != nil {
+							return err
+						}
+						// Convert []interface{} to typed slice
+						tempElem.Values = make([]DescribeClientQuotasResponseValueData, len(decoded))
+						for i, item := range decoded {
+							tempElem.Values[i] = item.(DescribeClientQuotasResponseValueData)
+						}
+					}
+				}
+				// Entity
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						length := uint32(len(tempElem.Entity) + 1)
+						if err := protocol.WriteVaruint32(elemW, length); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32(elemW, int32(len(tempElem.Entity))); err != nil {
+							return err
+						}
+					}
+					for i := range tempElem.Entity {
+						// EntityType
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								if err := protocol.WriteCompactString(elemW, tempElem.Entity[i].EntityType); err != nil {
+									return err
 								}
-								// EntityName
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactNullableString(r)
-										if err != nil {
-											return err
-										}
-										m.Entries[i].Entity[i].EntityName = val
-									} else {
-										val, err := protocol.ReadNullableString(r)
-										if err != nil {
-											return err
-										}
-										m.Entries[i].Entity[i].EntityName = val
-									}
+							} else {
+								if err := protocol.WriteString(elemW, tempElem.Entity[i].EntityType); err != nil {
+									return err
+								}
+							}
+						}
+						// EntityName
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								if err := protocol.WriteCompactNullableString(elemW, tempElem.Entity[i].EntityName); err != nil {
+									return err
+								}
+							} else {
+								if err := protocol.WriteNullableString(elemW, tempElem.Entity[i].EntityName); err != nil {
+									return err
 								}
 							}
 						}
 					}
-					// Values
-					if version >= 0 && version <= 999 {
-						var length int32
-						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
-								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.Entries[i].Values = make([]DescribeClientQuotasResponseValueData, length)
-							for i := int32(0); i < length; i++ {
-								// Key
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactString(r)
-										if err != nil {
-											return err
-										}
-										m.Entries[i].Values[i].Key = val
-									} else {
-										val, err := protocol.ReadString(r)
-										if err != nil {
-											return err
-										}
-										m.Entries[i].Values[i].Key = val
-									}
+				}
+				// Values
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						length := uint32(len(tempElem.Values) + 1)
+						if err := protocol.WriteVaruint32(elemW, length); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32(elemW, int32(len(tempElem.Values))); err != nil {
+							return err
+						}
+					}
+					for i := range tempElem.Values {
+						// Key
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								if err := protocol.WriteCompactString(elemW, tempElem.Values[i].Key); err != nil {
+									return err
 								}
-								// Value
-								if version >= 0 && version <= 999 {
-								}
-							}
-						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
-								return err
-							}
-							m.Entries[i].Values = make([]DescribeClientQuotasResponseValueData, length)
-							for i := int32(0); i < length; i++ {
-								// Key
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactString(r)
-										if err != nil {
-											return err
-										}
-										m.Entries[i].Values[i].Key = val
-									} else {
-										val, err := protocol.ReadString(r)
-										if err != nil {
-											return err
-										}
-										m.Entries[i].Values[i].Key = val
-									}
-								}
-								// Value
-								if version >= 0 && version <= 999 {
+							} else {
+								if err := protocol.WriteString(elemW, tempElem.Values[i].Key); err != nil {
+									return err
 								}
 							}
 						}
+						// Value
+						if version >= 0 && version <= 999 {
+						}
 					}
 				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeCompactArray
+			lengthBytes := protocol.EncodeVaruint32(lengthUint)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.Entries = make([]DescribeClientQuotasResponseEntryData, len(decoded))
+			for i, item := range decoded {
+				m.Entries[i] = item.(DescribeClientQuotasResponseEntryData)
 			}
 		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			length, err := protocol.ReadInt32(r)
 			if err != nil {
 				return err
 			}
 			if length == -1 {
 				m.Entries = nil
-			} else {
-				m.Entries = make([]DescribeClientQuotasResponseEntryData, length)
-				for i := int32(0); i < length; i++ {
-					// Entity
-					if version >= 0 && version <= 999 {
-						var length int32
-						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
-								return err
+				return nil
+			}
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
+			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem DescribeClientQuotasResponseEntryData
+				// Entity
+				if version >= 0 && version <= 999 {
+					// Decode array using ArrayDecoder
+					decoder := func(data []byte) (interface{}, int, error) {
+						var elem DescribeClientQuotasResponseEntityData
+						elemR := bytes.NewReader(data)
+						// EntityType
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								val, err := protocol.ReadCompactString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.EntityType = val
+							} else {
+								val, err := protocol.ReadString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.EntityType = val
 							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
+						}
+						// EntityName
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								val, err := protocol.ReadCompactNullableString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.EntityName = val
+							} else {
+								val, err := protocol.ReadNullableString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.EntityName = val
 							}
-							length = int32(lengthUint - 1)
-							m.Entries[i].Entity = make([]DescribeClientQuotasResponseEntityData, length)
-							for i := int32(0); i < length; i++ {
-								// EntityType
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactString(r)
-										if err != nil {
-											return err
-										}
-										m.Entries[i].Entity[i].EntityType = val
-									} else {
-										val, err := protocol.ReadString(r)
-										if err != nil {
-											return err
-										}
-										m.Entries[i].Entity[i].EntityType = val
+						}
+						consumed := len(data) - elemR.Len()
+						return elem, consumed, nil
+					}
+					if isFlexible {
+						lengthUint, err := protocol.ReadVaruint32(r)
+						if err != nil {
+							return err
+						}
+						if lengthUint < 1 {
+							return errors.New("invalid compact array length")
+						}
+						length := int32(lengthUint - 1)
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
+						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem DescribeClientQuotasResponseEntityData
+							// EntityType
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.EntityType = val
+								} else {
+									val, err := protocol.ReadString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.EntityType = val
+								}
+							}
+							// EntityName
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactNullableString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.EntityName = val
+								} else {
+									val, err := protocol.ReadNullableString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.EntityName = val
+								}
+							}
+							// EntityType
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactString(elemW, tempElem.EntityType); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteString(elemW, tempElem.EntityType); err != nil {
+										return err
 									}
 								}
-								// EntityName
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactNullableString(r)
-										if err != nil {
-											return err
-										}
-										m.Entries[i].Entity[i].EntityName = val
-									} else {
-										val, err := protocol.ReadNullableString(r)
-										if err != nil {
-											return err
-										}
-										m.Entries[i].Entity[i].EntityName = val
+							}
+							// EntityName
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactNullableString(elemW, tempElem.EntityName); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteNullableString(elemW, tempElem.EntityName); err != nil {
+										return err
 									}
 								}
 							}
-						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
-								return err
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
+						}
+						// Prepend length and decode using DecodeCompactArray
+						lengthBytes := protocol.EncodeVaruint32(lengthUint)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+						if err != nil {
+							return err
+						}
+						// Convert []interface{} to typed slice
+						tempElem.Entity = make([]DescribeClientQuotasResponseEntityData, len(decoded))
+						for i, item := range decoded {
+							tempElem.Entity[i] = item.(DescribeClientQuotasResponseEntityData)
+						}
+					} else {
+						length, err := protocol.ReadInt32(r)
+						if err != nil {
+							return err
+						}
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
+						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem DescribeClientQuotasResponseEntityData
+							// EntityType
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.EntityType = val
+								} else {
+									val, err := protocol.ReadString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.EntityType = val
+								}
 							}
-							m.Entries[i].Entity = make([]DescribeClientQuotasResponseEntityData, length)
-							for i := int32(0); i < length; i++ {
-								// EntityType
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactString(r)
-										if err != nil {
-											return err
-										}
-										m.Entries[i].Entity[i].EntityType = val
-									} else {
-										val, err := protocol.ReadString(r)
-										if err != nil {
-											return err
-										}
-										m.Entries[i].Entity[i].EntityType = val
+							// EntityName
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactNullableString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.EntityName = val
+								} else {
+									val, err := protocol.ReadNullableString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.EntityName = val
+								}
+							}
+							// EntityType
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactString(elemW, tempElem.EntityType); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteString(elemW, tempElem.EntityType); err != nil {
+										return err
 									}
 								}
-								// EntityName
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactNullableString(r)
-										if err != nil {
-											return err
-										}
-										m.Entries[i].Entity[i].EntityName = val
-									} else {
-										val, err := protocol.ReadNullableString(r)
-										if err != nil {
-											return err
-										}
-										m.Entries[i].Entity[i].EntityName = val
+							}
+							// EntityName
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactNullableString(elemW, tempElem.EntityName); err != nil {
+										return err
 									}
+								} else {
+									if err := protocol.WriteNullableString(elemW, tempElem.EntityName); err != nil {
+										return err
+									}
+								}
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
+						}
+						// Prepend length and decode using DecodeArray
+						lengthBytes := protocol.EncodeInt32(length)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeArray(fullData, decoder)
+						if err != nil {
+							return err
+						}
+						// Convert []interface{} to typed slice
+						tempElem.Entity = make([]DescribeClientQuotasResponseEntityData, len(decoded))
+						for i, item := range decoded {
+							tempElem.Entity[i] = item.(DescribeClientQuotasResponseEntityData)
+						}
+					}
+				}
+				// Values
+				if version >= 0 && version <= 999 {
+					// Decode array using ArrayDecoder
+					decoder := func(data []byte) (interface{}, int, error) {
+						var elem DescribeClientQuotasResponseValueData
+						elemR := bytes.NewReader(data)
+						// Key
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								val, err := protocol.ReadCompactString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Key = val
+							} else {
+								val, err := protocol.ReadString(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Key = val
+							}
+						}
+						// Value
+						if version >= 0 && version <= 999 {
+						}
+						consumed := len(data) - elemR.Len()
+						return elem, consumed, nil
+					}
+					if isFlexible {
+						lengthUint, err := protocol.ReadVaruint32(r)
+						if err != nil {
+							return err
+						}
+						if lengthUint < 1 {
+							return errors.New("invalid compact array length")
+						}
+						length := int32(lengthUint - 1)
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
+						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem DescribeClientQuotasResponseValueData
+							// Key
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Key = val
+								} else {
+									val, err := protocol.ReadString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Key = val
+								}
+							}
+							// Value
+							if version >= 0 && version <= 999 {
+							}
+							// Key
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactString(elemW, tempElem.Key); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteString(elemW, tempElem.Key); err != nil {
+										return err
+									}
+								}
+							}
+							// Value
+							if version >= 0 && version <= 999 {
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
+						}
+						// Prepend length and decode using DecodeCompactArray
+						lengthBytes := protocol.EncodeVaruint32(lengthUint)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
+						if err != nil {
+							return err
+						}
+						// Convert []interface{} to typed slice
+						tempElem.Values = make([]DescribeClientQuotasResponseValueData, len(decoded))
+						for i, item := range decoded {
+							tempElem.Values[i] = item.(DescribeClientQuotasResponseValueData)
+						}
+					} else {
+						length, err := protocol.ReadInt32(r)
+						if err != nil {
+							return err
+						}
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
+						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem DescribeClientQuotasResponseValueData
+							// Key
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									val, err := protocol.ReadCompactString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Key = val
+								} else {
+									val, err := protocol.ReadString(r)
+									if err != nil {
+										return err
+									}
+									tempElem.Key = val
+								}
+							}
+							// Value
+							if version >= 0 && version <= 999 {
+							}
+							// Key
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactString(elemW, tempElem.Key); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteString(elemW, tempElem.Key); err != nil {
+										return err
+									}
+								}
+							}
+							// Value
+							if version >= 0 && version <= 999 {
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
+						}
+						// Prepend length and decode using DecodeArray
+						lengthBytes := protocol.EncodeInt32(length)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeArray(fullData, decoder)
+						if err != nil {
+							return err
+						}
+						// Convert []interface{} to typed slice
+						tempElem.Values = make([]DescribeClientQuotasResponseValueData, len(decoded))
+						for i, item := range decoded {
+							tempElem.Values[i] = item.(DescribeClientQuotasResponseValueData)
+						}
+					}
+				}
+				// Entity
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						length := uint32(len(tempElem.Entity) + 1)
+						if err := protocol.WriteVaruint32(elemW, length); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32(elemW, int32(len(tempElem.Entity))); err != nil {
+							return err
+						}
+					}
+					for i := range tempElem.Entity {
+						// EntityType
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								if err := protocol.WriteCompactString(elemW, tempElem.Entity[i].EntityType); err != nil {
+									return err
+								}
+							} else {
+								if err := protocol.WriteString(elemW, tempElem.Entity[i].EntityType); err != nil {
+									return err
 								}
 							}
 						}
-					}
-					// Values
-					if version >= 0 && version <= 999 {
-						var length int32
-						if isFlexible {
-							var lengthUint uint32
-							lengthUint, err := protocol.ReadVaruint32(r)
-							if err != nil {
-								return err
-							}
-							if lengthUint < 1 {
-								return errors.New("invalid compact array length")
-							}
-							length = int32(lengthUint - 1)
-							m.Entries[i].Values = make([]DescribeClientQuotasResponseValueData, length)
-							for i := int32(0); i < length; i++ {
-								// Key
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactString(r)
-										if err != nil {
-											return err
-										}
-										m.Entries[i].Values[i].Key = val
-									} else {
-										val, err := protocol.ReadString(r)
-										if err != nil {
-											return err
-										}
-										m.Entries[i].Values[i].Key = val
-									}
+						// EntityName
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								if err := protocol.WriteCompactNullableString(elemW, tempElem.Entity[i].EntityName); err != nil {
+									return err
 								}
-								// Value
-								if version >= 0 && version <= 999 {
-								}
-							}
-						} else {
-							var err error
-							length, err = protocol.ReadInt32(r)
-							if err != nil {
-								return err
-							}
-							m.Entries[i].Values = make([]DescribeClientQuotasResponseValueData, length)
-							for i := int32(0); i < length; i++ {
-								// Key
-								if version >= 0 && version <= 999 {
-									if isFlexible {
-										val, err := protocol.ReadCompactString(r)
-										if err != nil {
-											return err
-										}
-										m.Entries[i].Values[i].Key = val
-									} else {
-										val, err := protocol.ReadString(r)
-										if err != nil {
-											return err
-										}
-										m.Entries[i].Values[i].Key = val
-									}
-								}
-								// Value
-								if version >= 0 && version <= 999 {
+							} else {
+								if err := protocol.WriteNullableString(elemW, tempElem.Entity[i].EntityName); err != nil {
+									return err
 								}
 							}
 						}
 					}
 				}
+				// Values
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						length := uint32(len(tempElem.Values) + 1)
+						if err := protocol.WriteVaruint32(elemW, length); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32(elemW, int32(len(tempElem.Values))); err != nil {
+							return err
+						}
+					}
+					for i := range tempElem.Values {
+						// Key
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								if err := protocol.WriteCompactString(elemW, tempElem.Values[i].Key); err != nil {
+									return err
+								}
+							} else {
+								if err := protocol.WriteString(elemW, tempElem.Values[i].Key); err != nil {
+									return err
+								}
+							}
+						}
+						// Value
+						if version >= 0 && version <= 999 {
+						}
+					}
+				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeArray
+			lengthBytes := protocol.EncodeInt32(length)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.Entries = make([]DescribeClientQuotasResponseEntryData, len(decoded))
+			for i, item := range decoded {
+				m.Entries[i] = item.(DescribeClientQuotasResponseEntryData)
 			}
 		}
 	}
@@ -585,6 +1228,56 @@ type DescribeClientQuotasResponseEntryData struct {
 	Entity []DescribeClientQuotasResponseEntityData `json:"entity" versions:"0-999"`
 	// The quota values for the entity.
 	Values []DescribeClientQuotasResponseValueData `json:"values" versions:"0-999"`
+	// Tagged fields (for flexible versions)
+	_tagged_fields map[uint32]interface{} `json:"-"`
+}
+
+// writeTaggedFields writes tagged fields for DescribeClientQuotasResponseEntryData.
+func (m *DescribeClientQuotasResponseEntryData) writeTaggedFields(w io.Writer, version int16) error {
+	var taggedFieldsCount int
+	var taggedFieldsBuf bytes.Buffer
+
+	// Write tagged fields count
+	if err := protocol.WriteVaruint32(w, uint32(taggedFieldsCount)); err != nil {
+		return err
+	}
+
+	// Write tagged fields data
+	if taggedFieldsCount > 0 {
+		if _, err := w.Write(taggedFieldsBuf.Bytes()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// readTaggedFields reads tagged fields for DescribeClientQuotasResponseEntryData.
+func (m *DescribeClientQuotasResponseEntryData) readTaggedFields(r io.Reader, version int16) error {
+	// Read tagged fields count
+	count, err := protocol.ReadVaruint32(r)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	// Read tagged fields
+	for i := uint32(0); i < count; i++ {
+		tag, err := protocol.ReadVaruint32(r)
+		if err != nil {
+			return err
+		}
+
+		switch tag {
+		default:
+			// Unknown tag, skip it
+		}
+	}
+
+	return nil
 }
 
 // DescribeClientQuotasResponseEntityData represents The quota entity description..
@@ -593,6 +1286,56 @@ type DescribeClientQuotasResponseEntityData struct {
 	EntityType string `json:"entitytype" versions:"0-999"`
 	// The entity name, or null if the default.
 	EntityName *string `json:"entityname" versions:"0-999"`
+	// Tagged fields (for flexible versions)
+	_tagged_fields map[uint32]interface{} `json:"-"`
+}
+
+// writeTaggedFields writes tagged fields for DescribeClientQuotasResponseEntityData.
+func (m *DescribeClientQuotasResponseEntityData) writeTaggedFields(w io.Writer, version int16) error {
+	var taggedFieldsCount int
+	var taggedFieldsBuf bytes.Buffer
+
+	// Write tagged fields count
+	if err := protocol.WriteVaruint32(w, uint32(taggedFieldsCount)); err != nil {
+		return err
+	}
+
+	// Write tagged fields data
+	if taggedFieldsCount > 0 {
+		if _, err := w.Write(taggedFieldsBuf.Bytes()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// readTaggedFields reads tagged fields for DescribeClientQuotasResponseEntityData.
+func (m *DescribeClientQuotasResponseEntityData) readTaggedFields(r io.Reader, version int16) error {
+	// Read tagged fields count
+	count, err := protocol.ReadVaruint32(r)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	// Read tagged fields
+	for i := uint32(0); i < count; i++ {
+		tag, err := protocol.ReadVaruint32(r)
+		if err != nil {
+			return err
+		}
+
+		switch tag {
+		default:
+			// Unknown tag, skip it
+		}
+	}
+
+	return nil
 }
 
 // DescribeClientQuotasResponseValueData represents The quota values for the entity..
@@ -601,6 +1344,56 @@ type DescribeClientQuotasResponseValueData struct {
 	Key string `json:"key" versions:"0-999"`
 	// The quota configuration value.
 	Value float64 `json:"value" versions:"0-999"`
+	// Tagged fields (for flexible versions)
+	_tagged_fields map[uint32]interface{} `json:"-"`
+}
+
+// writeTaggedFields writes tagged fields for DescribeClientQuotasResponseValueData.
+func (m *DescribeClientQuotasResponseValueData) writeTaggedFields(w io.Writer, version int16) error {
+	var taggedFieldsCount int
+	var taggedFieldsBuf bytes.Buffer
+
+	// Write tagged fields count
+	if err := protocol.WriteVaruint32(w, uint32(taggedFieldsCount)); err != nil {
+		return err
+	}
+
+	// Write tagged fields data
+	if taggedFieldsCount > 0 {
+		if _, err := w.Write(taggedFieldsBuf.Bytes()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// readTaggedFields reads tagged fields for DescribeClientQuotasResponseValueData.
+func (m *DescribeClientQuotasResponseValueData) readTaggedFields(r io.Reader, version int16) error {
+	// Read tagged fields count
+	count, err := protocol.ReadVaruint32(r)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	// Read tagged fields
+	for i := uint32(0); i < count; i++ {
+		tag, err := protocol.ReadVaruint32(r)
+		if err != nil {
+			return err
+		}
+
+		switch tag {
+		default:
+			// Unknown tag, skip it
+		}
+	}
+
+	return nil
 }
 
 // writeTaggedFields writes tagged fields for DescribeClientQuotasResponse.

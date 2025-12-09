@@ -48,26 +48,13 @@ func (m *DescribeTransactionsRequest) Write(w io.Writer, version int16) error {
 	// TransactionalIds
 	if version >= 0 && version <= 999 {
 		if isFlexible {
-			length := uint32(len(m.TransactionalIds) + 1)
-			if err := protocol.WriteVaruint32(w, length); err != nil {
+			if err := protocol.WriteCompactStringArray(w, m.TransactionalIds); err != nil {
 				return err
 			}
 		} else {
-			if err := protocol.WriteInt32(w, int32(len(m.TransactionalIds))); err != nil {
+			if err := protocol.WriteStringArray(w, m.TransactionalIds); err != nil {
 				return err
 			}
-		}
-		for i := range m.TransactionalIds {
-			if isFlexible {
-				if err := protocol.WriteCompactString(w, m.TransactionalIds[i]); err != nil {
-					return err
-				}
-			} else {
-				if err := protocol.WriteString(w, m.TransactionalIds[i]); err != nil {
-					return err
-				}
-			}
-			_ = i
 		}
 	}
 	// Write tagged fields if flexible
@@ -92,55 +79,18 @@ func (m *DescribeTransactionsRequest) Read(r io.Reader, version int16) error {
 
 	// TransactionalIds
 	if version >= 0 && version <= 999 {
-		var length int32
 		if isFlexible {
-			var lengthUint uint32
-			lengthUint, err := protocol.ReadVaruint32(r)
+			val, err := protocol.ReadCompactStringArray(r)
 			if err != nil {
 				return err
 			}
-			if lengthUint < 1 {
-				return errors.New("invalid compact array length")
-			}
-			length = int32(lengthUint - 1)
-			m.TransactionalIds = make([]string, length)
-			for i := int32(0); i < length; i++ {
-				if isFlexible {
-					val, err := protocol.ReadCompactString(r)
-					if err != nil {
-						return err
-					}
-					m.TransactionalIds[i] = val
-				} else {
-					val, err := protocol.ReadString(r)
-					if err != nil {
-						return err
-					}
-					m.TransactionalIds[i] = val
-				}
-			}
+			m.TransactionalIds = val
 		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			val, err := protocol.ReadStringArray(r)
 			if err != nil {
 				return err
 			}
-			m.TransactionalIds = make([]string, length)
-			for i := int32(0); i < length; i++ {
-				if isFlexible {
-					val, err := protocol.ReadCompactString(r)
-					if err != nil {
-						return err
-					}
-					m.TransactionalIds[i] = val
-				} else {
-					val, err := protocol.ReadString(r)
-					if err != nil {
-						return err
-					}
-					m.TransactionalIds[i] = val
-				}
-			}
+			m.TransactionalIds = val
 		}
 	}
 	// Read tagged fields if flexible

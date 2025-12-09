@@ -78,67 +78,88 @@ func (m *ProduceRequest) Write(w io.Writer, version int16) error {
 	}
 	// TopicData
 	if version >= 0 && version <= 999 {
-		if isFlexible {
-			length := uint32(len(m.TopicData) + 1)
-			if err := protocol.WriteVaruint32(w, length); err != nil {
-				return err
+		// Encode array using ArrayEncoder
+		encoder := func(item interface{}) ([]byte, error) {
+			if item == nil {
+				return nil, nil
 			}
-		} else {
-			if err := protocol.WriteInt32(w, int32(len(m.TopicData))); err != nil {
-				return err
+			structItem, ok := item.(ProduceRequestTopicProduceData)
+			if !ok {
+				return nil, errors.New("invalid type for array element")
 			}
-		}
-		for i := range m.TopicData {
+			var elemBuf bytes.Buffer
+			// Temporarily use elemBuf as writer
+			elemW := &elemBuf
 			// Name
 			if version >= 0 && version <= 12 {
 				if isFlexible {
-					if err := protocol.WriteCompactString(w, m.TopicData[i].Name); err != nil {
-						return err
+					if err := protocol.WriteCompactString(elemW, structItem.Name); err != nil {
+						return nil, err
 					}
 				} else {
-					if err := protocol.WriteString(w, m.TopicData[i].Name); err != nil {
-						return err
+					if err := protocol.WriteString(elemW, structItem.Name); err != nil {
+						return nil, err
 					}
 				}
 			}
 			// TopicId
 			if version >= 13 && version <= 999 {
-				if err := protocol.WriteUUID(w, m.TopicData[i].TopicId); err != nil {
-					return err
+				if err := protocol.WriteUUID(elemW, structItem.TopicId); err != nil {
+					return nil, err
 				}
 			}
 			// PartitionData
 			if version >= 0 && version <= 999 {
 				if isFlexible {
-					length := uint32(len(m.TopicData[i].PartitionData) + 1)
-					if err := protocol.WriteVaruint32(w, length); err != nil {
-						return err
+					length := uint32(len(structItem.PartitionData) + 1)
+					if err := protocol.WriteVaruint32(elemW, length); err != nil {
+						return nil, err
 					}
 				} else {
-					if err := protocol.WriteInt32(w, int32(len(m.TopicData[i].PartitionData))); err != nil {
-						return err
+					if err := protocol.WriteInt32(elemW, int32(len(structItem.PartitionData))); err != nil {
+						return nil, err
 					}
 				}
-				for i := range m.TopicData[i].PartitionData {
+				for i := range structItem.PartitionData {
 					// Index
 					if version >= 0 && version <= 999 {
-						if err := protocol.WriteInt32(w, m.TopicData[i].PartitionData[i].Index); err != nil {
-							return err
+						if err := protocol.WriteInt32(elemW, structItem.PartitionData[i].Index); err != nil {
+							return nil, err
 						}
 					}
 					// Records
 					if version >= 0 && version <= 999 {
 						if isFlexible {
-							if err := protocol.WriteCompactNullableBytes(w, m.TopicData[i].PartitionData[i].Records); err != nil {
-								return err
+							if err := protocol.WriteCompactNullableBytes(elemW, structItem.PartitionData[i].Records); err != nil {
+								return nil, err
 							}
 						} else {
-							if err := protocol.WriteNullableBytes(w, m.TopicData[i].PartitionData[i].Records); err != nil {
-								return err
+							if err := protocol.WriteNullableBytes(elemW, structItem.PartitionData[i].Records); err != nil {
+								return nil, err
 							}
 						}
 					}
 				}
+			}
+			// Write tagged fields if flexible
+			if isFlexible {
+				if err := structItem.writeTaggedFields(elemW, version); err != nil {
+					return nil, err
+				}
+			}
+			return elemBuf.Bytes(), nil
+		}
+		items := make([]interface{}, len(m.TopicData))
+		for i := range m.TopicData {
+			items[i] = m.TopicData[i]
+		}
+		if isFlexible {
+			if err := protocol.WriteCompactArray(w, items, encoder); err != nil {
+				return err
+			}
+		} else {
+			if err := protocol.WriteArray(w, items, encoder); err != nil {
+				return err
 			}
 		}
 	}
@@ -196,9 +217,49 @@ func (m *ProduceRequest) Read(r io.Reader, version int16) error {
 	}
 	// TopicData
 	if version >= 0 && version <= 999 {
-		var length int32
+		// Decode array using ArrayDecoder
+		decoder := func(data []byte) (interface{}, int, error) {
+			var elem ProduceRequestTopicProduceData
+			elemR := bytes.NewReader(data)
+			// Name
+			if version >= 0 && version <= 12 {
+				if isFlexible {
+					val, err := protocol.ReadCompactString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.Name = val
+				} else {
+					val, err := protocol.ReadString(elemR)
+					if err != nil {
+						return nil, 0, err
+					}
+					elem.Name = val
+				}
+			}
+			// TopicId
+			if version >= 13 && version <= 999 {
+				val, err := protocol.ReadUUID(elemR)
+				if err != nil {
+					return nil, 0, err
+				}
+				elem.TopicId = val
+			}
+			// PartitionData
+			if version >= 0 && version <= 999 {
+				// Nested array in decoder - manual handling needed
+				return nil, 0, errors.New("nested arrays in decoder not fully supported")
+			}
+			// Read tagged fields if flexible
+			if isFlexible {
+				if err := elem.readTaggedFields(elemR, version); err != nil {
+					return nil, 0, err
+				}
+			}
+			consumed := len(data) - elemR.Len()
+			return elem, consumed, nil
+		}
 		if isFlexible {
-			var lengthUint uint32
 			lengthUint, err := protocol.ReadVaruint32(r)
 			if err != nil {
 				return err
@@ -206,9 +267,14 @@ func (m *ProduceRequest) Read(r io.Reader, version int16) error {
 			if lengthUint < 1 {
 				return errors.New("invalid compact array length")
 			}
-			length = int32(lengthUint - 1)
-			m.TopicData = make([]ProduceRequestTopicProduceData, length)
+			length := int32(lengthUint - 1)
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
 			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem ProduceRequestTopicProduceData
 				// Name
 				if version >= 0 && version <= 12 {
 					if isFlexible {
@@ -216,13 +282,13 @@ func (m *ProduceRequest) Read(r io.Reader, version int16) error {
 						if err != nil {
 							return err
 						}
-						m.TopicData[i].Name = val
+						tempElem.Name = val
 					} else {
 						val, err := protocol.ReadString(r)
 						if err != nil {
 							return err
 						}
-						m.TopicData[i].Name = val
+						tempElem.Name = val
 					}
 				}
 				// TopicId
@@ -231,13 +297,42 @@ func (m *ProduceRequest) Read(r io.Reader, version int16) error {
 					if err != nil {
 						return err
 					}
-					m.TopicData[i].TopicId = val
+					tempElem.TopicId = val
 				}
 				// PartitionData
 				if version >= 0 && version <= 999 {
-					var length int32
+					// Decode array using ArrayDecoder
+					decoder := func(data []byte) (interface{}, int, error) {
+						var elem ProduceRequestPartitionProduceData
+						elemR := bytes.NewReader(data)
+						// Index
+						if version >= 0 && version <= 999 {
+							val, err := protocol.ReadInt32(elemR)
+							if err != nil {
+								return nil, 0, err
+							}
+							elem.Index = val
+						}
+						// Records
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								val, err := protocol.ReadCompactNullableBytes(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Records = val
+							} else {
+								val, err := protocol.ReadNullableBytes(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Records = val
+							}
+						}
+						consumed := len(data) - elemR.Len()
+						return elem, consumed, nil
+					}
 					if isFlexible {
-						var lengthUint uint32
 						lengthUint, err := protocol.ReadVaruint32(r)
 						if err != nil {
 							return err
@@ -245,16 +340,21 @@ func (m *ProduceRequest) Read(r io.Reader, version int16) error {
 						if lengthUint < 1 {
 							return errors.New("invalid compact array length")
 						}
-						length = int32(lengthUint - 1)
-						m.TopicData[i].PartitionData = make([]ProduceRequestPartitionProduceData, length)
+						length := int32(lengthUint - 1)
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
 						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem ProduceRequestPartitionProduceData
 							// Index
 							if version >= 0 && version <= 999 {
 								val, err := protocol.ReadInt32(r)
 								if err != nil {
 									return err
 								}
-								m.TopicData[i].PartitionData[i].Index = val
+								tempElem.Index = val
 							}
 							// Records
 							if version >= 0 && version <= 999 {
@@ -263,31 +363,67 @@ func (m *ProduceRequest) Read(r io.Reader, version int16) error {
 									if err != nil {
 										return err
 									}
-									m.TopicData[i].PartitionData[i].Records = val
+									tempElem.Records = val
 								} else {
 									val, err := protocol.ReadNullableBytes(r)
 									if err != nil {
 										return err
 									}
-									m.TopicData[i].PartitionData[i].Records = val
+									tempElem.Records = val
 								}
 							}
+							// Index
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt32(elemW, tempElem.Index); err != nil {
+									return err
+								}
+							}
+							// Records
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactNullableBytes(elemW, tempElem.Records); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteNullableBytes(elemW, tempElem.Records); err != nil {
+										return err
+									}
+								}
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
 						}
-					} else {
-						var err error
-						length, err = protocol.ReadInt32(r)
+						// Prepend length and decode using DecodeCompactArray
+						lengthBytes := protocol.EncodeVaruint32(lengthUint)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
 						if err != nil {
 							return err
 						}
-						m.TopicData[i].PartitionData = make([]ProduceRequestPartitionProduceData, length)
+						// Convert []interface{} to typed slice
+						tempElem.PartitionData = make([]ProduceRequestPartitionProduceData, len(decoded))
+						for i, item := range decoded {
+							tempElem.PartitionData[i] = item.(ProduceRequestPartitionProduceData)
+						}
+					} else {
+						length, err := protocol.ReadInt32(r)
+						if err != nil {
+							return err
+						}
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
 						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem ProduceRequestPartitionProduceData
 							// Index
 							if version >= 0 && version <= 999 {
 								val, err := protocol.ReadInt32(r)
 								if err != nil {
 									return err
 								}
-								m.TopicData[i].PartitionData[i].Index = val
+								tempElem.Index = val
 							}
 							// Records
 							if version >= 0 && version <= 999 {
@@ -296,27 +432,128 @@ func (m *ProduceRequest) Read(r io.Reader, version int16) error {
 									if err != nil {
 										return err
 									}
-									m.TopicData[i].PartitionData[i].Records = val
+									tempElem.Records = val
 								} else {
 									val, err := protocol.ReadNullableBytes(r)
 									if err != nil {
 										return err
 									}
-									m.TopicData[i].PartitionData[i].Records = val
+									tempElem.Records = val
+								}
+							}
+							// Index
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt32(elemW, tempElem.Index); err != nil {
+									return err
+								}
+							}
+							// Records
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactNullableBytes(elemW, tempElem.Records); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteNullableBytes(elemW, tempElem.Records); err != nil {
+										return err
+									}
+								}
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
+						}
+						// Prepend length and decode using DecodeArray
+						lengthBytes := protocol.EncodeInt32(length)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeArray(fullData, decoder)
+						if err != nil {
+							return err
+						}
+						// Convert []interface{} to typed slice
+						tempElem.PartitionData = make([]ProduceRequestPartitionProduceData, len(decoded))
+						for i, item := range decoded {
+							tempElem.PartitionData[i] = item.(ProduceRequestPartitionProduceData)
+						}
+					}
+				}
+				// Name
+				if version >= 0 && version <= 12 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.Name); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.Name); err != nil {
+							return err
+						}
+					}
+				}
+				// TopicId
+				if version >= 13 && version <= 999 {
+					if err := protocol.WriteUUID(elemW, tempElem.TopicId); err != nil {
+						return err
+					}
+				}
+				// PartitionData
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						length := uint32(len(tempElem.PartitionData) + 1)
+						if err := protocol.WriteVaruint32(elemW, length); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32(elemW, int32(len(tempElem.PartitionData))); err != nil {
+							return err
+						}
+					}
+					for i := range tempElem.PartitionData {
+						// Index
+						if version >= 0 && version <= 999 {
+							if err := protocol.WriteInt32(elemW, tempElem.PartitionData[i].Index); err != nil {
+								return err
+							}
+						}
+						// Records
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								if err := protocol.WriteCompactNullableBytes(elemW, tempElem.PartitionData[i].Records); err != nil {
+									return err
+								}
+							} else {
+								if err := protocol.WriteNullableBytes(elemW, tempElem.PartitionData[i].Records); err != nil {
+									return err
 								}
 							}
 						}
 					}
 				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
 			}
-		} else {
-			var err error
-			length, err = protocol.ReadInt32(r)
+			// Prepend length and decode using DecodeCompactArray
+			lengthBytes := protocol.EncodeVaruint32(lengthUint)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
 			if err != nil {
 				return err
 			}
-			m.TopicData = make([]ProduceRequestTopicProduceData, length)
+			// Convert []interface{} to typed slice
+			m.TopicData = make([]ProduceRequestTopicProduceData, len(decoded))
+			for i, item := range decoded {
+				m.TopicData[i] = item.(ProduceRequestTopicProduceData)
+			}
+		} else {
+			length, err := protocol.ReadInt32(r)
+			if err != nil {
+				return err
+			}
+			// Collect all array elements into a buffer
+			var arrayBuf bytes.Buffer
 			for i := int32(0); i < length; i++ {
+				// Read element into struct and encode to buffer
+				var elemBuf bytes.Buffer
+				elemW := &elemBuf
+				var tempElem ProduceRequestTopicProduceData
 				// Name
 				if version >= 0 && version <= 12 {
 					if isFlexible {
@@ -324,13 +561,13 @@ func (m *ProduceRequest) Read(r io.Reader, version int16) error {
 						if err != nil {
 							return err
 						}
-						m.TopicData[i].Name = val
+						tempElem.Name = val
 					} else {
 						val, err := protocol.ReadString(r)
 						if err != nil {
 							return err
 						}
-						m.TopicData[i].Name = val
+						tempElem.Name = val
 					}
 				}
 				// TopicId
@@ -339,13 +576,42 @@ func (m *ProduceRequest) Read(r io.Reader, version int16) error {
 					if err != nil {
 						return err
 					}
-					m.TopicData[i].TopicId = val
+					tempElem.TopicId = val
 				}
 				// PartitionData
 				if version >= 0 && version <= 999 {
-					var length int32
+					// Decode array using ArrayDecoder
+					decoder := func(data []byte) (interface{}, int, error) {
+						var elem ProduceRequestPartitionProduceData
+						elemR := bytes.NewReader(data)
+						// Index
+						if version >= 0 && version <= 999 {
+							val, err := protocol.ReadInt32(elemR)
+							if err != nil {
+								return nil, 0, err
+							}
+							elem.Index = val
+						}
+						// Records
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								val, err := protocol.ReadCompactNullableBytes(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Records = val
+							} else {
+								val, err := protocol.ReadNullableBytes(elemR)
+								if err != nil {
+									return nil, 0, err
+								}
+								elem.Records = val
+							}
+						}
+						consumed := len(data) - elemR.Len()
+						return elem, consumed, nil
+					}
 					if isFlexible {
-						var lengthUint uint32
 						lengthUint, err := protocol.ReadVaruint32(r)
 						if err != nil {
 							return err
@@ -353,16 +619,21 @@ func (m *ProduceRequest) Read(r io.Reader, version int16) error {
 						if lengthUint < 1 {
 							return errors.New("invalid compact array length")
 						}
-						length = int32(lengthUint - 1)
-						m.TopicData[i].PartitionData = make([]ProduceRequestPartitionProduceData, length)
+						length := int32(lengthUint - 1)
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
 						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem ProduceRequestPartitionProduceData
 							// Index
 							if version >= 0 && version <= 999 {
 								val, err := protocol.ReadInt32(r)
 								if err != nil {
 									return err
 								}
-								m.TopicData[i].PartitionData[i].Index = val
+								tempElem.Index = val
 							}
 							// Records
 							if version >= 0 && version <= 999 {
@@ -371,31 +642,67 @@ func (m *ProduceRequest) Read(r io.Reader, version int16) error {
 									if err != nil {
 										return err
 									}
-									m.TopicData[i].PartitionData[i].Records = val
+									tempElem.Records = val
 								} else {
 									val, err := protocol.ReadNullableBytes(r)
 									if err != nil {
 										return err
 									}
-									m.TopicData[i].PartitionData[i].Records = val
+									tempElem.Records = val
 								}
 							}
+							// Index
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt32(elemW, tempElem.Index); err != nil {
+									return err
+								}
+							}
+							// Records
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactNullableBytes(elemW, tempElem.Records); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteNullableBytes(elemW, tempElem.Records); err != nil {
+										return err
+									}
+								}
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
 						}
-					} else {
-						var err error
-						length, err = protocol.ReadInt32(r)
+						// Prepend length and decode using DecodeCompactArray
+						lengthBytes := protocol.EncodeVaruint32(lengthUint)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeCompactArray(fullData, decoder)
 						if err != nil {
 							return err
 						}
-						m.TopicData[i].PartitionData = make([]ProduceRequestPartitionProduceData, length)
+						// Convert []interface{} to typed slice
+						tempElem.PartitionData = make([]ProduceRequestPartitionProduceData, len(decoded))
+						for i, item := range decoded {
+							tempElem.PartitionData[i] = item.(ProduceRequestPartitionProduceData)
+						}
+					} else {
+						length, err := protocol.ReadInt32(r)
+						if err != nil {
+							return err
+						}
+						// Collect all array elements into a buffer
+						var arrayBuf bytes.Buffer
 						for i := int32(0); i < length; i++ {
+							// Read element into struct and encode to buffer
+							var elemBuf bytes.Buffer
+							elemW := &elemBuf
+							var tempElem ProduceRequestPartitionProduceData
 							// Index
 							if version >= 0 && version <= 999 {
 								val, err := protocol.ReadInt32(r)
 								if err != nil {
 									return err
 								}
-								m.TopicData[i].PartitionData[i].Index = val
+								tempElem.Index = val
 							}
 							// Records
 							if version >= 0 && version <= 999 {
@@ -404,18 +711,115 @@ func (m *ProduceRequest) Read(r io.Reader, version int16) error {
 									if err != nil {
 										return err
 									}
-									m.TopicData[i].PartitionData[i].Records = val
+									tempElem.Records = val
 								} else {
 									val, err := protocol.ReadNullableBytes(r)
 									if err != nil {
 										return err
 									}
-									m.TopicData[i].PartitionData[i].Records = val
+									tempElem.Records = val
+								}
+							}
+							// Index
+							if version >= 0 && version <= 999 {
+								if err := protocol.WriteInt32(elemW, tempElem.Index); err != nil {
+									return err
+								}
+							}
+							// Records
+							if version >= 0 && version <= 999 {
+								if isFlexible {
+									if err := protocol.WriteCompactNullableBytes(elemW, tempElem.Records); err != nil {
+										return err
+									}
+								} else {
+									if err := protocol.WriteNullableBytes(elemW, tempElem.Records); err != nil {
+										return err
+									}
+								}
+							}
+							// Append to array buffer
+							arrayBuf.Write(elemBuf.Bytes())
+						}
+						// Prepend length and decode using DecodeArray
+						lengthBytes := protocol.EncodeInt32(length)
+						fullData := append(lengthBytes, arrayBuf.Bytes()...)
+						decoded, _, err := protocol.DecodeArray(fullData, decoder)
+						if err != nil {
+							return err
+						}
+						// Convert []interface{} to typed slice
+						tempElem.PartitionData = make([]ProduceRequestPartitionProduceData, len(decoded))
+						for i, item := range decoded {
+							tempElem.PartitionData[i] = item.(ProduceRequestPartitionProduceData)
+						}
+					}
+				}
+				// Name
+				if version >= 0 && version <= 12 {
+					if isFlexible {
+						if err := protocol.WriteCompactString(elemW, tempElem.Name); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteString(elemW, tempElem.Name); err != nil {
+							return err
+						}
+					}
+				}
+				// TopicId
+				if version >= 13 && version <= 999 {
+					if err := protocol.WriteUUID(elemW, tempElem.TopicId); err != nil {
+						return err
+					}
+				}
+				// PartitionData
+				if version >= 0 && version <= 999 {
+					if isFlexible {
+						length := uint32(len(tempElem.PartitionData) + 1)
+						if err := protocol.WriteVaruint32(elemW, length); err != nil {
+							return err
+						}
+					} else {
+						if err := protocol.WriteInt32(elemW, int32(len(tempElem.PartitionData))); err != nil {
+							return err
+						}
+					}
+					for i := range tempElem.PartitionData {
+						// Index
+						if version >= 0 && version <= 999 {
+							if err := protocol.WriteInt32(elemW, tempElem.PartitionData[i].Index); err != nil {
+								return err
+							}
+						}
+						// Records
+						if version >= 0 && version <= 999 {
+							if isFlexible {
+								if err := protocol.WriteCompactNullableBytes(elemW, tempElem.PartitionData[i].Records); err != nil {
+									return err
+								}
+							} else {
+								if err := protocol.WriteNullableBytes(elemW, tempElem.PartitionData[i].Records); err != nil {
+									return err
 								}
 							}
 						}
 					}
 				}
+				// Append to array buffer
+				arrayBuf.Write(elemBuf.Bytes())
+			}
+			// Prepend length and decode using DecodeArray
+			lengthBytes := protocol.EncodeInt32(length)
+			fullData := append(lengthBytes, arrayBuf.Bytes()...)
+			decoded, _, err := protocol.DecodeArray(fullData, decoder)
+			if err != nil {
+				return err
+			}
+			// Convert []interface{} to typed slice
+			m.TopicData = make([]ProduceRequestTopicProduceData, len(decoded))
+			for i, item := range decoded {
+				m.TopicData[i] = item.(ProduceRequestTopicProduceData)
 			}
 		}
 	}
@@ -436,6 +840,56 @@ type ProduceRequestTopicProduceData struct {
 	TopicId uuid.UUID `json:"topicid" versions:"13-999"`
 	// Each partition to produce to.
 	PartitionData []ProduceRequestPartitionProduceData `json:"partitiondata" versions:"0-999"`
+	// Tagged fields (for flexible versions)
+	_tagged_fields map[uint32]interface{} `json:"-"`
+}
+
+// writeTaggedFields writes tagged fields for ProduceRequestTopicProduceData.
+func (m *ProduceRequestTopicProduceData) writeTaggedFields(w io.Writer, version int16) error {
+	var taggedFieldsCount int
+	var taggedFieldsBuf bytes.Buffer
+
+	// Write tagged fields count
+	if err := protocol.WriteVaruint32(w, uint32(taggedFieldsCount)); err != nil {
+		return err
+	}
+
+	// Write tagged fields data
+	if taggedFieldsCount > 0 {
+		if _, err := w.Write(taggedFieldsBuf.Bytes()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// readTaggedFields reads tagged fields for ProduceRequestTopicProduceData.
+func (m *ProduceRequestTopicProduceData) readTaggedFields(r io.Reader, version int16) error {
+	// Read tagged fields count
+	count, err := protocol.ReadVaruint32(r)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	// Read tagged fields
+	for i := uint32(0); i < count; i++ {
+		tag, err := protocol.ReadVaruint32(r)
+		if err != nil {
+			return err
+		}
+
+		switch tag {
+		default:
+			// Unknown tag, skip it
+		}
+	}
+
+	return nil
 }
 
 // ProduceRequestPartitionProduceData represents Each partition to produce to..
@@ -444,6 +898,56 @@ type ProduceRequestPartitionProduceData struct {
 	Index int32 `json:"index" versions:"0-999"`
 	// The record data to be produced.
 	Records *[]byte `json:"records" versions:"0-999"`
+	// Tagged fields (for flexible versions)
+	_tagged_fields map[uint32]interface{} `json:"-"`
+}
+
+// writeTaggedFields writes tagged fields for ProduceRequestPartitionProduceData.
+func (m *ProduceRequestPartitionProduceData) writeTaggedFields(w io.Writer, version int16) error {
+	var taggedFieldsCount int
+	var taggedFieldsBuf bytes.Buffer
+
+	// Write tagged fields count
+	if err := protocol.WriteVaruint32(w, uint32(taggedFieldsCount)); err != nil {
+		return err
+	}
+
+	// Write tagged fields data
+	if taggedFieldsCount > 0 {
+		if _, err := w.Write(taggedFieldsBuf.Bytes()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// readTaggedFields reads tagged fields for ProduceRequestPartitionProduceData.
+func (m *ProduceRequestPartitionProduceData) readTaggedFields(r io.Reader, version int16) error {
+	// Read tagged fields count
+	count, err := protocol.ReadVaruint32(r)
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	// Read tagged fields
+	for i := uint32(0); i < count; i++ {
+		tag, err := protocol.ReadVaruint32(r)
+		if err != nil {
+			return err
+		}
+
+		switch tag {
+		default:
+			// Unknown tag, skip it
+		}
+	}
+
+	return nil
 }
 
 // writeTaggedFields writes tagged fields for ProduceRequest.
