@@ -2,6 +2,7 @@ package apiversions
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/scholzj/go-kafka-protocol/protocol"
 )
@@ -20,21 +21,21 @@ type ApiVersionsResponseApiKeys struct {
 	ApiKey          int16
 	MinVersion      int16
 	MaxVersion      int16
-	rawTaggedFields [][]byte
+	rawTaggedFields []protocol.TaggedField
 }
 
 type ApiVersionsResponseSupportedFeatures struct {
 	Name            string
 	MinVersion      int16
 	MaxVersion      int16
-	rawTaggedFields [][]byte
+	rawTaggedFields []protocol.TaggedField
 }
 
 type ApiVersionsResponseFinalizedFeatures struct {
 	Name            string
 	MinVersionLevel int16
 	MaxVersionLevel int16
-	rawTaggedFields [][]byte
+	rawTaggedFields []protocol.TaggedField
 }
 
 func ResponseHeaderVersion(apiVersion int16) int16 {
@@ -127,6 +128,42 @@ func apiKeysDecoder(bytes []byte) (ApiVersionsResponseApiKeys, int, error) {
 
 	fmt.Printf("ApiKey: %d, MinVersion: %d, MaxVersion: %d\n", apiKey, minVersion, maxVersion)
 	return apiKeys, offset, nil
+}
+
+func apiKeysReader(r io.Reader) (ApiVersionsResponseApiKeys, error) {
+	apiKeys := ApiVersionsResponseApiKeys{}
+
+	// Api Key
+	apiKey, err := protocol.ReadInt16(r)
+	if err != nil {
+		return apiKeys, err
+	}
+	apiKeys.ApiKey = apiKey
+
+	// Min version
+	minVersion, err := protocol.ReadInt16(r)
+	if err != nil {
+		return apiKeys, err
+	}
+	apiKeys.MinVersion = minVersion
+
+	// Max version
+	maxVersion, err := protocol.ReadInt16(r)
+	if err != nil {
+		return apiKeys, err
+	}
+	apiKeys.MaxVersion = maxVersion
+
+	// Tagged fields
+	rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
+	if err != nil {
+		fmt.Println("Failed to decode tagged fields", err)
+		return apiKeys, err
+	}
+	apiKeys.rawTaggedFields = rawTaggedFields
+
+	fmt.Printf("ApiKey: %d, MinVersion: %d, MaxVersion: %d\n", apiKey, minVersion, maxVersion)
+	return apiKeys, nil
 }
 
 // TODO: Can this be class method?

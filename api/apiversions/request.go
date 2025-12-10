@@ -9,7 +9,7 @@ import (
 type ApiVersionsRequest struct {
 	ClientSoftwareName    *string
 	ClientSoftwareVersion *string
-	rawTaggedFields       [][]byte
+	rawTaggedFields       []protocol.TaggedField
 }
 
 func RequestHeaderVersion(apiVersion int16) int16 {

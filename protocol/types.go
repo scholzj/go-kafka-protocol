@@ -1,8 +1,10 @@
 package protocol
 
 import (
+	"bufio"
 	"encoding/binary"
 	"fmt"
+	"io"
 )
 
 ////////////////////
@@ -39,15 +41,33 @@ type Response struct {
 // Decoding anf encoding methods for primitive types
 ////////////////////
 
+func ReadInt8(r io.Reader) (int8, error) {
+	var v int8
+	err := binary.Read(r, binary.BigEndian, &v)
+	return v, err
+}
+
 func DecodeInt8(bytes []byte) (int8, int, error) {
 	var v int8
 	n, err := binary.Decode(bytes, binary.BigEndian, &v)
 	return v, n, err
 }
 
+func ReadBool(r io.Reader) (bool, error) {
+	var v int8
+	err := binary.Read(r, binary.BigEndian, &v)
+	return v != 0, err
+}
+
 func DecodeBool(bytes []byte) (bool, int, error) {
 	v, n, err := DecodeInt8(bytes)
 	return v != 0, n, err
+}
+
+func ReadInt16(r io.Reader) (int16, error) {
+	var v int16
+	err := binary.Read(r, binary.BigEndian, &v)
+	return v, err
 }
 
 func DecodeInt16(bytes []byte) (int16, int, error) {
@@ -56,10 +76,22 @@ func DecodeInt16(bytes []byte) (int16, int, error) {
 	return v, n, err
 }
 
+func ReadInt32(r io.Reader) (int32, error) {
+	var v int32
+	err := binary.Read(r, binary.BigEndian, &v)
+	return v, err
+}
+
 func DecodeInt32(bytes []byte) (int32, int, error) {
 	var v int32
 	n, err := binary.Decode(bytes, binary.BigEndian, &v)
 	return v, n, err
+}
+
+func ReadInt64(r io.Reader) (int64, error) {
+	var v int64
+	err := binary.Read(r, binary.BigEndian, &v)
+	return v, err
 }
 
 func DecodeInt64(bytes []byte) (int64, int, error) {
@@ -68,10 +100,22 @@ func DecodeInt64(bytes []byte) (int64, int, error) {
 	return v, n, err
 }
 
+func ReadUInt16(r io.Reader) (uint16, error) {
+	var v uint16
+	err := binary.Read(r, binary.BigEndian, &v)
+	return v, err
+}
+
 func DecodeUInt16(bytes []byte) (uint16, int, error) {
 	var v uint16
 	n, err := binary.Decode(bytes, binary.BigEndian, &v)
 	return v, n, err
+}
+
+func ReadUInt32(r io.Reader) (uint32, error) {
+	var v uint32
+	err := binary.Read(r, binary.BigEndian, &v)
+	return v, err
 }
 
 func DecodeUInt32(bytes []byte) (uint32, int, error) {
@@ -80,14 +124,47 @@ func DecodeUInt32(bytes []byte) (uint32, int, error) {
 	return v, n, err
 }
 
+func ReadVarint(r io.Reader) (int64, error) {
+	return binary.ReadVarint(bufio.NewReader(r))
+}
+
 func DecodeVarint(bytes []byte) (int64, int, error) {
 	v, n := binary.Varint(bytes)
 	return v, n, nil
 }
 
+func ReadUvarint(r io.Reader) (uint64, error) {
+	return binary.ReadUvarint(bufio.NewReader(r))
+}
+
 func DecodeUvarint(bytes []byte) (uint64, int, error) {
 	v, n := binary.Uvarint(bytes)
 	return v, n, nil
+}
+
+func ReadNullableString(r io.Reader) (*string, error) {
+	length, err := ReadInt16(r)
+	if err != nil {
+		fmt.Println("Failed to read string length", err)
+		return nil, err
+	}
+
+	if length < 0 {
+		return nil, nil
+	} else if length == 0 {
+		emptyString := ""
+		return &emptyString, nil
+	} else {
+		var bytes = make([]byte, length)
+		_, err = r.Read(bytes)
+		if err != nil {
+			fmt.Println("Failed to read string length", err)
+			return nil, err
+		}
+
+		str := string(bytes)
+		return &str, nil
+	}
 }
 
 func DecodeNullableString(bytes []byte) (*string, int, error) {
@@ -111,6 +188,29 @@ func DecodeNullableString(bytes []byte) (*string, int, error) {
 	}
 }
 
+func ReadCompactString(r io.Reader) (string, error) {
+	length, err := ReadUvarint(r)
+	if err != nil {
+		return "", err
+	}
+
+	if length <= 0 {
+		return "", fmt.Errorf("invalid compact string length %d", length)
+	} else if length == 1 {
+		return "", nil
+	} else {
+		length-- // subtract 1 for the length byte based on the Kafka protocol spec
+		var bytes = make([]byte, length)
+		_, err = r.Read(bytes)
+		if err != nil {
+			fmt.Println("Failed to read string length", err)
+			return "", err
+		}
+
+		return string(bytes), nil
+	}
+}
+
 func DecodeCompactString(bytes []byte) (string, int, error) {
 	offset := 0
 
@@ -129,6 +229,33 @@ func DecodeCompactString(bytes []byte) (string, int, error) {
 		return "", 0, nil
 	} else {
 		return string(bytes[offset : offset+int(length)]), offset + int(length), nil
+	}
+}
+
+func ReadCompactNullableString(r io.Reader) (*string, error) {
+	length, err := ReadUvarint(r)
+	if err != nil {
+		return nil, err
+	}
+
+	if length < 0 {
+		return nil, fmt.Errorf("invalid compact string length %d", length)
+	} else if length == 0 {
+		return nil, nil
+	} else if length == 1 {
+		var str = ""
+		return &str, nil
+	} else {
+		length-- // subtract 1 for the length byte based on the Kafka protocol spec
+		var bytes = make([]byte, length)
+		_, err = r.Read(bytes)
+		if err != nil {
+			fmt.Println("Failed to read string length", err)
+			return nil, err
+		}
+
+		var str = string(bytes)
+		return &str, nil
 	}
 }
 
@@ -156,6 +283,26 @@ func DecodeCompactNullableString(bytes []byte) (*string, int, error) {
 
 // Function used to decode structured arrays
 type ArrayDecoder[T interface{}] func([]byte) (T, int, error)
+type ArrayReaderDecoder[T interface{}] func(r io.Reader) (T, error)
+
+func ReadCompactArray[T interface{}](r io.Reader, decoder ArrayReaderDecoder[T]) ([]T, error) {
+	length, err := ReadUvarint(r)
+	if err != nil {
+		return nil, err
+	}
+
+	length-- // We remove one according to the Kafka spec
+
+	array := make([]T, length)
+	for i := 0; i < int(length); i++ {
+		array[i], err = decoder(r)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return array, nil
+}
 
 func DecodeCompactArray[T interface{}](bytes []byte, decoder ArrayDecoder[T]) ([]T, int, error) {
 	offset := 0
@@ -185,7 +332,51 @@ func DecodeCompactArray[T interface{}](bytes []byte, decoder ArrayDecoder[T]) ([
 // Tagged fields methods
 ////////////////////
 
-func DecodeRawTaggedFields(bytes []byte) ([][]byte, int, error) {
+type TaggedField struct {
+	Tag   uint64
+	Field []byte
+}
+
+func ReadRawTaggedFields(r io.Reader) ([]TaggedField, error) {
+	// Find the number of tags
+	l, err := ReadUvarint(r)
+	if err != nil {
+		fmt.Println("Failed to decode tagged fields", err)
+		return nil, err
+	}
+	fmt.Printf("Raw tagged fields length: %d records\n", l)
+
+	// Read each tag and store it in the slice of slices
+	//(we need to partially decode them to know how many bytes are the raw tags)
+	rawTaggedFields := make([]TaggedField, l)
+	for i := 0; i < int(l); i++ {
+		// Read the tag number first
+		tag, err := ReadUvarint(r)
+		if err != nil {
+			fmt.Println("Failed to decode tag", err)
+			return nil, err
+		}
+		rawTaggedFields[i].Tag = tag
+
+		fmt.Printf("Found tag %d\n", tag)
+
+		// Read the tag length
+		tagLength, err := ReadUvarint(r)
+		if err != nil {
+			fmt.Println("Failed to decode tag length", err)
+			return nil, err
+		}
+
+		fmt.Printf("Found tag length %d bytes\n", tagLength)
+		rawTaggedField := make([]byte, tagLength)
+		_, err = r.Read(rawTaggedField)
+		rawTaggedFields[i].Field = rawTaggedField
+	}
+
+	return rawTaggedFields, nil
+}
+
+func DecodeRawTaggedFields(bytes []byte) ([]TaggedField, int, error) {
 	offset := 0
 
 	// Find the number of tags
@@ -199,7 +390,7 @@ func DecodeRawTaggedFields(bytes []byte) ([][]byte, int, error) {
 
 	// Read each tag and store it in the slice of slices
 	//(we need to partially decode them to know how many bytes are the raw tags)
-	rawTaggedFields := make([][]byte, l)
+	rawTaggedFields := make([]TaggedField, l)
 	for i := 0; i < int(l); i++ {
 		// Read the tag number first
 		tag, c, err := DecodeUvarint(bytes[offset:])
@@ -209,7 +400,7 @@ func DecodeRawTaggedFields(bytes []byte) ([][]byte, int, error) {
 		}
 
 		fmt.Printf("Found tag %d\n", tag)
-		rawTaggedFields[i] = bytes[offset : offset+c]
+		rawTaggedFields[i].Tag = tag
 		offset += c
 
 		// Read the tag length
@@ -221,11 +412,9 @@ func DecodeRawTaggedFields(bytes []byte) ([][]byte, int, error) {
 		offset += c
 
 		fmt.Printf("Found tag length %d bytes\n", tagLength)
-		rawTaggedFields[i] = append(rawTaggedFields[i], bytes[offset:offset+c]...)
-		offset += c
 
 		// Copy the raw tag value bytes without decoding them
-		rawTaggedFields[i] = append(rawTaggedFields[i], bytes[offset:offset+int(tagLength)]...)
+		rawTaggedFields[i].Field = bytes[offset : offset+int(tagLength)]
 		offset += int(tagLength)
 	}
 
