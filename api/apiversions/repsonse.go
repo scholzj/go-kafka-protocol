@@ -48,8 +48,44 @@ func isResponseFlexible(apiVersion int16) bool {
 }
 
 // TODO: pass version and bytes only
+func (r *ApiVersionsResponse) Read(response protocol.Response) error {
+	reader := response.Body
+
+	// ErrorCode
+	errorCode, err := protocol.ReadInt16(reader)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("ErrorCode: %d\n", errorCode)
+	r.ErrorCode = errorCode
+
+	// ApiKeys
+	apiKeys, err := protocol.ReadCompactArray(reader, apiKeysReaderDecoder)
+	if err != nil {
+		return err
+	}
+	r.ApiKeys = apiKeys
+
+	// ThrottleTime
+	throttleTimeMs, err := protocol.ReadInt32(reader)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("ThrottleTimeMs: %d\n", throttleTimeMs)
+	r.ThrottleTimeMs = throttleTimeMs
+
+	// Decode tagged fields
+	err = protocol.ReadTaggedFields(reader, taggedFieldsReaderDecoder, r)
+	if err != nil {
+		fmt.Println("Failed to decode tagged fields", err)
+		return err
+	}
+
+	return nil
+}
+
 func (r *ApiVersionsResponse) Decode(response protocol.Response) error {
-	bytes := response.Body
+	bytes := response.Body.Bytes()
 	offset := 0
 
 	// ErrorCode
@@ -130,7 +166,7 @@ func apiKeysDecoder(bytes []byte) (ApiVersionsResponseApiKeys, int, error) {
 	return apiKeys, offset, nil
 }
 
-func apiKeysReader(r io.Reader) (ApiVersionsResponseApiKeys, error) {
+func apiKeysReaderDecoder(r io.Reader) (ApiVersionsResponseApiKeys, error) {
 	apiKeys := ApiVersionsResponseApiKeys{}
 
 	// Api Key
@@ -210,6 +246,43 @@ func taggedFieldsDecoder(bytes []byte, r *ApiVersionsResponse, tag uint64, tagLe
 	return offset, nil
 }
 
+func taggedFieldsReaderDecoder(reader io.Reader, r *ApiVersionsResponse, tag uint64, tagLength uint64) error {
+	switch tag {
+	case 0:
+		// SupportedFeatures
+		supportedFeatures, err := protocol.ReadCompactArray(reader, supportedFeaturesReaderDecoder)
+		if err != nil {
+			return err
+		}
+		r.SupportedFeatures = supportedFeatures
+	case 1:
+		// FinalizedFeaturesEpoch
+		finalizedFeaturesEpoch, err := protocol.ReadInt64(reader)
+		if err != nil {
+			fmt.Println("Failed to decode tag value", err)
+			return err
+		}
+		r.FinalizedFeaturesEpoch = finalizedFeaturesEpoch
+	case 2:
+		// FinalizedFeatures
+		finalizedFeatures, err := protocol.ReadCompactArray(reader, finalizedFeaturesReaderDecoder)
+		if err != nil {
+			return err
+		}
+		r.FinalizedFeatures = finalizedFeatures
+	case 3:
+		// ZkMigrationReady
+		zkMigrationReady, err := protocol.ReadBool(reader)
+		if err != nil {
+			fmt.Println("Failed to decode tag value", err)
+			return err
+		}
+		r.ZkMigrationReady = zkMigrationReady
+	}
+
+	return nil
+}
+
 func supportedFeaturesDecoder(bytes []byte) (ApiVersionsResponseSupportedFeatures, int, error) {
 	offset := 0
 	supportedFeatures := ApiVersionsResponseSupportedFeatures{}
@@ -282,4 +355,86 @@ func finalizedFeaturesDecoder(bytes []byte) (ApiVersionsResponseFinalizedFeature
 	finalizedFeatures.rawTaggedFields = rawTaggedFields
 
 	return finalizedFeatures, offset, nil
+}
+
+func supportedFeaturesReaderDecoder(r io.Reader) (ApiVersionsResponseSupportedFeatures, error) {
+	supportedFeatures := ApiVersionsResponseSupportedFeatures{}
+
+	name, err := protocol.ReadCompactString(r)
+	if err != nil {
+		fmt.Println("Failed to decode tag value", err)
+	}
+	supportedFeatures.Name = name
+
+	minVersion, err := protocol.ReadInt16(r)
+	if err != nil {
+		fmt.Println("Failed to decode tag value", err)
+	}
+	supportedFeatures.MinVersion = minVersion
+
+	maxVersion, err := protocol.ReadInt16(r)
+	if err != nil {
+		fmt.Println("Failed to decode tag value", err)
+	}
+	supportedFeatures.MaxVersion = maxVersion
+
+	// Tagged fields
+	rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
+	if err != nil {
+		fmt.Println("Failed to decode tagged fields", err)
+		return supportedFeatures, err
+	}
+	supportedFeatures.rawTaggedFields = rawTaggedFields
+
+	return supportedFeatures, nil
+}
+
+func finalizedFeaturesReaderDecoder(r io.Reader) (ApiVersionsResponseFinalizedFeatures, error) {
+	finalizedFeatures := ApiVersionsResponseFinalizedFeatures{}
+
+	name, err := protocol.ReadCompactString(r)
+	if err != nil {
+		fmt.Println("Failed to decode tag value", err)
+	}
+	finalizedFeatures.Name = name
+
+	minVersionLevel, err := protocol.ReadInt16(r)
+	if err != nil {
+		fmt.Println("Failed to decode tag value", err)
+	}
+	finalizedFeatures.MinVersionLevel = minVersionLevel
+
+	maxVersionLevel, err := protocol.ReadInt16(r)
+	if err != nil {
+		fmt.Println("Failed to decode tag value", err)
+	}
+	finalizedFeatures.MaxVersionLevel = maxVersionLevel
+
+	// Tagged fields
+	rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
+	if err != nil {
+		fmt.Println("Failed to decode tagged fields", err)
+		return finalizedFeatures, err
+	}
+	finalizedFeatures.rawTaggedFields = rawTaggedFields
+
+	return finalizedFeatures, nil
+}
+
+func (r *ApiVersionsResponse) PrettyPrint() {
+	fmt.Printf("<- ApiVersionsResponse:\n")
+	fmt.Printf("        ErrorCode: %d\n", r.ErrorCode)
+	fmt.Printf("        ApiKeys:\n")
+	for _, apiKey := range r.ApiKeys {
+		fmt.Printf("                ApiKey: %d\n", apiKey.ApiKey)
+		fmt.Printf("                MinVersion: %d\n", apiKey.MinVersion)
+		fmt.Printf("                MaxVersion: %d\n", apiKey.MaxVersion)
+		fmt.Printf("                -----\n")
+	}
+	fmt.Printf("        ThrottleTimeMs: %d\n", r.ThrottleTimeMs)
+	fmt.Printf("        SupportedFeatures: %v\n", r.SupportedFeatures)
+	fmt.Printf("        FinalizedFeaturesEpoch: %d\n", r.FinalizedFeaturesEpoch)
+	fmt.Printf("        FinalizedFeatures: %v\n", r.FinalizedFeatures)
+	fmt.Printf("        ZkMigrationReady: %t\n", r.ZkMigrationReady)
+	fmt.Printf("\n")
 }

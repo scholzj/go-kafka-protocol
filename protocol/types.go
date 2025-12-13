@@ -8,38 +8,12 @@ import (
 )
 
 ////////////////////
-// Structs to decode the headers
-////////////////////
-
-type RequestHeader struct {
-	ApiKey        int16
-	ApiVersion    int16
-	CorrelationId int32
-	ClientId      *string
-}
-
-type Request struct {
-	RequestHeader
-	Size int32
-	Body []byte
-}
-
-type ResponseHeader struct {
-	ApiKey        int16
-	ApiVersion    int16
-	CorrelationId int32
-	ClientId      *string
-}
-
-type Response struct {
-	ResponseHeader
-	Size int32
-	Body []byte
-}
-
-////////////////////
 // Decoding anf encoding methods for primitive types
 ////////////////////
+
+func WriteInt8(w io.Writer, value int8) error {
+	return binary.Write(w, binary.BigEndian, value)
+}
 
 func ReadInt8(r io.Reader) (int8, error) {
 	var v int8
@@ -53,6 +27,18 @@ func DecodeInt8(bytes []byte) (int8, int, error) {
 	return v, n, err
 }
 
+func WriteBool(w io.Writer, value bool) error {
+	var intValue int8
+
+	if value {
+		intValue = 1
+	} else {
+		intValue = 0
+	}
+
+	return binary.Write(w, binary.BigEndian, intValue)
+}
+
 func ReadBool(r io.Reader) (bool, error) {
 	var v int8
 	err := binary.Read(r, binary.BigEndian, &v)
@@ -62,6 +48,10 @@ func ReadBool(r io.Reader) (bool, error) {
 func DecodeBool(bytes []byte) (bool, int, error) {
 	v, n, err := DecodeInt8(bytes)
 	return v != 0, n, err
+}
+
+func WriteInt16(w io.Writer, value int16) error {
+	return binary.Write(w, binary.BigEndian, value)
 }
 
 func ReadInt16(r io.Reader) (int16, error) {
@@ -76,6 +66,10 @@ func DecodeInt16(bytes []byte) (int16, int, error) {
 	return v, n, err
 }
 
+func WriteInt32(w io.Writer, value int32) error {
+	return binary.Write(w, binary.BigEndian, value)
+}
+
 func ReadInt32(r io.Reader) (int32, error) {
 	var v int32
 	err := binary.Read(r, binary.BigEndian, &v)
@@ -86,6 +80,10 @@ func DecodeInt32(bytes []byte) (int32, int, error) {
 	var v int32
 	n, err := binary.Decode(bytes, binary.BigEndian, &v)
 	return v, n, err
+}
+
+func WriteInt64(w io.Writer, value int64) error {
+	return binary.Write(w, binary.BigEndian, value)
 }
 
 func ReadInt64(r io.Reader) (int64, error) {
@@ -100,6 +98,10 @@ func DecodeInt64(bytes []byte) (int64, int, error) {
 	return v, n, err
 }
 
+func WriteUint16(w io.Writer, value uint16) error {
+	return binary.Write(w, binary.BigEndian, value)
+}
+
 func ReadUInt16(r io.Reader) (uint16, error) {
 	var v uint16
 	err := binary.Read(r, binary.BigEndian, &v)
@@ -110,6 +112,10 @@ func DecodeUInt16(bytes []byte) (uint16, int, error) {
 	var v uint16
 	n, err := binary.Decode(bytes, binary.BigEndian, &v)
 	return v, n, err
+}
+
+func WriteUint32(w io.Writer, value uint32) error {
+	return binary.Write(w, binary.BigEndian, value)
 }
 
 func ReadUInt32(r io.Reader) (uint32, error) {
@@ -124,6 +130,13 @@ func DecodeUInt32(bytes []byte) (uint32, int, error) {
 	return v, n, err
 }
 
+func WriteVarint(w io.Writer, value int64) error {
+	buf := make([]byte, binary.MaxVarintLen64)
+	n := binary.PutVarint(buf, value)
+	_, err := w.Write(buf[:n])
+	return err
+}
+
 func ReadVarint(r io.Reader) (int64, error) {
 	return binary.ReadVarint(bufio.NewReader(r))
 }
@@ -133,6 +146,13 @@ func DecodeVarint(bytes []byte) (int64, int, error) {
 	return v, n, nil
 }
 
+func WriteUvarint(w io.Writer, value uint64) error {
+	buf := make([]byte, binary.MaxVarintLen64)
+	n := binary.PutUvarint(buf, value)
+	_, err := w.Write(buf[:n])
+	return err
+}
+
 func ReadUvarint(r io.Reader) (uint64, error) {
 	return binary.ReadUvarint(bufio.NewReader(r))
 }
@@ -140,6 +160,24 @@ func ReadUvarint(r io.Reader) (uint64, error) {
 func DecodeUvarint(bytes []byte) (uint64, int, error) {
 	v, n := binary.Uvarint(bytes)
 	return v, n, nil
+}
+
+func WriteNullableString(w io.Writer, value *string) error {
+	if value == nil {
+		return WriteInt16(w, -1)
+	} else {
+		err := WriteInt16(w, int16(len(*value)))
+		if err != nil {
+			return err
+		}
+
+		_, err = w.Write([]byte(*value))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func ReadNullableString(r io.Reader) (*string, error) {
@@ -188,6 +226,24 @@ func DecodeNullableString(bytes []byte) (*string, int, error) {
 	}
 }
 
+func WriteCompactString(w io.Writer, value string) error {
+	if value == "" {
+		return WriteUvarint(w, 1)
+	} else {
+		err := WriteUvarint(w, uint64(len(value))+1)
+		if err != nil {
+			return err
+		}
+
+		_, err = w.Write([]byte(value))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func ReadCompactString(r io.Reader) (string, error) {
 	length, err := ReadUvarint(r)
 	if err != nil {
@@ -230,6 +286,26 @@ func DecodeCompactString(bytes []byte) (string, int, error) {
 	} else {
 		return string(bytes[offset : offset+int(length)]), offset + int(length), nil
 	}
+}
+
+func WriteCompactNullableString(w io.Writer, value *string) error {
+	if value == nil {
+		return WriteUvarint(w, 0)
+	} else if *value == "" {
+		return WriteUvarint(w, 1)
+	} else {
+		err := WriteUvarint(w, uint64(len(*value))+1)
+		if err != nil {
+			return err
+		}
+
+		_, err = w.Write([]byte(*value))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func ReadCompactNullableString(r io.Reader) (*string, error) {
@@ -283,7 +359,24 @@ func DecodeCompactNullableString(bytes []byte) (*string, int, error) {
 
 // Function used to decode structured arrays
 type ArrayDecoder[T interface{}] func([]byte) (T, int, error)
-type ArrayReaderDecoder[T interface{}] func(r io.Reader) (T, error)
+type ArrayReaderDecoder[T interface{}] func(io.Reader) (T, error)
+type ArrayEncoder[T interface{}] func(io.Writer, T) error
+
+func WriteCompactArray[T interface{}](w io.Writer, encoder ArrayEncoder[T], values []T) error {
+	err := WriteUvarint(w, uint64(len(values))+1)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range values {
+		err := encoder(w, v)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
 
 func ReadCompactArray[T interface{}](r io.Reader, decoder ArrayReaderDecoder[T]) ([]T, error) {
 	length, err := ReadUvarint(r)
@@ -335,6 +428,27 @@ func DecodeCompactArray[T interface{}](bytes []byte, decoder ArrayDecoder[T]) ([
 type TaggedField struct {
 	Tag   uint64
 	Field []byte
+}
+
+func WriteRawTaggedFields(w io.Writer, fields []TaggedField) error {
+	err := WriteUvarint(w, uint64(len(fields)))
+	if err != nil {
+		return err
+	}
+
+	for _, field := range fields {
+		err := WriteUvarint(w, field.Tag)
+		if err != nil {
+			return err
+		}
+
+		_, err = w.Write(field.Field)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func ReadRawTaggedFields(r io.Reader) ([]TaggedField, error) {
@@ -423,6 +537,46 @@ func DecodeRawTaggedFields(bytes []byte) ([]TaggedField, int, error) {
 
 // Uses the request/response message as parameter to set the tagged fields
 type TaggedFieldsDecoder[T interface{}] func([]byte, *T, uint64, uint64) (int, error)
+type TaggedFieldsReaderDecoder[T interface{}] func(io.Reader, *T, uint64, uint64) error
+
+func ReadTaggedFields[T interface{}](r io.Reader, decoder TaggedFieldsReaderDecoder[T], msg *T) error {
+	// Find the number of tags
+	l, err := ReadUvarint(r)
+	if err != nil {
+		fmt.Println("Failed to decode tagged fields", err)
+		return err
+	}
+	fmt.Printf("Tagged fields length: %d records\n", l)
+
+	for i := 0; i < int(l); i++ {
+		// Read the tag number first
+		tag, err := ReadUvarint(r)
+		if err != nil {
+			fmt.Println("Failed to decode tag", err)
+			return err
+		}
+
+		fmt.Printf("Found tag %d\n", tag)
+
+		// Read the tag length
+		tagLength, err := ReadUvarint(r)
+		if err != nil {
+			fmt.Println("Failed to decode tag length", err)
+			return err
+		}
+
+		fmt.Printf("Found tag length %d bytes\n", tagLength)
+
+		// Use the decoded to decode the fields
+		err = decoder(r, msg, tag, tagLength)
+		if err != nil {
+			fmt.Println("Failed to decode tag in decoder", err)
+			return err
+		}
+	}
+
+	return nil
+}
 
 func DecodeTaggedFields[T interface{}](bytes []byte, decoder TaggedFieldsDecoder[T], msg *T) (int, error) {
 	offset := 0

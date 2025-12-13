@@ -25,8 +25,44 @@ func isRequestFlexible(apiVersion int16) bool {
 }
 
 // TODO: pass version and bytes only
+func (r *ApiVersionsRequest) Read(request protocol.Request) error {
+	reader := request.Body
+
+	if request.ApiVersion >= 3 {
+		// ClientSoftwareName
+		name, err := protocol.ReadCompactString(reader)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("ClientSoftwareName: %s\n", name)
+		r.ClientSoftwareName = &name
+
+		// ClientSoftwareVersion
+		version, err := protocol.ReadCompactString(reader)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("ClientSoftwareVersion: %s\n", version)
+		r.ClientSoftwareVersion = &version
+
+		// Tagged fields
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(reader)
+		if err != nil {
+			fmt.Println("Failed to decode tagged fields", err)
+			return err
+		}
+		r.rawTaggedFields = rawTaggedFields
+
+		return nil
+	} else {
+		return nil
+	}
+}
+
 func (r *ApiVersionsRequest) Decode(request protocol.Request) error {
-	bytes := request.Body
+	bytes := request.Body.Bytes()
 	offset := 0
 
 	if request.ApiVersion >= 3 {
@@ -63,4 +99,11 @@ func (r *ApiVersionsRequest) Decode(request protocol.Request) error {
 	} else {
 		return nil
 	}
+}
+
+func (r *ApiVersionsRequest) PrettyPrint() {
+	fmt.Printf("-> ApiVersionsRequest:\n")
+	fmt.Printf("        ClientSoftwareName: %s\n", r.ClientSoftwareName)
+	fmt.Printf("        ClientSoftwareVersion: %s\n", r.ClientSoftwareVersion)
+	fmt.Printf("\n")
 }
