@@ -1,7 +1,9 @@
 package apiversions
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 
 	"github.com/scholzj/go-kafka-protocol/protocol"
 )
@@ -24,9 +26,35 @@ func isRequestFlexible(apiVersion int16) bool {
 	return apiVersion >= 3
 }
 
+func (r *ApiVersionsRequest) Write(w io.Writer, apiVersion int16) error {
+	if apiVersion >= 3 {
+		// ClientSoftwareName
+		err := protocol.WriteCompactString(w, *r.ClientSoftwareName)
+		if err != nil {
+			return err
+		}
+
+		// ClientSoftwareVersion
+		err = protocol.WriteCompactString(w, *r.ClientSoftwareVersion)
+		if err != nil {
+			return err
+		}
+
+		// Tagged fields
+		err = protocol.WriteRawTaggedFields(w, r.rawTaggedFields)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	} else {
+		return nil
+	}
+}
+
 // TODO: pass version and bytes only
 func (r *ApiVersionsRequest) Read(request protocol.Request) error {
-	reader := request.Body
+	reader := bytes.NewBuffer(request.Body.Bytes())
 
 	if request.ApiVersion >= 3 {
 		// ClientSoftwareName
@@ -103,7 +131,7 @@ func (r *ApiVersionsRequest) Decode(request protocol.Request) error {
 
 func (r *ApiVersionsRequest) PrettyPrint() {
 	fmt.Printf("-> ApiVersionsRequest:\n")
-	fmt.Printf("        ClientSoftwareName: %s\n", r.ClientSoftwareName)
-	fmt.Printf("        ClientSoftwareVersion: %s\n", r.ClientSoftwareVersion)
+	fmt.Printf("        ClientSoftwareName: %s\n", *r.ClientSoftwareName)
+	fmt.Printf("        ClientSoftwareVersion: %s\n", *r.ClientSoftwareVersion)
 	fmt.Printf("\n")
 }

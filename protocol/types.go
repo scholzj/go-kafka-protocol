@@ -1,8 +1,8 @@
 package protocol
 
 import (
-	"bufio"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 )
@@ -138,7 +138,24 @@ func WriteVarint(w io.Writer, value int64) error {
 }
 
 func ReadVarint(r io.Reader) (int64, error) {
-	return binary.ReadVarint(bufio.NewReader(r))
+	var result int64
+	var shift uint
+
+	for {
+		buf := make([]byte, 1)
+		if _, err := io.ReadFull(r, buf); err != nil {
+			return 0, err
+		}
+		b := buf[0]
+		result |= int64(b&0x7F) << shift
+		if (b & 0x80) == 0 {
+			return result, nil
+		}
+		shift += 7
+		if shift >= 32 {
+			return 0, errors.New("invalid Varint")
+		}
+	}
 }
 
 func DecodeVarint(bytes []byte) (int64, int, error) {
@@ -154,7 +171,24 @@ func WriteUvarint(w io.Writer, value uint64) error {
 }
 
 func ReadUvarint(r io.Reader) (uint64, error) {
-	return binary.ReadUvarint(bufio.NewReader(r))
+	var result uint64
+	var shift uint
+
+	for {
+		buf := make([]byte, 1)
+		if _, err := io.ReadFull(r, buf); err != nil {
+			return 0, err
+		}
+		b := buf[0]
+		result |= uint64(b&0x7F) << shift
+		if (b & 0x80) == 0 {
+			return result, nil
+		}
+		shift += 7
+		if shift >= 32 {
+			return 0, errors.New("invalid Uvarint")
+		}
+	}
 }
 
 func DecodeUvarint(bytes []byte) (uint64, int, error) {
@@ -277,7 +311,6 @@ func DecodeCompactString(bytes []byte) (string, int, error) {
 	offset += c
 
 	length-- // subtract 1 for the length byte based on the Kafka protocol spec
-	fmt.Printf("Decoded length: %d; bytes read: %d; overall bytes length: %d\n", length, c, len(bytes[offset:]))
 
 	if length < 0 {
 		return "", 0, fmt.Errorf("invalid compact string length %d", length)
@@ -345,7 +378,6 @@ func DecodeCompactNullableString(bytes []byte) (*string, int, error) {
 	offset += c
 
 	length-- // subtract 1 for the length byte based on the Kafka protocol spec
-	fmt.Printf("Decoded length: %d; bytes read: %d; overall bytes length: %d\n", length, c, len(bytes[offset:]))
 
 	if length < 0 {
 		return nil, 0, fmt.Errorf("invalid compact string length %d", length)
@@ -442,6 +474,11 @@ func WriteRawTaggedFields(w io.Writer, fields []TaggedField) error {
 			return err
 		}
 
+		err = WriteUvarint(w, uint64(len(field.Field)))
+		if err != nil {
+			return err
+		}
+
 		_, err = w.Write(field.Field)
 		if err != nil {
 			return err
@@ -458,7 +495,6 @@ func ReadRawTaggedFields(r io.Reader) ([]TaggedField, error) {
 		fmt.Println("Failed to decode tagged fields", err)
 		return nil, err
 	}
-	fmt.Printf("Raw tagged fields length: %d records\n", l)
 
 	// Read each tag and store it in the slice of slices
 	//(we need to partially decode them to know how many bytes are the raw tags)
@@ -471,8 +507,6 @@ func ReadRawTaggedFields(r io.Reader) ([]TaggedField, error) {
 			return nil, err
 		}
 		rawTaggedFields[i].Tag = tag
-
-		fmt.Printf("Found tag %d\n", tag)
 
 		// Read the tag length
 		tagLength, err := ReadUvarint(r)
@@ -500,7 +534,6 @@ func DecodeRawTaggedFields(bytes []byte) ([]TaggedField, int, error) {
 		return nil, offset, err
 	}
 	offset += c
-	fmt.Printf("Raw tagged fields length: %d bytes, %d records\n", c, l)
 
 	// Read each tag and store it in the slice of slices
 	//(we need to partially decode them to know how many bytes are the raw tags)
@@ -513,7 +546,6 @@ func DecodeRawTaggedFields(bytes []byte) ([]TaggedField, int, error) {
 			return nil, offset, err
 		}
 
-		fmt.Printf("Found tag %d\n", tag)
 		rawTaggedFields[i].Tag = tag
 		offset += c
 
@@ -524,8 +556,6 @@ func DecodeRawTaggedFields(bytes []byte) ([]TaggedField, int, error) {
 			return nil, offset, err
 		}
 		offset += c
-
-		fmt.Printf("Found tag length %d bytes\n", tagLength)
 
 		// Copy the raw tag value bytes without decoding them
 		rawTaggedFields[i].Field = bytes[offset : offset+int(tagLength)]
@@ -546,7 +576,6 @@ func ReadTaggedFields[T interface{}](r io.Reader, decoder TaggedFieldsReaderDeco
 		fmt.Println("Failed to decode tagged fields", err)
 		return err
 	}
-	fmt.Printf("Tagged fields length: %d records\n", l)
 
 	for i := 0; i < int(l); i++ {
 		// Read the tag number first
@@ -556,16 +585,12 @@ func ReadTaggedFields[T interface{}](r io.Reader, decoder TaggedFieldsReaderDeco
 			return err
 		}
 
-		fmt.Printf("Found tag %d\n", tag)
-
 		// Read the tag length
 		tagLength, err := ReadUvarint(r)
 		if err != nil {
 			fmt.Println("Failed to decode tag length", err)
 			return err
 		}
-
-		fmt.Printf("Found tag length %d bytes\n", tagLength)
 
 		// Use the decoded to decode the fields
 		err = decoder(r, msg, tag, tagLength)
@@ -588,7 +613,6 @@ func DecodeTaggedFields[T interface{}](bytes []byte, decoder TaggedFieldsDecoder
 		return offset, err
 	}
 	offset += c
-	fmt.Printf("Tagged fields length: %d bytes, %d records\n", c, l)
 
 	for i := 0; i < int(l); i++ {
 		// Read the tag number first
@@ -608,8 +632,6 @@ func DecodeTaggedFields[T interface{}](bytes []byte, decoder TaggedFieldsDecoder
 			return offset, err
 		}
 		offset += c
-
-		fmt.Printf("Found tag length %d bytes\n", tagLength)
 
 		// Use the decoded to decode the fields
 		c, err = decoder(bytes[offset:], msg, tag, tagLength)

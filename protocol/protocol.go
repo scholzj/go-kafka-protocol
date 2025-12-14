@@ -76,7 +76,8 @@ func (r *Request) Write(w io.Writer) error {
 		return err
 	}
 
-	_, err = buf.Write(r.Body.Bytes())
+	_, err = io.Copy(buf, r.Body)
+	//_, err = buf.Write(r.Body.Bytes())
 	if err != nil {
 		return err
 	}
@@ -103,6 +104,8 @@ func ReadRequest(r io.Reader) (Request, error) {
 		return request, err
 	}
 	request.Size = size
+
+	fmt.Printf("Reading request size is %d bytes\n", size)
 
 	requestReader := io.LimitReader(r, int64(request.Size))
 
@@ -260,7 +263,7 @@ func ReadResponse(r io.Reader, correlations map[int32]RequestHeader) (Response, 
 
 	response.Size, err = ReadInt32(r)
 	if err != nil {
-		fmt.Println("Failed to decode request size", err)
+		fmt.Println("Failed to decode response size", err)
 		return response, err
 	}
 
@@ -307,7 +310,7 @@ func DecodeResponse(b []byte, correlations map[int32]RequestHeader) (Response, e
 
 	size, c, err := DecodeInt32(b[offset:])
 	if err != nil {
-		fmt.Println("Failed to decode request size", err)
+		fmt.Println("Failed to decode response size", err)
 		return response, err
 	}
 	response.Size = size
