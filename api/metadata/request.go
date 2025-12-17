@@ -24,14 +24,6 @@ type MetadataRequestTopic struct {
 	rawTaggedFields []protocol.TaggedField
 }
 
-func RequestHeaderVersion(apiVersion int16) int16 {
-	if isRequestFlexible(apiVersion) {
-		return 2
-	} else {
-		return 1
-	}
-}
-
 func isRequestFlexible(apiVersion int16) bool {
 	return apiVersion >= 9
 }
@@ -79,11 +71,19 @@ func (req *MetadataRequest) Read(request protocol.Request) error {
 	req.ApiVersion = request.ApiVersion
 
 	// Topics
-	topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
-	if err != nil {
-		return err
+	if isRequestFlexible(req.ApiVersion) {
+		topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
+		if err != nil {
+			return err
+		}
+		req.Topics = topics
+	} else {
+		topics, err := protocol.ReadArray(r, req.topicsDecoder)
+		if err != nil {
+			return err
+		}
+		req.Topics = topics
 	}
-	req.Topics = topics
 
 	// Allow auto-topic-creation
 	if req.ApiVersion >= 4 {
@@ -192,4 +192,16 @@ func (req *MetadataRequest) topicsDecoder(r io.Reader) (MetadataRequestTopic, er
 	}
 
 	return topics, nil
+}
+
+func (req *MetadataRequest) PrettyPrint() {
+	fmt.Printf("-> MetadataRequest:\n")
+	fmt.Printf("        Topics:\n")
+	for _, topic := range req.Topics {
+		fmt.Printf("                Id: %s; Name: %s\n", topic.Id.String(), topic.Name)
+	}
+	fmt.Printf("        AllowAutoTopicCreation: %t\n", req.AllowAutoTopicCreation)
+	fmt.Printf("        IncludeClusterAuthorizedOperations: %t\n", req.IncludeClusterAuthorizedOperations)
+	fmt.Printf("        IncludeTopicAuthorizedOperations: %t\n", req.IncludeTopicAuthorizedOperations)
+	fmt.Printf("\n")
 }

@@ -41,11 +41,6 @@ type ApiVersionsResponseFinalizedFeature struct {
 	rawTaggedFields []protocol.TaggedField
 }
 
-func ResponseHeaderVersion(apiVersion int16) int16 {
-	// ApiVersions is always 0
-	return 0
-}
-
 func isResponseFlexible(apiVersion int16) bool {
 	return apiVersion >= 3
 }
@@ -282,10 +277,7 @@ func (res *ApiVersionsResponse) taggedFieldsEncoder() ([]protocol.TaggedField, e
 		return taggedFields, err
 	}
 
-	taggedFields[0] = protocol.TaggedField{
-		Tag:   0,
-		Field: buf.Bytes(),
-	}
+	taggedFields = append(taggedFields, protocol.TaggedField{Tag: 0, Field: buf.Bytes()})
 
 	// Tag 1
 	buf = bytes.NewBuffer(make([]byte, 0))
@@ -293,10 +285,7 @@ func (res *ApiVersionsResponse) taggedFieldsEncoder() ([]protocol.TaggedField, e
 		return taggedFields, err
 	}
 
-	taggedFields[1] = protocol.TaggedField{
-		Tag:   1,
-		Field: buf.Bytes(),
-	}
+	taggedFields = append(taggedFields, protocol.TaggedField{Tag: 1, Field: buf.Bytes()})
 
 	// Tag 2
 	buf = bytes.NewBuffer(make([]byte, 0))
@@ -304,10 +293,7 @@ func (res *ApiVersionsResponse) taggedFieldsEncoder() ([]protocol.TaggedField, e
 		return taggedFields, err
 	}
 
-	taggedFields[2] = protocol.TaggedField{
-		Tag:   2,
-		Field: buf.Bytes(),
-	}
+	taggedFields = append(taggedFields, protocol.TaggedField{Tag: 2, Field: buf.Bytes()})
 
 	// Tag 3
 	buf = bytes.NewBuffer(make([]byte, 0))
@@ -315,10 +301,7 @@ func (res *ApiVersionsResponse) taggedFieldsEncoder() ([]protocol.TaggedField, e
 		return taggedFields, err
 	}
 
-	taggedFields[3] = protocol.TaggedField{
-		Tag:   3,
-		Field: buf.Bytes(),
-	}
+	taggedFields = append(taggedFields, protocol.TaggedField{Tag: 3, Field: buf.Bytes()})
 
 	// We append any raw tagged fields to the end of the array
 	taggedFields = append(taggedFields, res.rawTaggedFields...)

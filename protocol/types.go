@@ -199,12 +199,12 @@ func DecodeUvarint(bytes []byte) (uint64, int, error) {
 }
 
 func WriteUUID(w io.Writer, value uuid.UUID) error {
-	b, err := value.MarshalBinary()
-	if err != nil {
-		return err
-	}
+	//b, err := value.MarshalBinary()
+	//if err != nil {
+	//	return err
+	//}
 
-	_, err = w.Write(b)
+	_, err := w.Write(value[:])
 	if err != nil {
 		return err
 	}
@@ -218,13 +218,13 @@ func ReadUUID(r io.Reader) (uuid.UUID, error) {
 		return uuid.Nil, err
 	}
 
-	var id uuid.UUID
-	err := id.UnmarshalBinary(buf)
-	if err != nil {
-		return id, err
-	}
+	//var id uuid.UUID
+	//err := id.UnmarshalBinary(buf)
+	//if err != nil {
+	//	return id, err
+	//}
 
-	return id, nil
+	return uuid.FromBytes(buf)
 }
 
 func WriteString(w io.Writer, value string) error {
@@ -484,15 +484,19 @@ func ReadArray[T interface{}](r io.Reader, decoder ArrayReaderDecoder[T]) ([]T, 
 		return nil, err
 	}
 
-	array := make([]T, length)
-	for i := 0; i < int(length); i++ {
-		array[i], err = decoder(r)
-		if err != nil {
-			return nil, err
+	if length <= 0 {
+		return make([]T, 0), nil
+	} else {
+		array := make([]T, length)
+		for i := 0; i < int(length); i++ {
+			array[i], err = decoder(r)
+			if err != nil {
+				return nil, err
+			}
 		}
-	}
 
-	return array, nil
+		return array, nil
+	}
 }
 
 func WriteCompactArray[T interface{}](w io.Writer, encoder ArrayEncoder[T], values []T) error {
@@ -517,17 +521,21 @@ func ReadCompactArray[T interface{}](r io.Reader, decoder ArrayReaderDecoder[T])
 		return nil, err
 	}
 
-	length-- // We remove one according to the Kafka spec
+	if length <= 0 {
+		return make([]T, 0), nil
+	} else {
+		length-- // We remove one according to the Kafka spec
 
-	array := make([]T, length)
-	for i := 0; i < int(length); i++ {
-		array[i], err = decoder(r)
-		if err != nil {
-			return nil, err
+		array := make([]T, length)
+		for i := 0; i < int(length); i++ {
+			array[i], err = decoder(r)
+			if err != nil {
+				return nil, err
+			}
 		}
-	}
 
-	return array, nil
+		return array, nil
+	}
 }
 
 //func DecodeCompactArray[T interface{}](bytes []byte, decoder ArrayDecoder[T]) ([]T, int, error) {

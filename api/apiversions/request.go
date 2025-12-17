@@ -15,14 +15,6 @@ type ApiVersionsRequest struct {
 	rawTaggedFields       []protocol.TaggedField
 }
 
-func RequestHeaderVersion(apiVersion int16) int16 {
-	if isRequestFlexible(apiVersion) {
-		return 2
-	} else {
-		return 1
-	}
-}
-
 func isRequestFlexible(apiVersion int16) bool {
 	return apiVersion >= 3
 }

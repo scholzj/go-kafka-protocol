@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+
+	"github.com/scholzj/go-kafka-protocol/apis"
 )
 
 ////////////////////
@@ -70,14 +72,14 @@ func (r *Request) Write(w io.Writer) error {
 		return err
 	}
 
-	// TODO: Check header version
-	err = WriteRawTaggedFields(buf, make([]TaggedField, 0))
-	if err != nil {
-		return err
+	if apis.RequestHeaderVersion(r.ApiKey, r.ApiVersion) >= 2 {
+		err = WriteRawTaggedFields(buf, make([]TaggedField, 0))
+		if err != nil {
+			return err
+		}
 	}
 
 	_, err = io.Copy(buf, r.Body)
-	//_, err = buf.Write(r.Body.Bytes())
 	if err != nil {
 		return err
 	}
@@ -100,8 +102,12 @@ func ReadRequest(r io.Reader) (Request, error) {
 
 	size, err := ReadInt32(r)
 	if err != nil {
-		fmt.Println("Failed to decode request size", err)
-		return request, err
+		if err == io.EOF {
+			return request, err
+		} else {
+			fmt.Println("Failed to decode request size", err)
+			return request, err
+		}
 	}
 	request.Size = size
 
@@ -138,12 +144,13 @@ func ReadRequest(r io.Reader) (Request, error) {
 	}
 	request.ClientId = clientId
 
-	// TODO: Check header version
 	// Decode tagged fields
-	_, err = ReadRawTaggedFields(requestReader)
-	if err != nil {
-		fmt.Println("Failed to decode tagged fields", err)
-		return request, err
+	if apis.RequestHeaderVersion(request.ApiKey, request.ApiVersion) >= 2 {
+		_, err = ReadRawTaggedFields(requestReader)
+		if err != nil {
+			fmt.Println("Failed to decode tagged fields", err)
+			return request, err
+		}
 	}
 
 	// Read the body
@@ -156,72 +163,72 @@ func ReadRequest(r io.Reader) (Request, error) {
 	return request, nil
 }
 
-func DecodeRequest(b []byte) (Request, error) {
-	request := Request{}
-	offset := 0
-
-	size, c, err := DecodeInt32(b[offset:])
-	//c, err := binary.Decode(b, binary.BigEndian, &request.Size)
-	if err != nil {
-		fmt.Println("Failed to decode request size", err)
-		return request, err
-	}
-	request.Size = size
-	offset += c
-	fmt.Printf("Ofsers ... c: %d; offset: %d\n", c, offset)
-
-	apiKey, c, err := DecodeInt16(b[offset:])
-	if err != nil {
-		fmt.Println("Failed to decode apiKey", err)
-		return request, err
-	}
-	request.ApiKey = apiKey
-	offset += c
-	fmt.Printf("Ofsers ... c: %d; offset: %d\n", c, offset)
-
-	apiVersion, c, err := DecodeInt16(b[offset:])
-	if err != nil {
-		fmt.Println("Failed to decode apiVersion", err)
-		return request, err
-	}
-	request.ApiVersion = apiVersion
-	offset += c
-	fmt.Printf("Ofsers ... c: %d; offset: %d\n", c, offset)
-
-	correlationId, c, err := DecodeInt32(b[offset:])
-	if err != nil {
-		fmt.Println("Failed to decode correlationID", err)
-		return request, err
-	}
-	request.CorrelationId = correlationId
-	offset += c
-	fmt.Printf("Ofsers ... c: %d; offset: %d\n", c, offset)
-
-	// Decode client ID
-	clientId, c, err := DecodeNullableString(b[offset:])
-	if err != nil {
-		fmt.Println("Failed to decode clientId", err)
-		return request, err
-	}
-	offset += c
-	request.ClientId = clientId
-	fmt.Printf("Ofsers ... c: %d; offset: %d\n", c, offset)
-
-	// TODO: Check header version
-	// Decode tagged fields
-	_, c, err = DecodeUvarint(b[offset:])
-	if err != nil {
-		fmt.Println("Failed to decode tagged fields", err)
-		return request, err
-	}
-	offset += c
-	fmt.Printf("Tagged fields length: %d\n", c)
-	fmt.Printf("Ofsers ... c: %d; offset: %d\n", c, offset)
-
-	request.Body = bytes.NewBuffer(b[offset : request.Size+4]) // We add 4 here because the first 4 b are the size
-
-	return request, nil
-}
+//func DecodeRequest(b []byte) (Request, error) {
+//	request := Request{}
+//	offset := 0
+//
+//	size, c, err := DecodeInt32(b[offset:])
+//	//c, err := binary.Decode(b, binary.BigEndian, &request.Size)
+//	if err != nil {
+//		fmt.Println("Failed to decode request size", err)
+//		return request, err
+//	}
+//	request.Size = size
+//	offset += c
+//	fmt.Printf("Ofsers ... c: %d; offset: %d\n", c, offset)
+//
+//	apiKey, c, err := DecodeInt16(b[offset:])
+//	if err != nil {
+//		fmt.Println("Failed to decode apiKey", err)
+//		return request, err
+//	}
+//	request.ApiKey = apiKey
+//	offset += c
+//	fmt.Printf("Ofsers ... c: %d; offset: %d\n", c, offset)
+//
+//	apiVersion, c, err := DecodeInt16(b[offset:])
+//	if err != nil {
+//		fmt.Println("Failed to decode apiVersion", err)
+//		return request, err
+//	}
+//	request.ApiVersion = apiVersion
+//	offset += c
+//	fmt.Printf("Ofsers ... c: %d; offset: %d\n", c, offset)
+//
+//	correlationId, c, err := DecodeInt32(b[offset:])
+//	if err != nil {
+//		fmt.Println("Failed to decode correlationID", err)
+//		return request, err
+//	}
+//	request.CorrelationId = correlationId
+//	offset += c
+//	fmt.Printf("Ofsers ... c: %d; offset: %d\n", c, offset)
+//
+//	// Decode client ID
+//	clientId, c, err := DecodeNullableString(b[offset:])
+//	if err != nil {
+//		fmt.Println("Failed to decode clientId", err)
+//		return request, err
+//	}
+//	offset += c
+//	request.ClientId = clientId
+//	fmt.Printf("Ofsers ... c: %d; offset: %d\n", c, offset)
+//
+//	// TODO: Check header version
+//	// Decode tagged fields
+//	_, c, err = DecodeUvarint(b[offset:])
+//	if err != nil {
+//		fmt.Println("Failed to decode tagged fields", err)
+//		return request, err
+//	}
+//	offset += c
+//	fmt.Printf("Tagged fields length: %d\n", c)
+//	fmt.Printf("Ofsers ... c: %d; offset: %d\n", c, offset)
+//
+//	request.Body = bytes.NewBuffer(b[offset : request.Size+4]) // We add 4 here because the first 4 b are the size
+//
+//	return request, nil
+//}
 
 func (r *Response) Write(w io.Writer) error {
 	buf := bytes.NewBuffer(make([]byte, 0))
@@ -231,8 +238,7 @@ func (r *Response) Write(w io.Writer) error {
 		return err
 	}
 
-	// TODO: Check header version
-	if r.ApiKey != 18 {
+	if apis.ResponseHeaderVersion(r.ApiKey, r.ApiVersion) >= 1 {
 		err = WriteRawTaggedFields(buf, make([]TaggedField, 0))
 		if err != nil {
 			return err
@@ -263,8 +269,12 @@ func ReadResponse(r io.Reader, correlations map[int32]RequestHeader) (Response, 
 
 	response.Size, err = ReadInt32(r)
 	if err != nil {
-		fmt.Println("Failed to decode response size", err)
-		return response, err
+		if err == io.EOF {
+			return response, err
+		} else {
+			fmt.Println("Failed to decode response size", err)
+			return response, err
+		}
 	}
 
 	responseReader := io.LimitReader(r, int64(response.Size))
@@ -284,9 +294,8 @@ func ReadResponse(r io.Reader, correlations map[int32]RequestHeader) (Response, 
 	response.ApiVersion = requestHeader.ApiVersion
 	response.ClientId = requestHeader.ClientId
 
-	// TODO: Check response version header
-	if response.ApiKey != 18 {
-		// Decode tagged fields
+	// Decode tagged fields
+	if apis.ResponseHeaderVersion(response.ApiKey, response.ApiVersion) >= 1 {
 		_, err := ReadRawTaggedFields(responseReader)
 		if err != nil {
 			fmt.Println("Failed to decode tagged fields", err)
@@ -304,53 +313,53 @@ func ReadResponse(r io.Reader, correlations map[int32]RequestHeader) (Response, 
 	return response, nil
 }
 
-func DecodeResponse(b []byte, correlations map[int32]RequestHeader) (Response, error) {
-	response := Response{}
-	offset := 0
-
-	size, c, err := DecodeInt32(b[offset:])
-	if err != nil {
-		fmt.Println("Failed to decode response size", err)
-		return response, err
-	}
-	response.Size = size
-	offset += c
-	fmt.Printf("Ofsers ... c: %d; offset: %d\n", c, offset)
-
-	correlationId, c, err := DecodeInt32(b[offset:])
-	if err != nil {
-		fmt.Println("Failed to decode correlationID", err)
-		return response, err
-	}
-	offset += c
-
-	requestHeader, ok := correlations[correlationId]
-	if !ok {
-		return response, fmt.Errorf("no correlation found for correlationId %d", correlationId)
-	}
-
-	response.ApiKey = requestHeader.ApiKey
-	response.ApiVersion = requestHeader.ApiVersion
-	response.CorrelationId = correlationId
-	response.ClientId = requestHeader.ClientId
-
-	// TODO: Check header version
-	if response.ApiKey != 18 {
-		// Decode tagged fields
-		l, c, err := DecodeUvarint(b[offset:])
-		if err != nil {
-			fmt.Println("Failed to decode tagged fields", err)
-			return response, err
-		}
-		offset += c
-		fmt.Printf("Tagged fields length: %d b, %d records\n", c, l)
-		fmt.Printf("Ofsers ... c: %d; offset: %d\n", c, offset)
-	}
-
-	response.Body = bytes.NewBuffer(b[offset : response.Size+4]) // We add 4 here because the first 4 b are the size
-
-	return response, nil
-}
+//func DecodeResponse(b []byte, correlations map[int32]RequestHeader) (Response, error) {
+//	response := Response{}
+//	offset := 0
+//
+//	size, c, err := DecodeInt32(b[offset:])
+//	if err != nil {
+//		fmt.Println("Failed to decode response size", err)
+//		return response, err
+//	}
+//	response.Size = size
+//	offset += c
+//	fmt.Printf("Ofsers ... c: %d; offset: %d\n", c, offset)
+//
+//	correlationId, c, err := DecodeInt32(b[offset:])
+//	if err != nil {
+//		fmt.Println("Failed to decode correlationID", err)
+//		return response, err
+//	}
+//	offset += c
+//
+//	requestHeader, ok := correlations[correlationId]
+//	if !ok {
+//		return response, fmt.Errorf("no correlation found for correlationId %d", correlationId)
+//	}
+//
+//	response.ApiKey = requestHeader.ApiKey
+//	response.ApiVersion = requestHeader.ApiVersion
+//	response.CorrelationId = correlationId
+//	response.ClientId = requestHeader.ClientId
+//
+//	// TODO: Check header version
+//	if response.ApiKey != 18 {
+//		// Decode tagged fields
+//		l, c, err := DecodeUvarint(b[offset:])
+//		if err != nil {
+//			fmt.Println("Failed to decode tagged fields", err)
+//			return response, err
+//		}
+//		offset += c
+//		fmt.Printf("Tagged fields length: %d b, %d records\n", c, l)
+//		fmt.Printf("Ofsers ... c: %d; offset: %d\n", c, offset)
+//	}
+//
+//	response.Body = bytes.NewBuffer(b[offset : response.Size+4]) // We add 4 here because the first 4 b are the size
+//
+//	return response, nil
+//}
 
 func readBody(r io.Reader) (*bytes.Buffer, error) {
 	body := bytes.NewBuffer(make([]byte, 0))

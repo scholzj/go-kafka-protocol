@@ -50,14 +50,6 @@ type MetadataResponseTopicPartition struct {
 	rawTaggedFields []protocol.TaggedField
 }
 
-func ResponseHeaderVersion(apiVersion int16) int16 {
-	if isRequestFlexible(apiVersion) {
-		return 1
-	} else {
-		return 0
-	}
-}
-
 func isResponseFlexible(apiVersion int16) bool {
 	return apiVersion >= 9
 }
@@ -642,4 +634,42 @@ func (res *MetadataResponse) topicPartitionDecoder(r io.Reader) (MetadataRespons
 	}
 
 	return topicPart, nil
+}
+
+func (res *MetadataResponse) PrettyPrint() {
+	fmt.Printf("<- MetadataResponse:\n")
+	fmt.Printf("        ThrottleTimeMs: %d\n", res.ThrottleTimeMs)
+	fmt.Printf("        Brokers:\n")
+	for _, broker := range res.Brokers {
+		fmt.Printf("                Id: %d\n", broker.NodeId)
+		fmt.Printf("                Host: %s\n", broker.Host)
+		fmt.Printf("                Port: %d\n", broker.Port)
+		fmt.Printf("                Rack: %s\n", *broker.Rack)
+		fmt.Printf("                ----------\n")
+	}
+	fmt.Printf("        ClusterId: %s\n", *res.ClusterId)
+	fmt.Printf("        ControllerId: %d\n", res.ControllerId)
+	fmt.Printf("        Topics:\n")
+	for _, topic := range res.Topics {
+		fmt.Printf("                ErrorCode: %d\n", topic.ErrorCode)
+		fmt.Printf("                Name: %s\n", *topic.Name)
+		fmt.Printf("                Id: %s\n", topic.Id.String())
+		fmt.Printf("                IsInternal: %t\n", topic.IsInternal)
+		fmt.Printf("                Partitions:\n")
+		for _, partition := range topic.Partitions {
+			fmt.Printf("                        ErrorCode: %d\n", partition.ErrorCode)
+			fmt.Printf("                        Index: %d\n", partition.PartitionIndex)
+			fmt.Printf("                        LeaderId: %d\n", partition.LeaderId)
+			fmt.Printf("                        LeaderEpoch: %d\n", partition.LeaderEpoch)
+			fmt.Printf("                        ReplicaNodes: %v\n", partition.ReplicaNodes)
+			fmt.Printf("                        IsrNodes: %v\n", partition.IsrNodes)
+			fmt.Printf("                        OfflineReplicas: %v\n", partition.OfflineReplicas)
+			fmt.Printf("                        ----------\n")
+		}
+		fmt.Printf("                TopicAuthorizedOperations: %d\n", topic.TopicAuthorizedOperations)
+		fmt.Printf("                ----------\n")
+	}
+	fmt.Printf("        TopicAuthorizedOperations: %d\n", res.ClusterAuthorizedOperations)
+	fmt.Printf("        ErrorCode: %d\n", res.ErrorCode)
+	fmt.Printf("\n")
 }
