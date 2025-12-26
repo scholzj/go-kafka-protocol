@@ -224,7 +224,6 @@ func (res *MetadataResponse) Read(response protocol.Response) error {
 	if isResponseFlexible(response.ApiVersion) {
 		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
-			fmt.Println("Failed to decode tagged fields", err)
 			return err
 		}
 		res.rawTaggedFields = rawTaggedFields
@@ -332,7 +331,6 @@ func (res *MetadataResponse) brokerDecoder(r io.Reader) (MetadataResponseBroker,
 	if isResponseFlexible(res.ApiVersion) {
 		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
-			fmt.Println("Failed to decode tagged fields", err)
 			return broker, err
 		}
 		broker.rawTaggedFields = rawTaggedFields
@@ -473,7 +471,6 @@ func (res *MetadataResponse) topicDecoder(r io.Reader) (MetadataResponseTopic, e
 	if isResponseFlexible(res.ApiVersion) {
 		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
-			fmt.Println("Failed to decode tagged fields", err)
 			return topicPart, err
 		}
 		topicPart.rawTaggedFields = rawTaggedFields
@@ -636,7 +633,6 @@ func (res *MetadataResponse) topicPartitionDecoder(r io.Reader) (MetadataRespons
 	if isResponseFlexible(res.ApiVersion) {
 		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
-			fmt.Println("Failed to decode tagged fields", err)
 			return topicPart, err
 		}
 		topicPart.rawTaggedFields = rawTaggedFields
@@ -645,52 +641,56 @@ func (res *MetadataResponse) topicPartitionDecoder(r io.Reader) (MetadataRespons
 	return topicPart, nil
 }
 
-func (res *MetadataResponse) PrettyPrint() {
-	fmt.Printf("<- MetadataResponse:\n")
-	fmt.Printf("        ThrottleTimeMs: %d\n", res.ThrottleTimeMs)
+//goland:noinspection GoUnhandledErrorResult
+func (res *MetadataResponse) PrettyPrint() string {
+	w := bytes.NewBuffer([]byte{})
+
+	fmt.Fprintf(w, "<- MetadataResponse:\n")
+	fmt.Fprintf(w, "        ThrottleTimeMs: %d\n", res.ThrottleTimeMs)
 	if res.Brokers != nil {
-		fmt.Printf("        Brokers:\n")
+		fmt.Fprintf(w, "        Brokers:\n")
 		for _, broker := range *res.Brokers {
-			fmt.Printf("                Id: %d\n", broker.NodeId)
-			fmt.Printf("                Host: %s\n", broker.Host)
-			fmt.Printf("                Port: %d\n", broker.Port)
-			fmt.Printf("                Rack: %s\n", *broker.Rack)
-			fmt.Printf("                ----------\n")
+			fmt.Fprintf(w, "                Id: %d\n", broker.NodeId)
+			fmt.Fprintf(w, "                Host: %s\n", broker.Host)
+			fmt.Fprintf(w, "                Port: %d\n", broker.Port)
+			fmt.Fprintf(w, "                Rack: %s\n", *broker.Rack)
+			fmt.Fprintf(w, "                ----------\n")
 		}
 	} else {
-		fmt.Printf("        Brokers: nil\n")
+		fmt.Fprintf(w, "        Brokers: nil\n")
 	}
-	fmt.Printf("        ClusterId: %s\n", *res.ClusterId)
-	fmt.Printf("        ControllerId: %d\n", res.ControllerId)
+	fmt.Fprintf(w, "        ClusterId: %s\n", *res.ClusterId)
+	fmt.Fprintf(w, "        ControllerId: %d\n", res.ControllerId)
 	if res.Topics != nil {
-		fmt.Printf("        Topics:\n")
+		fmt.Fprintf(w, "        Topics:\n")
 		for _, topic := range *res.Topics {
-			fmt.Printf("                ErrorCode: %d\n", topic.ErrorCode)
-			fmt.Printf("                Name: %s\n", *topic.Name)
-			fmt.Printf("                Id: %s\n", topic.Id.String())
-			fmt.Printf("                IsInternal: %t\n", topic.IsInternal)
+			fmt.Fprintf(w, "                ErrorCode: %d\n", topic.ErrorCode)
+			fmt.Fprintf(w, "                Name: %s\n", *topic.Name)
+			fmt.Fprintf(w, "                Id: %s\n", topic.Id.String())
+			fmt.Fprintf(w, "                IsInternal: %t\n", topic.IsInternal)
 			if topic.Partitions != nil {
-				fmt.Printf("                Partitions:\n")
+				fmt.Fprintf(w, "                Partitions:\n")
 				for _, partition := range *topic.Partitions {
-					fmt.Printf("                        ErrorCode: %d\n", partition.ErrorCode)
-					fmt.Printf("                        Index: %d\n", partition.PartitionIndex)
-					fmt.Printf("                        LeaderId: %d\n", partition.LeaderId)
-					fmt.Printf("                        LeaderEpoch: %d\n", partition.LeaderEpoch)
-					fmt.Printf("                        ReplicaNodes: %v\n", *partition.ReplicaNodes)
-					fmt.Printf("                        IsrNodes: %v\n", *partition.IsrNodes)
-					fmt.Printf("                        OfflineReplicas: %v\n", *partition.OfflineReplicas)
-					fmt.Printf("                        ----------\n")
+					fmt.Fprintf(w, "                        ErrorCode: %d\n", partition.ErrorCode)
+					fmt.Fprintf(w, "                        Index: %d\n", partition.PartitionIndex)
+					fmt.Fprintf(w, "                        LeaderId: %d\n", partition.LeaderId)
+					fmt.Fprintf(w, "                        LeaderEpoch: %d\n", partition.LeaderEpoch)
+					fmt.Fprintf(w, "                        ReplicaNodes: %v\n", *partition.ReplicaNodes)
+					fmt.Fprintf(w, "                        IsrNodes: %v\n", *partition.IsrNodes)
+					fmt.Fprintf(w, "                        OfflineReplicas: %v\n", *partition.OfflineReplicas)
+					fmt.Fprintf(w, "                        ----------\n")
 				}
 			} else {
-				fmt.Printf("                Partitions: nil\n")
+				fmt.Fprintf(w, "                Partitions: nil\n")
 			}
-			fmt.Printf("                TopicAuthorizedOperations: %d\n", topic.TopicAuthorizedOperations)
-			fmt.Printf("                ----------\n")
+			fmt.Fprintf(w, "                TopicAuthorizedOperations: %d\n", topic.TopicAuthorizedOperations)
+			fmt.Fprintf(w, "                ----------\n")
 		}
 	} else {
-		fmt.Printf("        Topics: nil\n")
+		fmt.Fprintf(w, "        Topics: nil\n")
 	}
-	fmt.Printf("        TopicAuthorizedOperations: %d\n", res.ClusterAuthorizedOperations)
-	fmt.Printf("        ErrorCode: %d\n", res.ErrorCode)
-	fmt.Printf("\n")
+	fmt.Fprintf(w, "        TopicAuthorizedOperations: %d\n", res.ClusterAuthorizedOperations)
+	fmt.Fprintf(w, "        ErrorCode: %d\n", res.ErrorCode)
+
+	return w.String()
 }

@@ -133,7 +133,6 @@ func (req *MetadataRequest) Read(request protocol.Request) error {
 		// Tagged fields
 		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
-			fmt.Println("Failed to decode tagged fields", err)
 			return err
 		}
 		req.rawTaggedFields = rawTaggedFields
@@ -210,18 +209,22 @@ func (req *MetadataRequest) topicsDecoder(r io.Reader) (MetadataRequestTopic, er
 	return topics, nil
 }
 
-func (req *MetadataRequest) PrettyPrint() {
-	fmt.Printf("-> MetadataRequest:\n")
+//goland:noinspection GoUnhandledErrorResult
+func (req *MetadataRequest) PrettyPrint() string {
+	w := bytes.NewBuffer([]byte{})
+
+	fmt.Fprintf(w, "-> MetadataRequest:\n")
 	if req.Topics != nil {
-		fmt.Printf("        Topics:\n")
+		fmt.Fprintf(w, "        Topics:\n")
 		for _, topic := range *req.Topics {
-			fmt.Printf("                Id: %s; Name: %s\n", topic.Id.String(), topic.Name)
+			fmt.Fprintf(w, "                Id: %s; Name: %s\n", topic.Id.String(), topic.Name)
 		}
 	} else {
-		fmt.Printf("        Topics: nil\n")
+		fmt.Fprintf(w, "        Topics: nil\n")
 	}
-	fmt.Printf("        AllowAutoTopicCreation: %t\n", req.AllowAutoTopicCreation)
-	fmt.Printf("        IncludeClusterAuthorizedOperations: %t\n", req.IncludeClusterAuthorizedOperations)
-	fmt.Printf("        IncludeTopicAuthorizedOperations: %t\n", req.IncludeTopicAuthorizedOperations)
-	fmt.Printf("\n")
+	fmt.Fprintf(w, "        AllowAutoTopicCreation: %t\n", req.AllowAutoTopicCreation)
+	fmt.Fprintf(w, "        IncludeClusterAuthorizedOperations: %t\n", req.IncludeClusterAuthorizedOperations)
+	fmt.Fprintf(w, "        IncludeTopicAuthorizedOperations: %t\n", req.IncludeTopicAuthorizedOperations)
+
+	return w.String()
 }

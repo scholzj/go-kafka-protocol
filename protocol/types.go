@@ -215,7 +215,6 @@ func WriteUUID(w io.Writer, value uuid.UUID) error {
 func ReadUUID(r io.Reader) (uuid.UUID, error) {
 	buf := make([]byte, 16)
 	if _, err := io.ReadFull(r, buf); err != nil {
-		fmt.Println("Failed to read UUID", err)
 		return uuid.Nil, err
 	}
 
@@ -245,7 +244,6 @@ func WriteString(w io.Writer, value string) error {
 func ReadString(r io.Reader) (string, error) {
 	length, err := ReadInt16(r)
 	if err != nil {
-		fmt.Println("Failed to read string length", err)
 		return "", err
 	}
 
@@ -257,7 +255,6 @@ func ReadString(r io.Reader) (string, error) {
 		var bytes = make([]byte, length)
 		_, err = r.Read(bytes)
 		if err != nil {
-			fmt.Println("Failed to read string length", err)
 			return "", err
 		}
 
@@ -286,7 +283,6 @@ func WriteNullableString(w io.Writer, value *string) error {
 func ReadNullableString(r io.Reader) (*string, error) {
 	length, err := ReadInt16(r)
 	if err != nil {
-		fmt.Println("Failed to read string length", err)
 		return nil, err
 	}
 
@@ -299,7 +295,6 @@ func ReadNullableString(r io.Reader) (*string, error) {
 		var bytes = make([]byte, length)
 		_, err = r.Read(bytes)
 		if err != nil {
-			fmt.Println("Failed to read string length", err)
 			return nil, err
 		}
 
@@ -362,7 +357,6 @@ func ReadCompactString(r io.Reader) (string, error) {
 		var bytes = make([]byte, length)
 		_, err = r.Read(bytes)
 		if err != nil {
-			fmt.Println("Failed to read string length", err)
 			return "", err
 		}
 
@@ -428,7 +422,6 @@ func ReadNullableCompactString(r io.Reader) (*string, error) {
 		var bytes = make([]byte, length)
 		_, err = r.Read(bytes)
 		if err != nil {
-			fmt.Println("Failed to read string length", err)
 			return nil, err
 		}
 

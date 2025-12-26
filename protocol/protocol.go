@@ -105,7 +105,6 @@ func ReadRequest(r io.Reader) (Request, error) {
 		if err == io.EOF {
 			return request, err
 		} else {
-			fmt.Println("Failed to decode request size", err)
 			return request, err
 		}
 	}
@@ -115,21 +114,18 @@ func ReadRequest(r io.Reader) (Request, error) {
 
 	apiKey, err := ReadInt16(requestReader)
 	if err != nil {
-		fmt.Println("Failed to decode apiKey", err)
 		return request, err
 	}
 	request.ApiKey = apiKey
 
 	apiVersion, err := ReadInt16(requestReader)
 	if err != nil {
-		fmt.Println("Failed to decode apiVersion", err)
 		return request, err
 	}
 	request.ApiVersion = apiVersion
 
 	correlationId, err := ReadInt32(requestReader)
 	if err != nil {
-		fmt.Println("Failed to decode correlationID", err)
 		return request, err
 	}
 	request.CorrelationId = correlationId
@@ -137,7 +133,6 @@ func ReadRequest(r io.Reader) (Request, error) {
 	// Decode client ID
 	clientId, err := ReadNullableString(requestReader)
 	if err != nil {
-		fmt.Println("Failed to decode clientId", err)
 		return request, err
 	}
 	request.ClientId = clientId
@@ -146,7 +141,6 @@ func ReadRequest(r io.Reader) (Request, error) {
 	if apis.RequestHeaderVersion(request.ApiKey, request.ApiVersion) >= 2 {
 		_, err = ReadRawTaggedFields(requestReader)
 		if err != nil {
-			fmt.Println("Failed to decode tagged fields", err)
 			return request, err
 		}
 	}
@@ -154,7 +148,6 @@ func ReadRequest(r io.Reader) (Request, error) {
 	// Read the body
 	request.Body, err = readBody(requestReader)
 	if err != nil {
-		fmt.Println("Failed to read the body", err)
 		return request, err
 	}
 
@@ -270,7 +263,6 @@ func ReadResponse(r io.Reader, correlations map[int32]RequestHeader) (Response, 
 		if err == io.EOF {
 			return response, err
 		} else {
-			fmt.Println("Failed to decode response size", err)
 			return response, err
 		}
 	}
@@ -279,7 +271,6 @@ func ReadResponse(r io.Reader, correlations map[int32]RequestHeader) (Response, 
 
 	response.CorrelationId, err = ReadInt32(responseReader)
 	if err != nil {
-		fmt.Println("Failed to decode correlationID", err)
 		return response, err
 	}
 
@@ -296,7 +287,6 @@ func ReadResponse(r io.Reader, correlations map[int32]RequestHeader) (Response, 
 	if apis.ResponseHeaderVersion(response.ApiKey, response.ApiVersion) >= 1 {
 		_, err := ReadRawTaggedFields(responseReader)
 		if err != nil {
-			fmt.Println("Failed to decode tagged fields", err)
 			return response, err
 		}
 	}
@@ -304,7 +294,6 @@ func ReadResponse(r io.Reader, correlations map[int32]RequestHeader) (Response, 
 	// Read the body
 	response.Body, err = readBody(responseReader)
 	if err != nil {
-		fmt.Println("Failed to read the body", err)
 		return response, err
 	}
 

@@ -209,7 +209,6 @@ func (res *FindCoordinatorResponse) Read(response protocol.Response) error {
 	if isResponseFlexible(response.ApiVersion) {
 		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
-			fmt.Println("Failed to decode tagged fields", err)
 			return err
 		}
 		res.rawTaggedFields = rawTaggedFields
@@ -350,7 +349,6 @@ func (res *FindCoordinatorResponse) coordinatorsDecoder(r io.Reader) (FindCoordi
 	if isResponseFlexible(res.ApiVersion) {
 		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
-			fmt.Println("Failed to decode tagged fields", err)
 			return coordinators, err
 		}
 		coordinators.rawTaggedFields = rawTaggedFields
@@ -359,24 +357,28 @@ func (res *FindCoordinatorResponse) coordinatorsDecoder(r io.Reader) (FindCoordi
 	return coordinators, nil
 }
 
-func (res *FindCoordinatorResponse) PrettyPrint() {
-	fmt.Printf("<- FindCoordinatorResponse:\n")
-	fmt.Printf("        ThrottleTimeMs: %d\n", res.ThrottleTimeMs)
+//goland:noinspection GoUnhandledErrorResult
+func (res *FindCoordinatorResponse) PrettyPrint() string {
+	w := bytes.NewBuffer([]byte{})
+
+	fmt.Fprintf(w, "<- FindCoordinatorResponse:\n")
+	fmt.Fprintf(w, "        ThrottleTimeMs: %d\n", res.ThrottleTimeMs)
 	if res.ApiVersion <= 3 {
-		fmt.Printf("        ErrorCode: %d\n", res.ErrorCode)
-		fmt.Printf("        ErrorMessage: %s\n", *res.ErrorMessage)
-		fmt.Printf("        NodeId: %d\n", res.NodeId)
-		fmt.Printf("        Host: %s\n", *res.Host)
-		fmt.Printf("        Port: %d\n", res.Port)
+		fmt.Fprintf(w, "        ErrorCode: %d\n", res.ErrorCode)
+		fmt.Fprintf(w, "        ErrorMessage: %s\n", *res.ErrorMessage)
+		fmt.Fprintf(w, "        NodeId: %d\n", res.NodeId)
+		fmt.Fprintf(w, "        Host: %s\n", *res.Host)
+		fmt.Fprintf(w, "        Port: %d\n", res.Port)
 	} else {
 		if res.Coordinators != nil {
-			fmt.Printf("        Coordinators:\n")
+			fmt.Fprintf(w, "        Coordinators:\n")
 			for _, coordinator := range *res.Coordinators {
-				fmt.Printf("                Key: %s; NodeId: %d; Host: %s; Port: %d; ErrorCode: %d; ErrorMessage: %s\n", *coordinator.Key, coordinator.NodeId, *coordinator.Host, coordinator.Port, coordinator.ErrorCode, *coordinator.ErrorMessage)
+				fmt.Fprintf(w, "                Key: %s; NodeId: %d; Host: %s; Port: %d; ErrorCode: %d; ErrorMessage: %s\n", *coordinator.Key, coordinator.NodeId, *coordinator.Host, coordinator.Port, coordinator.ErrorCode, *coordinator.ErrorMessage)
 			}
 		} else {
-			fmt.Printf("        Coordinators: nil\n")
+			fmt.Fprintf(w, "        Coordinators: nil\n")
 		}
 	}
-	fmt.Printf("\n")
+
+	return w.String()
 }

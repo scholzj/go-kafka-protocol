@@ -1,7 +1,6 @@
 package protocol
 
 import (
-	"fmt"
 	"io"
 )
 
@@ -44,7 +43,6 @@ func ReadRawTaggedFields(r io.Reader) ([]TaggedField, error) {
 	// Find the number of tags
 	l, err := ReadUvarint(r)
 	if err != nil {
-		fmt.Println("Failed to decode tagged fields", err)
 		return nil, err
 	}
 
@@ -68,7 +66,6 @@ func ReadRawTaggedField(r io.Reader) (TaggedField, error) {
 	// Read the tag number first
 	tag, err := ReadUvarint(r)
 	if err != nil {
-		fmt.Println("Failed to decode tag", err)
 		return taggedField, err
 	}
 	taggedField.Tag = tag
@@ -76,11 +73,9 @@ func ReadRawTaggedField(r io.Reader) (TaggedField, error) {
 	// Read the tag length
 	tagLength, err := ReadUvarint(r)
 	if err != nil {
-		fmt.Println("Failed to decode tag length", err)
 		return taggedField, err
 	}
 
-	fmt.Printf("Found tag length %d bytes\n", tagLength)
 	rawTaggedField := make([]byte, tagLength)
 	_, err = r.Read(rawTaggedField)
 	taggedField.Field = rawTaggedField
@@ -137,7 +132,6 @@ func ReadTaggedFields(r io.Reader, decoder TaggedFieldsDecoder) error {
 	// Find the number of tags
 	l, err := ReadUvarint(r)
 	if err != nil {
-		fmt.Println("Failed to decode tagged fields", err)
 		return err
 	}
 
@@ -145,21 +139,18 @@ func ReadTaggedFields(r io.Reader, decoder TaggedFieldsDecoder) error {
 		// Read the tag number first
 		tag, err := ReadUvarint(r)
 		if err != nil {
-			fmt.Println("Failed to decode tag", err)
 			return err
 		}
 
 		// Read the tag length
 		tagLength, err := ReadUvarint(r)
 		if err != nil {
-			fmt.Println("Failed to decode tag length", err)
 			return err
 		}
 
 		// Use the decoded to decode the fields
 		err = decoder(r, tag, tagLength)
 		if err != nil {
-			fmt.Println("Failed to decode tag in decoder", err)
 			return err
 		}
 	}

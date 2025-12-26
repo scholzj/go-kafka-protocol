@@ -71,7 +71,6 @@ func (req *ApiVersionsRequest) Read(request protocol.Request) error {
 	if isRequestFlexible(request.ApiVersion) {
 		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
-			fmt.Println("Failed to decode tagged fields", err)
 			return err
 		}
 		req.rawTaggedFields = rawTaggedFields
@@ -120,9 +119,13 @@ func (req *ApiVersionsRequest) Read(request protocol.Request) error {
 //	}
 //}
 
-func (req *ApiVersionsRequest) PrettyPrint() {
-	fmt.Printf("-> ApiVersionsRequest:\n")
-	fmt.Printf("        ClientSoftwareName: %s\n", *req.ClientSoftwareName)
-	fmt.Printf("        ClientSoftwareVersion: %s\n", *req.ClientSoftwareVersion)
-	fmt.Printf("\n")
+//goland:noinspection GoUnhandledErrorResult
+func (req *ApiVersionsRequest) PrettyPrint() string {
+	w := bytes.NewBuffer([]byte{})
+
+	fmt.Fprintf(w, "-> ApiVersionsRequest:\n")
+	fmt.Fprintf(w, "        ClientSoftwareName: %s\n", *req.ClientSoftwareName)
+	fmt.Fprintf(w, "        ClientSoftwareVersion: %s\n", *req.ClientSoftwareVersion)
+
+	return w.String()
 }

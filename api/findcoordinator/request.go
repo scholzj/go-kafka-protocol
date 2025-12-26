@@ -102,7 +102,6 @@ func (req *FindCoordinatorRequest) Read(request protocol.Request) error {
 	if isRequestFlexible(request.ApiVersion) {
 		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
-			fmt.Println("Failed to decode tagged fields", err)
 			return err
 		}
 		req.rawTaggedFields = rawTaggedFields
@@ -111,20 +110,24 @@ func (req *FindCoordinatorRequest) Read(request protocol.Request) error {
 	return nil
 }
 
-func (req *FindCoordinatorRequest) PrettyPrint() {
-	fmt.Printf("-> FindCoordinatorRequest:\n")
-	fmt.Printf("        KeyType: %d\n", req.KeyType)
+//goland:noinspection GoUnhandledErrorResult
+func (req *FindCoordinatorRequest) PrettyPrint() string {
+	w := bytes.NewBuffer([]byte{})
+
+	fmt.Fprintf(w, "-> FindCoordinatorRequest:\n")
+	fmt.Fprintf(w, "        KeyType: %d\n", req.KeyType)
 	if req.ApiVersion <= 3 {
-		fmt.Printf("        Key: %s\n", *req.Key)
+		fmt.Fprintf(w, "        Key: %s\n", *req.Key)
 	} else {
 		if req.CoordinatorKeys != nil {
-			fmt.Printf("        CoordinatorKeys:\n")
+			fmt.Fprintf(w, "        CoordinatorKeys:\n")
 			for _, coordinatorKey := range *req.CoordinatorKeys {
-				fmt.Printf("                %s\n", *coordinatorKey)
+				fmt.Fprintf(w, "                %s\n", *coordinatorKey)
 			}
 		} else {
-			fmt.Printf("        CoordinatorKeys: nil\n")
+			fmt.Fprintf(w, "        CoordinatorKeys: nil\n")
 		}
 	}
-	fmt.Printf("\n")
+
+	return w.String()
 }
