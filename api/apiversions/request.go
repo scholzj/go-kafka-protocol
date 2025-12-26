@@ -79,46 +79,6 @@ func (req *ApiVersionsRequest) Read(request protocol.Request) error {
 	return nil
 }
 
-//func (req *ApiVersionsRequest) Decode(request protocol.Request) error {
-//	bytes := request.Body.Bytes()
-//	offset := 0
-//
-//	if request.ApiVersion >= 3 {
-//		// ClientSoftwareName
-//		name, c, err := protocol.DecodeCompactString(bytes[offset:])
-//		if err != nil {
-//			return err
-//		}
-//		offset += c
-//
-//		fmt.Printf("ClientSoftwareName: %s\n", name)
-//		req.ClientSoftwareName = &name
-//
-//		// ClientSoftwareVersion
-//		version, c, err := protocol.DecodeCompactString(bytes[offset:])
-//		if err != nil {
-//			return err
-//		}
-//		offset += c
-//
-//		fmt.Printf("ClientSoftwareVersion: %s\n", version)
-//		req.ClientSoftwareVersion = &version
-//
-//		// Tagged fields
-//		rawTaggedFields, c, err := protocol.DecodeRawTaggedFields(bytes[offset:])
-//		if err != nil {
-//			fmt.Println("Failed to decode tagged fields", err)
-//			return err
-//		}
-//		offset += c
-//		req.rawTaggedFields = rawTaggedFields
-//
-//		return nil
-//	} else {
-//		return nil
-//	}
-//}
-
 //goland:noinspection GoUnhandledErrorResult
 func (req *ApiVersionsRequest) PrettyPrint() string {
 	w := bytes.NewBuffer([]byte{})

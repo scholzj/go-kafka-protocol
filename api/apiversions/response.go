@@ -131,51 +131,6 @@ func (res *ApiVersionsResponse) Read(response protocol.Response) error {
 	return nil
 }
 
-//func (res *ApiVersionsResponse) Decode(response protocol.Response) error {
-//	bytes := response.Body.Bytes()
-//	offset := 0
-//
-//	// ErrorCode
-//	errorCode, c, err := protocol.DecodeInt16(bytes[offset:])
-//	if err != nil {
-//		return err
-//	}
-//	offset += c
-//	fmt.Printf("ErrorCode: %d, offset: %d, c: %d\n", errorCode, offset, c)
-//	res.ErrorCode = errorCode
-//
-//	// ApiKeys
-//	apiKeys, c, err := protocol.DecodeCompactArray(bytes[offset:], apiKeysDecoder)
-//	if err != nil {
-//		return err
-//	}
-//	offset += c
-//	res.ApiKeys = apiKeys
-//
-//	if response.ApiVersion >= 1 {
-//		// ThrottleTime
-//		throttleTimeMs, c, err := protocol.DecodeInt32(bytes[offset:])
-//		if err != nil {
-//			return err
-//		}
-//		offset += c
-//		fmt.Printf("ThrottleTimeMs: %d\n", throttleTimeMs)
-//		res.ThrottleTimeMs = throttleTimeMs
-//
-//		if isResponseFlexible(response.ApiVersion) {
-//			// Decode tagged fields
-//			c, err = protocol.DecodeTaggedFields(bytes[offset:], taggedFieldsDecoder, res)
-//			if err != nil {
-//				fmt.Println("Failed to decode tagged fields", err)
-//				return err
-//			}
-//			offset += c
-//		}
-//	}
-//
-//	return nil
-//}
-
 func (res *ApiVersionsResponse) apiKeysEncoder(w io.Writer, value ApiVersionsResponseApiKey) error {
 	// Api Key
 	if err := protocol.WriteInt16(w, value.ApiKey); err != nil {
@@ -201,46 +156,6 @@ func (res *ApiVersionsResponse) apiKeysEncoder(w io.Writer, value ApiVersionsRes
 
 	return nil
 }
-
-//func apiKeysDecoder(bytes []byte) (ApiVersionsResponseApiKey, int, error) {
-//	offset := 0
-//	apiKeys := ApiVersionsResponseApiKey{}
-//
-//	// Api Key
-//	apiKey, c, err := protocol.DecodeInt16(bytes[offset:])
-//	if err != nil {
-//		return apiKeys, offset, err
-//	}
-//	offset += c
-//	apiKeys.ApiKey = apiKey
-//
-//	// Min version
-//	minVersion, c, err := protocol.DecodeInt16(bytes[offset:])
-//	if err != nil {
-//		return apiKeys, offset, err
-//	}
-//	offset += c
-//	apiKeys.MinVersion = minVersion
-//
-//	// Max version
-//	maxVersion, c, err := protocol.DecodeInt16(bytes[offset:])
-//	if err != nil {
-//		return apiKeys, offset, err
-//	}
-//	offset += c
-//	apiKeys.MaxVersion = maxVersion
-//
-//	// Tagged fields
-//	rawTaggedFields, c, err := protocol.DecodeRawTaggedFields(bytes[offset:])
-//	if err != nil {
-//		fmt.Println("Failed to decode tagged fields", err)
-//		return apiKeys, offset, err
-//	}
-//	offset += c
-//	apiKeys.rawTaggedFields = rawTaggedFields
-//
-//	return apiKeys, offset, nil
-//}
 
 func (res *ApiVersionsResponse) apiKeysDecoder(r io.Reader) (ApiVersionsResponseApiKey, error) {
 	apiKeys := ApiVersionsResponseApiKey{}
@@ -320,49 +235,6 @@ func (res *ApiVersionsResponse) taggedFieldsEncoder() ([]protocol.TaggedField, e
 	return taggedFields, nil
 }
 
-//func taggedFieldsDecoder(bytes []byte, r *ApiVersionsResponse, tag uint64, tagLength uint64) (int, error) {
-//	offset := 0
-//
-//	switch tag {
-//	case 0:
-//		// SupportedFeatures
-//		supportedFeatures, c, err := protocol.DecodeCompactArray(bytes[offset:], supportedFeaturesDecoder)
-//		if err != nil {
-//			return offset, err
-//		}
-//		offset += c
-//		r.SupportedFeatures = supportedFeatures
-//	case 1:
-//		// FinalizedFeaturesEpoch
-//		finalizedFeaturesEpoch, c, err := protocol.DecodeInt64(bytes[offset:])
-//		if err != nil {
-//			fmt.Println("Failed to decode tag value", err)
-//			return offset, err
-//		}
-//		offset += c
-//		r.FinalizedFeaturesEpoch = finalizedFeaturesEpoch
-//	case 2:
-//		// FinalizedFeatures
-//		finalizedFeatures, c, err := protocol.DecodeCompactArray(bytes[offset:], finalizedFeaturesDecoder)
-//		if err != nil {
-//			return offset, err
-//		}
-//		offset += c
-//		r.FinalizedFeatures = finalizedFeatures
-//	case 3:
-//		// ZkMigrationReady
-//		zkMigrationReady, c, err := protocol.DecodeBool(bytes[offset:])
-//		if err != nil {
-//			fmt.Println("Failed to decode tag value", err)
-//			return offset, err
-//		}
-//		offset += c
-//		r.ZkMigrationReady = zkMigrationReady
-//	}
-//
-//	return offset, nil
-//}
-
 func (res *ApiVersionsResponse) taggedFieldsDecoder(r io.Reader, tag uint64, tagLength uint64) error {
 	rawTaggedFields := make([]protocol.TaggedField, 0)
 
@@ -409,80 +281,6 @@ func (res *ApiVersionsResponse) taggedFieldsDecoder(r io.Reader, tag uint64, tag
 
 	return nil
 }
-
-//func (res *ApiVersionsResponse) supportedFeaturesDecoder(bytes []byte) (ApiVersionsResponseSupportedFeature, int, error) {
-//	offset := 0
-//	supportedFeatures := ApiVersionsResponseSupportedFeature{}
-//
-//	name, c, err := protocol.DecodeCompactString(bytes[offset:])
-//	if err != nil {
-//		fmt.Println("Failed to decode tag value", err)
-//	}
-//	offset += c
-//	supportedFeatures.Name = name
-//
-//	minVersion, c, err := protocol.DecodeInt16(bytes[offset:])
-//	if err != nil {
-//		fmt.Println("Failed to decode tag value", err)
-//	}
-//	offset += c
-//	supportedFeatures.MinVersion = minVersion
-//
-//	maxVersion, c, err := protocol.DecodeInt16(bytes[offset:])
-//	if err != nil {
-//		fmt.Println("Failed to decode tag value", err)
-//	}
-//	offset += c
-//	supportedFeatures.MaxVersion = maxVersion
-//
-//	// Tagged fields
-//	rawTaggedFields, c, err := protocol.DecodeRawTaggedFields(bytes[offset:])
-//	if err != nil {
-//		fmt.Println("Failed to decode tagged fields", err)
-//		return supportedFeatures, offset, err
-//	}
-//	offset += c
-//	supportedFeatures.rawTaggedFields = rawTaggedFields
-//
-//	return supportedFeatures, offset, nil
-//}
-
-//func finalizedFeaturesDecoder(bytes []byte) (ApiVersionsResponseFinalizedFeature, int, error) {
-//	offset := 0
-//	finalizedFeatures := ApiVersionsResponseFinalizedFeature{}
-//
-//	name, c, err := protocol.DecodeCompactString(bytes[offset:])
-//	if err != nil {
-//		fmt.Println("Failed to decode tag value", err)
-//	}
-//	offset += c
-//	finalizedFeatures.Name = name
-//
-//	minVersionLevel, c, err := protocol.DecodeInt16(bytes[offset:])
-//	if err != nil {
-//		fmt.Println("Failed to decode tag value", err)
-//	}
-//	offset += c
-//	finalizedFeatures.MinVersionLevel = minVersionLevel
-//
-//	maxVersionLevel, c, err := protocol.DecodeInt16(bytes[offset:])
-//	if err != nil {
-//		fmt.Println("Failed to decode tag value", err)
-//	}
-//	offset += c
-//	finalizedFeatures.MaxVersionLevel = maxVersionLevel
-//
-//	// Tagged fields
-//	rawTaggedFields, c, err := protocol.DecodeRawTaggedFields(bytes[offset:])
-//	if err != nil {
-//		fmt.Println("Failed to decode tagged fields", err)
-//		return finalizedFeatures, offset, err
-//	}
-//	offset += c
-//	finalizedFeatures.rawTaggedFields = rawTaggedFields
-//
-//	return finalizedFeatures, offset, nil
-//}
 
 func (res *ApiVersionsResponse) supportedFeaturesEncoder(w io.Writer, value ApiVersionsResponseSupportedFeature) error {
 	// Name

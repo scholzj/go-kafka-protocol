@@ -42,13 +42,6 @@ type Response struct {
 // Methods to decode and encode requests and responses
 ////////////////////
 
-// 4 bytes -> size (not included in size)
-// 2 bytes -> apiKey
-// 2 bytes -> apiVersion
-// 4 bytes -> correlationId
-// 2 + ? bytes -> Client ID
-// ? bytes tagged fields, but should be always 1?
-
 func (r *Request) Write(w io.Writer) error {
 	buf := bytes.NewBuffer(make([]byte, 0))
 
@@ -154,73 +147,6 @@ func ReadRequest(r io.Reader) (Request, error) {
 	return request, nil
 }
 
-//func DecodeRequest(b []byte) (Request, error) {
-//	request := Request{}
-//	offset := 0
-//
-//	size, c, err := DecodeInt32(b[offset:])
-//	//c, err := binary.Decode(b, binary.BigEndian, &request.Size)
-//	if err != nil {
-//		fmt.Println("Failed to decode request size", err)
-//		return request, err
-//	}
-//	request.Size = size
-//	offset += c
-//	fmt.Printf("Ofsers ... c: %d; offset: %d\n", c, offset)
-//
-//	apiKey, c, err := DecodeInt16(b[offset:])
-//	if err != nil {
-//		fmt.Println("Failed to decode apiKey", err)
-//		return request, err
-//	}
-//	request.ApiKey = apiKey
-//	offset += c
-//	fmt.Printf("Ofsers ... c: %d; offset: %d\n", c, offset)
-//
-//	apiVersion, c, err := DecodeInt16(b[offset:])
-//	if err != nil {
-//		fmt.Println("Failed to decode apiVersion", err)
-//		return request, err
-//	}
-//	request.ApiVersion = apiVersion
-//	offset += c
-//	fmt.Printf("Ofsers ... c: %d; offset: %d\n", c, offset)
-//
-//	correlationId, c, err := DecodeInt32(b[offset:])
-//	if err != nil {
-//		fmt.Println("Failed to decode correlationID", err)
-//		return request, err
-//	}
-//	request.CorrelationId = correlationId
-//	offset += c
-//	fmt.Printf("Ofsers ... c: %d; offset: %d\n", c, offset)
-//
-//	// Decode client ID
-//	clientId, c, err := DecodeNullableString(b[offset:])
-//	if err != nil {
-//		fmt.Println("Failed to decode clientId", err)
-//		return request, err
-//	}
-//	offset += c
-//	request.ClientId = clientId
-//	fmt.Printf("Ofsers ... c: %d; offset: %d\n", c, offset)
-//
-//	// TODO: Check header version
-//	// Decode tagged fields
-//	_, c, err = DecodeUvarint(b[offset:])
-//	if err != nil {
-//		fmt.Println("Failed to decode tagged fields", err)
-//		return request, err
-//	}
-//	offset += c
-//	fmt.Printf("Tagged fields length: %d\n", c)
-//	fmt.Printf("Ofsers ... c: %d; offset: %d\n", c, offset)
-//
-//	request.Body = bytes.NewBuffer(b[offset : request.Size+4]) // We add 4 here because the first 4 b are the size
-//
-//	return request, nil
-//}
-
 func (r *Response) Write(w io.Writer) error {
 	buf := bytes.NewBuffer(make([]byte, 0))
 
@@ -299,54 +225,6 @@ func ReadResponse(r io.Reader, correlations map[int32]RequestHeader) (Response, 
 
 	return response, nil
 }
-
-//func DecodeResponse(b []byte, correlations map[int32]RequestHeader) (Response, error) {
-//	response := Response{}
-//	offset := 0
-//
-//	size, c, err := DecodeInt32(b[offset:])
-//	if err != nil {
-//		fmt.Println("Failed to decode response size", err)
-//		return response, err
-//	}
-//	response.Size = size
-//	offset += c
-//	fmt.Printf("Ofsers ... c: %d; offset: %d\n", c, offset)
-//
-//	correlationId, c, err := DecodeInt32(b[offset:])
-//	if err != nil {
-//		fmt.Println("Failed to decode correlationID", err)
-//		return response, err
-//	}
-//	offset += c
-//
-//	requestHeader, ok := correlations[correlationId]
-//	if !ok {
-//		return response, fmt.Errorf("no correlation found for correlationId %d", correlationId)
-//	}
-//
-//	response.ApiKey = requestHeader.ApiKey
-//	response.ApiVersion = requestHeader.ApiVersion
-//	response.CorrelationId = correlationId
-//	response.ClientId = requestHeader.ClientId
-//
-//	// TODO: Check header version
-//	if response.ApiKey != 18 {
-//		// Decode tagged fields
-//		l, c, err := DecodeUvarint(b[offset:])
-//		if err != nil {
-//			fmt.Println("Failed to decode tagged fields", err)
-//			return response, err
-//		}
-//		offset += c
-//		fmt.Printf("Tagged fields length: %d b, %d records\n", c, l)
-//		fmt.Printf("Ofsers ... c: %d; offset: %d\n", c, offset)
-//	}
-//
-//	response.Body = bytes.NewBuffer(b[offset : response.Size+4]) // We add 4 here because the first 4 b are the size
-//
-//	return response, nil
-//}
 
 func readBody(r io.Reader) (*bytes.Buffer, error) {
 	body := bytes.NewBuffer(make([]byte, 0))
