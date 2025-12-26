@@ -11,7 +11,7 @@ import (
 
 type MetadataRequest struct {
 	ApiVersion                         int16
-	Topics                             []MetadataRequestTopic
+	Topics                             *[]MetadataRequestTopic
 	AllowAutoTopicCreation             bool
 	IncludeClusterAuthorizedOperations bool
 	IncludeTopicAuthorizedOperations   bool
@@ -29,8 +29,18 @@ func isRequestFlexible(apiVersion int16) bool {
 }
 
 func (req *MetadataRequest) Write(w io.Writer) error {
-	if err := protocol.WriteCompactArray(w, req.topicsEncoder, req.Topics); err != nil {
-		return err
+	if isRequestFlexible(req.ApiVersion) {
+		if err := protocol.WriteNullableCompactArray(w, req.topicsEncoder, req.Topics); err != nil {
+			return err
+		}
+	} else if req.ApiVersion >= 1 {
+		if err := protocol.WriteNullableArray(w, req.topicsEncoder, req.Topics); err != nil {
+			return err
+		}
+	} else {
+		if err := protocol.WriteArray(w, req.topicsEncoder, *req.Topics); err != nil {
+			return err
+		}
 	}
 
 	// Allow auto-topic-creation
@@ -72,7 +82,13 @@ func (req *MetadataRequest) Read(request protocol.Request) error {
 
 	// Topics
 	if isRequestFlexible(req.ApiVersion) {
-		topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
+		topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+		if err != nil {
+			return err
+		}
+		req.Topics = topics
+	} else if req.ApiVersion >= 1 {
+		topics, err := protocol.ReadNullableArray(r, req.topicsDecoder)
 		if err != nil {
 			return err
 		}
@@ -82,7 +98,7 @@ func (req *MetadataRequest) Read(request protocol.Request) error {
 		if err != nil {
 			return err
 		}
-		req.Topics = topics
+		req.Topics = &topics
 	}
 
 	// Allow auto-topic-creation
@@ -196,9 +212,13 @@ func (req *MetadataRequest) topicsDecoder(r io.Reader) (MetadataRequestTopic, er
 
 func (req *MetadataRequest) PrettyPrint() {
 	fmt.Printf("-> MetadataRequest:\n")
-	fmt.Printf("        Topics:\n")
-	for _, topic := range req.Topics {
-		fmt.Printf("                Id: %s; Name: %s\n", topic.Id.String(), topic.Name)
+	if req.Topics != nil {
+		fmt.Printf("        Topics:\n")
+		for _, topic := range *req.Topics {
+			fmt.Printf("                Id: %s; Name: %s\n", topic.Id.String(), topic.Name)
+		}
+	} else {
+		fmt.Printf("        Topics: nil\n")
 	}
 	fmt.Printf("        AllowAutoTopicCreation: %t\n", req.AllowAutoTopicCreation)
 	fmt.Printf("        IncludeClusterAuthorizedOperations: %t\n", req.IncludeClusterAuthorizedOperations)

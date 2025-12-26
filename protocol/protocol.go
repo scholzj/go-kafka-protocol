@@ -111,8 +111,6 @@ func ReadRequest(r io.Reader) (Request, error) {
 	}
 	request.Size = size
 
-	fmt.Printf("Reading request size is %d bytes\n", size)
-
 	requestReader := io.LimitReader(r, int64(request.Size))
 
 	apiKey, err := ReadInt16(requestReader)

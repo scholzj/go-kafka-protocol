@@ -11,13 +11,13 @@ import (
 type ApiVersionsResponse struct {
 	ApiVersion             int16
 	ErrorCode              int16
-	ApiKeys                []ApiVersionsResponseApiKey
+	ApiKeys                *[]ApiVersionsResponseApiKey
 	ThrottleTimeMs         int32
-	SupportedFeatures      []ApiVersionsResponseSupportedFeature // tag 0
-	FinalizedFeaturesEpoch int64                                 // tag 1
-	FinalizedFeatures      []ApiVersionsResponseFinalizedFeature // tag 2
-	ZkMigrationReady       bool                                  // tag 3
-	rawTaggedFields        []protocol.TaggedField                // For unknown tags
+	SupportedFeatures      *[]ApiVersionsResponseSupportedFeature // tag 0
+	FinalizedFeaturesEpoch int64                                  // tag 1
+	FinalizedFeatures      *[]ApiVersionsResponseFinalizedFeature // tag 2
+	ZkMigrationReady       bool                                   // tag 3
+	rawTaggedFields        []protocol.TaggedField                 // For unknown tags
 }
 
 type ApiVersionsResponseApiKey struct {
@@ -52,8 +52,14 @@ func (res *ApiVersionsResponse) Write(w io.Writer) error {
 	}
 
 	// ApiKeys
-	if err := protocol.WriteCompactArray(w, res.apiKeysEncoder, res.ApiKeys); err != nil {
-		return err
+	if isResponseFlexible(res.ApiVersion) {
+		if err := protocol.WriteNullableCompactArray(w, res.apiKeysEncoder, res.ApiKeys); err != nil {
+			return err
+		}
+	} else {
+		if err := protocol.WriteArray(w, res.apiKeysEncoder, *res.ApiKeys); err != nil {
+			return err
+		}
 	}
 
 	// ThrottleTime
@@ -92,11 +98,19 @@ func (res *ApiVersionsResponse) Read(response protocol.Response) error {
 	res.ErrorCode = errorCode
 
 	// ApiKeys
-	apiKeys, err := protocol.ReadCompactArray(r, res.apiKeysDecoder)
-	if err != nil {
-		return err
+	if isResponseFlexible(res.ApiVersion) {
+		apiKeys, err := protocol.ReadNullableCompactArray(r, res.apiKeysDecoder)
+		if err != nil {
+			return err
+		}
+		res.ApiKeys = apiKeys
+	} else {
+		apiKeys, err := protocol.ReadArray(r, res.apiKeysDecoder)
+		if err != nil {
+			return err
+		}
+		res.ApiKeys = &apiKeys
 	}
-	res.ApiKeys = apiKeys
 
 	if response.ApiVersion >= 1 {
 		// ThrottleTime
@@ -105,14 +119,14 @@ func (res *ApiVersionsResponse) Read(response protocol.Response) error {
 			return err
 		}
 		res.ThrottleTimeMs = throttleTimeMs
+	}
 
-		if isResponseFlexible(response.ApiVersion) {
-			// Decode tagged fields
-			err = protocol.ReadTaggedFields(r, res.taggedFieldsDecoder)
-			if err != nil {
-				fmt.Println("Failed to decode tagged fields", err)
-				return err
-			}
+	if isResponseFlexible(response.ApiVersion) {
+		// Decode tagged fields
+		err = protocol.ReadTaggedFields(r, res.taggedFieldsDecoder)
+		if err != nil {
+			fmt.Println("Failed to decode tagged fields", err)
+			return err
 		}
 	}
 
@@ -273,7 +287,7 @@ func (res *ApiVersionsResponse) taggedFieldsEncoder() ([]protocol.TaggedField, e
 
 	// Tag 0
 	buf := bytes.NewBuffer(make([]byte, 0))
-	if err := protocol.WriteCompactArray(buf, res.supportedFeaturesEncoder, res.SupportedFeatures); err != nil {
+	if err := protocol.WriteNullableCompactArray(buf, res.supportedFeaturesEncoder, res.SupportedFeatures); err != nil {
 		return taggedFields, err
 	}
 
@@ -289,7 +303,7 @@ func (res *ApiVersionsResponse) taggedFieldsEncoder() ([]protocol.TaggedField, e
 
 	// Tag 2
 	buf = bytes.NewBuffer(make([]byte, 0))
-	if err := protocol.WriteCompactArray(buf, res.finalizedFeaturesEncoder, res.FinalizedFeatures); err != nil {
+	if err := protocol.WriteNullableCompactArray(buf, res.finalizedFeaturesEncoder, res.FinalizedFeatures); err != nil {
 		return taggedFields, err
 	}
 
@@ -358,7 +372,7 @@ func (res *ApiVersionsResponse) taggedFieldsDecoder(r io.Reader, tag uint64, tag
 	switch tag {
 	case 0:
 		// SupportedFeatures
-		supportedFeatures, err := protocol.ReadCompactArray(r, res.supportedFeaturesDecoder)
+		supportedFeatures, err := protocol.ReadNullableCompactArray(r, res.supportedFeaturesDecoder)
 		if err != nil {
 			return err
 		}
@@ -373,7 +387,7 @@ func (res *ApiVersionsResponse) taggedFieldsDecoder(r io.Reader, tag uint64, tag
 		res.FinalizedFeaturesEpoch = finalizedFeaturesEpoch
 	case 2:
 		// FinalizedFeatures
-		finalizedFeatures, err := protocol.ReadCompactArray(r, res.finalizedFeaturesDecoder)
+		finalizedFeatures, err := protocol.ReadNullableCompactArray(r, res.finalizedFeaturesDecoder)
 		if err != nil {
 			return err
 		}
@@ -596,14 +610,18 @@ func (res *ApiVersionsResponse) finalizedFeaturesDecoder(r io.Reader) (ApiVersio
 func (res *ApiVersionsResponse) PrettyPrint() {
 	fmt.Printf("<- ApiVersionsResponse:\n")
 	fmt.Printf("        ErrorCode: %d\n", res.ErrorCode)
-	fmt.Printf("        ApiKeys:\n")
-	for _, apiKey := range res.ApiKeys {
-		fmt.Printf("                ApiKey: %d; MinVersion: %d; MaxVersion: %d\n", apiKey.ApiKey, apiKey.MinVersion, apiKey.MaxVersion)
+	if res.ApiKeys != nil {
+		fmt.Printf("        ApiKeys:\n")
+		for _, apiKey := range *res.ApiKeys {
+			fmt.Printf("                ApiKey: %d; MinVersion: %d; MaxVersion: %d\n", apiKey.ApiKey, apiKey.MinVersion, apiKey.MaxVersion)
+		}
+	} else {
+		fmt.Printf("        ApiKeys: nil\n")
 	}
 	fmt.Printf("        ThrottleTimeMs: %d\n", res.ThrottleTimeMs)
-	fmt.Printf("        SupportedFeatures: %v\n", res.SupportedFeatures)
+	fmt.Printf("        SupportedFeatures: %v\n", *res.SupportedFeatures)
 	fmt.Printf("        FinalizedFeaturesEpoch: %d\n", res.FinalizedFeaturesEpoch)
-	fmt.Printf("        FinalizedFeatures: %v\n", res.FinalizedFeatures)
+	fmt.Printf("        FinalizedFeatures: %v\n", *res.FinalizedFeatures)
 	fmt.Printf("        ZkMigrationReady: %t\n", res.ZkMigrationReady)
 	fmt.Printf("\n")
 }
