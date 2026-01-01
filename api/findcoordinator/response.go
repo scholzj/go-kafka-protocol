@@ -3,31 +3,30 @@ package findcoordinator
 import (
 	"bytes"
 	"fmt"
-	"io"
-
 	"github.com/scholzj/go-kafka-protocol/protocol"
+	"io"
 )
 
 type FindCoordinatorResponse struct {
 	ApiVersion      int16
-	ThrottleTimeMs  int32
-	ErrorCode       int16
-	ErrorMessage    *string
-	NodeId          int32
-	Host            *string
-	Port            int32
-	Coordinators    *[]FindCoordinatorResponseCoordinators
-	rawTaggedFields []protocol.TaggedField // For unknown tags
+	ThrottleTimeMs  int32                                 // The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.
+	ErrorCode       int16                                 // The error code, or 0 if there was no error.
+	ErrorMessage    *string                               // The error message, or null if there was no error.
+	NodeId          int32                                 // The node id.
+	Host            *string                               // The host name.
+	Port            int32                                 // The port.
+	Coordinators    *[]FindCoordinatorResponseCoordinator // Each coordinator result in the response.
+	rawTaggedFields *[]protocol.TaggedField
 }
 
-type FindCoordinatorResponseCoordinators struct {
-	Key             *string
-	NodeId          int32
-	Host            *string
-	Port            int32
-	ErrorCode       int16
-	ErrorMessage    *string
-	rawTaggedFields []protocol.TaggedField
+type FindCoordinatorResponseCoordinator struct {
+	Key             *string // The coordinator key.
+	NodeId          int32   // The node id.
+	Host            *string // The host name.
+	Port            int32   // The port.
+	ErrorCode       int16   // The error code, or 0 if there was no error.
+	ErrorMessage    *string // The error message, or null if there was no error.
+	rawTaggedFields *[]protocol.TaggedField
 }
 
 func isResponseFlexible(apiVersion int16) bool {
@@ -35,44 +34,44 @@ func isResponseFlexible(apiVersion int16) bool {
 }
 
 func (res *FindCoordinatorResponse) Write(w io.Writer) error {
-	// ThrottleTime
+	// ThrottleTimeMs (versions: 1+)
 	if res.ApiVersion >= 1 {
 		if err := protocol.WriteInt32(w, res.ThrottleTimeMs); err != nil {
 			return err
 		}
 	}
 
-	// ErrorCode
+	// ErrorCode (versions: 0-3)
 	if res.ApiVersion <= 3 {
 		if err := protocol.WriteInt16(w, res.ErrorCode); err != nil {
 			return err
 		}
 	}
 
-	// ErrorMessage
+	// ErrorMessage (versions: 1-3)
 	if res.ApiVersion >= 1 && res.ApiVersion <= 3 {
 		if isResponseFlexible(res.ApiVersion) {
-			if err := protocol.WriteNullableCompactString(w, res.ErrorMessage); err != nil {
+			if err := protocol.WriteCompactString(w, *res.ErrorMessage); err != nil {
 				return err
 			}
 		} else {
-			if err := protocol.WriteNullableString(w, res.ErrorMessage); err != nil {
+			if err := protocol.WriteString(w, *res.ErrorMessage); err != nil {
 				return err
 			}
 		}
 	}
 
-	// NodeId
+	// NodeId (versions: 0-3)
 	if res.ApiVersion <= 3 {
 		if err := protocol.WriteInt32(w, res.NodeId); err != nil {
 			return err
 		}
 	}
 
-	// Host
+	// Host (versions: 0-3)
 	if res.ApiVersion <= 3 {
 		if isResponseFlexible(res.ApiVersion) {
-			if err := protocol.WriteNullableCompactString(w, res.Host); err != nil {
+			if err := protocol.WriteCompactString(w, *res.Host); err != nil {
 				return err
 			}
 		} else {
@@ -82,14 +81,14 @@ func (res *FindCoordinatorResponse) Write(w io.Writer) error {
 		}
 	}
 
-	// Port
+	// Port (versions: 0-3)
 	if res.ApiVersion <= 3 {
 		if err := protocol.WriteInt32(w, res.Port); err != nil {
 			return err
 		}
 	}
 
-	// Coordinators
+	// Coordinators (versions: 4+)
 	if res.ApiVersion >= 4 {
 		if isResponseFlexible(res.ApiVersion) {
 			if err := protocol.WriteNullableCompactArray(w, res.coordinatorsEncoder, res.Coordinators); err != nil {
@@ -104,10 +103,12 @@ func (res *FindCoordinatorResponse) Write(w io.Writer) error {
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		if isResponseFlexible(res.ApiVersion) {
-			if err := protocol.WriteRawTaggedFields(w, res.rawTaggedFields); err != nil {
-				return err
-			}
+		rawTaggedFields := []protocol.TaggedField{}
+		if res.rawTaggedFields != nil {
+			rawTaggedFields = *res.rawTaggedFields
+		}
+		if err := protocol.WriteRawTaggedFields(w, rawTaggedFields); err != nil {
+			return err
 		}
 	}
 
@@ -119,58 +120,60 @@ func (res *FindCoordinatorResponse) Read(response protocol.Response) error {
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
-	// ThrottleTime
+	var err error
+
+	// ThrottleTimeMs (versions: 1+)
 	if response.ApiVersion >= 1 {
-		throttleTimeMs, err := protocol.ReadInt32(r)
+		throttletimems, err := protocol.ReadInt32(r)
 		if err != nil {
 			return err
 		}
-		res.ThrottleTimeMs = throttleTimeMs
+		res.ThrottleTimeMs = throttletimems
 	}
 
-	// ErrorCode
+	// ErrorCode (versions: 0-3)
 	if response.ApiVersion <= 3 {
-		errorCode, err := protocol.ReadInt16(r)
+		errorcode, err := protocol.ReadInt16(r)
 		if err != nil {
 			return err
 		}
-		res.ErrorCode = errorCode
+		res.ErrorCode = errorcode
 	}
 
-	// ErrorMessage
+	// ErrorMessage (versions: 1-3)
 	if response.ApiVersion >= 1 && response.ApiVersion <= 3 {
-		if isResponseFlexible(res.ApiVersion) {
-			errorMessage, err := protocol.ReadNullableCompactString(r)
+		if isRequestFlexible(res.ApiVersion) {
+			errormessage, err := protocol.ReadCompactString(r)
 			if err != nil {
 				return err
 			}
-			res.ErrorMessage = errorMessage
+			res.ErrorMessage = &errormessage
 		} else {
-			errorMessage, err := protocol.ReadNullableString(r)
+			errormessage, err := protocol.ReadString(r)
 			if err != nil {
 				return err
 			}
-			res.ErrorMessage = errorMessage
+			res.ErrorMessage = &errormessage
 		}
 	}
 
-	// NodeId
+	// NodeId (versions: 0-3)
 	if response.ApiVersion <= 3 {
-		nodeId, err := protocol.ReadInt32(r)
+		nodeid, err := protocol.ReadInt32(r)
 		if err != nil {
 			return err
 		}
-		res.NodeId = nodeId
+		res.NodeId = nodeid
 	}
 
-	// Host
+	// Host (versions: 0-3)
 	if response.ApiVersion <= 3 {
-		if isResponseFlexible(res.ApiVersion) {
-			host, err := protocol.ReadNullableCompactString(r)
+		if isRequestFlexible(res.ApiVersion) {
+			host, err := protocol.ReadCompactString(r)
 			if err != nil {
 				return err
 			}
-			res.Host = host
+			res.Host = &host
 		} else {
 			host, err := protocol.ReadString(r)
 			if err != nil {
@@ -180,7 +183,7 @@ func (res *FindCoordinatorResponse) Read(response protocol.Response) error {
 		}
 	}
 
-	// Port
+	// Port (versions: 0-3)
 	if response.ApiVersion <= 3 {
 		port, err := protocol.ReadInt32(r)
 		if err != nil {
@@ -189,9 +192,9 @@ func (res *FindCoordinatorResponse) Read(response protocol.Response) error {
 		res.Port = port
 	}
 
-	// Coordinators
+	// Coordinators (versions: 4+)
 	if response.ApiVersion >= 4 {
-		if isResponseFlexible(res.ApiVersion) {
+		if isRequestFlexible(res.ApiVersion) {
 			coordinators, err := protocol.ReadNullableCompactArray(r, res.coordinatorsDecoder)
 			if err != nil {
 				return err
@@ -206,69 +209,15 @@ func (res *FindCoordinatorResponse) Read(response protocol.Response) error {
 		}
 	}
 
-	if isResponseFlexible(response.ApiVersion) {
-		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
+	if isResponseFlexible(res.ApiVersion) {
+		// Decode tagged fields
+		var rawTaggedFields []protocol.TaggedField
+		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return err
 		}
-		res.rawTaggedFields = rawTaggedFields
-	}
-
-	return nil
-}
-
-func (res *FindCoordinatorResponse) coordinatorsEncoder(w io.Writer, value FindCoordinatorResponseCoordinators) error {
-	// Key
-	if isResponseFlexible(res.ApiVersion) {
-		if err := protocol.WriteNullableCompactString(w, value.Key); err != nil {
-			return err
-		}
-	} else {
-		if err := protocol.WriteString(w, *value.Key); err != nil {
-			return err
-		}
-	}
-
-	// NodeId
-	if err := protocol.WriteInt32(w, value.NodeId); err != nil {
-		return err
-	}
-
-	// Host
-	if isResponseFlexible(res.ApiVersion) {
-		if err := protocol.WriteNullableCompactString(w, value.Host); err != nil {
-			return err
-		}
-	} else {
-		if err := protocol.WriteString(w, *value.Host); err != nil {
-			return err
-		}
-	}
-
-	// Port
-	if err := protocol.WriteInt32(w, value.Port); err != nil {
-		return err
-	}
-
-	// ErrorCode
-	if err := protocol.WriteInt16(w, value.ErrorCode); err != nil {
-		return err
-	}
-
-	// ErrorMessage
-	if isResponseFlexible(res.ApiVersion) {
-		if err := protocol.WriteNullableCompactString(w, value.ErrorMessage); err != nil {
-			return err
-		}
-	} else {
-		if err := protocol.WriteNullableString(w, value.ErrorMessage); err != nil {
-			return err
-		}
-	}
-
-	// Tagged fields
-	if isResponseFlexible(res.ApiVersion) {
-		if err := protocol.WriteRawTaggedFields(w, value.rawTaggedFields); err != nil {
+		res.rawTaggedFields = &rawTaggedFields
+		if err != nil {
 			return err
 		}
 	}
@@ -276,108 +225,229 @@ func (res *FindCoordinatorResponse) coordinatorsEncoder(w io.Writer, value FindC
 	return nil
 }
 
-func (res *FindCoordinatorResponse) coordinatorsDecoder(r io.Reader) (FindCoordinatorResponseCoordinators, error) {
-	coordinators := FindCoordinatorResponseCoordinators{}
-
-	// Key
-	if isResponseFlexible(res.ApiVersion) {
-		key, err := protocol.ReadNullableCompactString(r)
-		if err != nil {
-			return coordinators, err
+func (res *FindCoordinatorResponse) coordinatorsEncoder(w io.Writer, value FindCoordinatorResponseCoordinator) error {
+	// Key (versions: 4+)
+	if res.ApiVersion >= 4 {
+		if isResponseFlexible(res.ApiVersion) {
+			if err := protocol.WriteCompactString(w, *value.Key); err != nil {
+				return err
+			}
+		} else {
+			if err := protocol.WriteString(w, *value.Key); err != nil {
+				return err
+			}
 		}
-		coordinators.Key = key
-	} else {
-		key, err := protocol.ReadString(r)
-		if err != nil {
-			return coordinators, err
-		}
-		coordinators.Key = &key
 	}
 
-	// NodeId
-	nodeId, err := protocol.ReadInt32(r)
-	if err != nil {
-		return coordinators, err
-	}
-	coordinators.NodeId = nodeId
-
-	// Host
-	if isResponseFlexible(res.ApiVersion) {
-		host, err := protocol.ReadNullableCompactString(r)
-		if err != nil {
-			return coordinators, err
+	// NodeId (versions: 4+)
+	if res.ApiVersion >= 4 {
+		if err := protocol.WriteInt32(w, value.NodeId); err != nil {
+			return err
 		}
-		coordinators.Host = host
-	} else {
-		host, err := protocol.ReadString(r)
-		if err != nil {
-			return coordinators, err
-		}
-		coordinators.Host = &host
 	}
 
-	// Port
-	port, err := protocol.ReadInt32(r)
-	if err != nil {
-		return coordinators, err
-	}
-	coordinators.Port = port
-
-	// ErrorCode
-	errorCode, err := protocol.ReadInt16(r)
-	if err != nil {
-		return coordinators, err
-	}
-	coordinators.ErrorCode = errorCode
-
-	// ErrorMessage
-	if isResponseFlexible(res.ApiVersion) {
-		errorMessage, err := protocol.ReadNullableCompactString(r)
-		if err != nil {
-			return coordinators, err
+	// Host (versions: 4+)
+	if res.ApiVersion >= 4 {
+		if isResponseFlexible(res.ApiVersion) {
+			if err := protocol.WriteCompactString(w, *value.Host); err != nil {
+				return err
+			}
+		} else {
+			if err := protocol.WriteString(w, *value.Host); err != nil {
+				return err
+			}
 		}
-		coordinators.ErrorMessage = errorMessage
-	} else {
-		errorMessage, err := protocol.ReadNullableString(r)
-		if err != nil {
-			return coordinators, err
+	}
+
+	// Port (versions: 4+)
+	if res.ApiVersion >= 4 {
+		if err := protocol.WriteInt32(w, value.Port); err != nil {
+			return err
 		}
-		coordinators.ErrorMessage = errorMessage
+	}
+
+	// ErrorCode (versions: 4+)
+	if res.ApiVersion >= 4 {
+		if err := protocol.WriteInt16(w, value.ErrorCode); err != nil {
+			return err
+		}
+	}
+
+	// ErrorMessage (versions: 4+)
+	if res.ApiVersion >= 4 {
+		if isResponseFlexible(res.ApiVersion) {
+			if err := protocol.WriteNullableCompactString(w, value.ErrorMessage); err != nil {
+				return err
+			}
+		} else {
+			if err := protocol.WriteNullableString(w, value.ErrorMessage); err != nil {
+				return err
+			}
+		}
 	}
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
-		if err != nil {
-			return coordinators, err
+		rawTaggedFields := []protocol.TaggedField{}
+		if value.rawTaggedFields != nil {
+			rawTaggedFields = *value.rawTaggedFields
 		}
-		coordinators.rawTaggedFields = rawTaggedFields
+		if err := protocol.WriteRawTaggedFields(w, rawTaggedFields); err != nil {
+			return err
+		}
 	}
 
-	return coordinators, nil
+	return nil
+}
+
+func (res *FindCoordinatorResponse) coordinatorsDecoder(r io.Reader) (FindCoordinatorResponseCoordinator, error) {
+	findcoordinatorresponsecoordinator := FindCoordinatorResponseCoordinator{}
+	var err error
+
+	// Key (versions: 4+)
+	if res.ApiVersion >= 4 {
+		if isRequestFlexible(res.ApiVersion) {
+			key, err := protocol.ReadCompactString(r)
+			if err != nil {
+				return findcoordinatorresponsecoordinator, err
+			}
+			findcoordinatorresponsecoordinator.Key = &key
+		} else {
+			key, err := protocol.ReadString(r)
+			if err != nil {
+				return findcoordinatorresponsecoordinator, err
+			}
+			findcoordinatorresponsecoordinator.Key = &key
+		}
+	}
+
+	// NodeId (versions: 4+)
+	if res.ApiVersion >= 4 {
+		nodeid, err := protocol.ReadInt32(r)
+		if err != nil {
+			return findcoordinatorresponsecoordinator, err
+		}
+		findcoordinatorresponsecoordinator.NodeId = nodeid
+	}
+
+	// Host (versions: 4+)
+	if res.ApiVersion >= 4 {
+		if isRequestFlexible(res.ApiVersion) {
+			host, err := protocol.ReadCompactString(r)
+			if err != nil {
+				return findcoordinatorresponsecoordinator, err
+			}
+			findcoordinatorresponsecoordinator.Host = &host
+		} else {
+			host, err := protocol.ReadString(r)
+			if err != nil {
+				return findcoordinatorresponsecoordinator, err
+			}
+			findcoordinatorresponsecoordinator.Host = &host
+		}
+	}
+
+	// Port (versions: 4+)
+	if res.ApiVersion >= 4 {
+		port, err := protocol.ReadInt32(r)
+		if err != nil {
+			return findcoordinatorresponsecoordinator, err
+		}
+		findcoordinatorresponsecoordinator.Port = port
+	}
+
+	// ErrorCode (versions: 4+)
+	if res.ApiVersion >= 4 {
+		errorcode, err := protocol.ReadInt16(r)
+		if err != nil {
+			return findcoordinatorresponsecoordinator, err
+		}
+		findcoordinatorresponsecoordinator.ErrorCode = errorcode
+	}
+
+	// ErrorMessage (versions: 4+)
+	if res.ApiVersion >= 4 {
+		if isRequestFlexible(res.ApiVersion) {
+			errormessage, err := protocol.ReadNullableCompactString(r)
+			if err != nil {
+				return findcoordinatorresponsecoordinator, err
+			}
+			findcoordinatorresponsecoordinator.ErrorMessage = errormessage
+		} else {
+			errormessage, err := protocol.ReadNullableString(r)
+			if err != nil {
+				return findcoordinatorresponsecoordinator, err
+			}
+			findcoordinatorresponsecoordinator.ErrorMessage = errormessage
+		}
+	}
+
+	// Tagged fields
+	if isRequestFlexible(res.ApiVersion) {
+		var rawTaggedFields []protocol.TaggedField
+		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		if err != nil {
+			return findcoordinatorresponsecoordinator, err
+		}
+		findcoordinatorresponsecoordinator.rawTaggedFields = &rawTaggedFields
+	}
+
+	return findcoordinatorresponsecoordinator, nil
 }
 
 //goland:noinspection GoUnhandledErrorResult
 func (res *FindCoordinatorResponse) PrettyPrint() string {
 	w := bytes.NewBuffer([]byte{})
 
-	fmt.Fprintf(w, "<- FindCoordinatorResponse:\n")
-	fmt.Fprintf(w, "        ThrottleTimeMs: %d\n", res.ThrottleTimeMs)
-	if res.ApiVersion <= 3 {
-		fmt.Fprintf(w, "        ErrorCode: %d\n", res.ErrorCode)
-		fmt.Fprintf(w, "        ErrorMessage: %s\n", *res.ErrorMessage)
-		fmt.Fprintf(w, "        NodeId: %d\n", res.NodeId)
-		fmt.Fprintf(w, "        Host: %s\n", *res.Host)
-		fmt.Fprintf(w, "        Port: %d\n", res.Port)
+	fmt.Fprintf(w, "    <- FindCoordinatorResponse:\n")
+	fmt.Fprintf(w, "        ThrottleTimeMs: %v\n", res.ThrottleTimeMs)
+	fmt.Fprintf(w, "        ErrorCode: %v\n", res.ErrorCode)
+	if res.ErrorMessage != nil {
+		fmt.Fprintf(w, "        ErrorMessage: %v\n", *res.ErrorMessage)
 	} else {
-		if res.Coordinators != nil {
-			fmt.Fprintf(w, "        Coordinators:\n")
-			for _, coordinator := range *res.Coordinators {
-				fmt.Fprintf(w, "                Key: %s; NodeId: %d; Host: %s; Port: %d; ErrorCode: %d; ErrorMessage: %s\n", *coordinator.Key, coordinator.NodeId, *coordinator.Host, coordinator.Port, coordinator.ErrorCode, *coordinator.ErrorMessage)
-			}
-		} else {
-			fmt.Fprintf(w, "        Coordinators: nil\n")
+		fmt.Fprintf(w, "        ErrorMessage: nil\n")
+	}
+	fmt.Fprintf(w, "        NodeId: %v\n", res.NodeId)
+	if res.Host != nil {
+		fmt.Fprintf(w, "        Host: %v\n", *res.Host)
+	} else {
+		fmt.Fprintf(w, "        Host: nil\n")
+	}
+	fmt.Fprintf(w, "        Port: %v\n", res.Port)
+	if res.Coordinators != nil {
+		fmt.Fprintf(w, "        Coordinators:\n")
+		for _, coordinators := range *res.Coordinators {
+			fmt.Fprintf(w, "%s", coordinators.PrettyPrint())
+			fmt.Fprintf(w, "            ----------------\n")
 		}
+	} else {
+		fmt.Fprintf(w, "        Coordinators: nil\n")
+	}
+
+	return w.String()
+}
+
+//goland:noinspection GoUnhandledErrorResult
+func (value *FindCoordinatorResponseCoordinator) PrettyPrint() string {
+	w := bytes.NewBuffer([]byte{})
+
+	if value.Key != nil {
+		fmt.Fprintf(w, "            Key: %v\n", *value.Key)
+	} else {
+		fmt.Fprintf(w, "            Key: nil\n")
+	}
+	fmt.Fprintf(w, "            NodeId: %v\n", value.NodeId)
+	if value.Host != nil {
+		fmt.Fprintf(w, "            Host: %v\n", *value.Host)
+	} else {
+		fmt.Fprintf(w, "            Host: nil\n")
+	}
+	fmt.Fprintf(w, "            Port: %v\n", value.Port)
+	fmt.Fprintf(w, "            ErrorCode: %v\n", value.ErrorCode)
+	if value.ErrorMessage != nil {
+		fmt.Fprintf(w, "            ErrorMessage: %v\n", *value.ErrorMessage)
+	} else {
+		fmt.Fprintf(w, "            ErrorMessage: nil\n")
 	}
 
 	return w.String()

@@ -3,25 +3,24 @@ package metadata
 import (
 	"bytes"
 	"fmt"
-	"io"
-
 	"github.com/google/uuid"
 	"github.com/scholzj/go-kafka-protocol/protocol"
+	"io"
 )
 
 type MetadataRequest struct {
 	ApiVersion                         int16
-	Topics                             *[]MetadataRequestTopic
-	AllowAutoTopicCreation             bool
-	IncludeClusterAuthorizedOperations bool
-	IncludeTopicAuthorizedOperations   bool
-	rawTaggedFields                    []protocol.TaggedField
+	Topics                             *[]MetadataRequestTopic // The topics to fetch metadata for.
+	AllowAutoTopicCreation             bool                    // If this is true, the broker may auto-create topics that we requested which do not already exist, if it is configured to do so.
+	IncludeClusterAuthorizedOperations bool                    // Whether to include cluster authorized operations.
+	IncludeTopicAuthorizedOperations   bool                    // Whether to include topic authorized operations.
+	rawTaggedFields                    *[]protocol.TaggedField
 }
 
 type MetadataRequestTopic struct {
-	Id              uuid.UUID
-	Name            string
-	rawTaggedFields []protocol.TaggedField
+	TopicId         uuid.UUID // The topic id.
+	Name            *string   // The topic name.
+	rawTaggedFields *[]protocol.TaggedField
 }
 
 func isRequestFlexible(apiVersion int16) bool {
@@ -29,35 +28,32 @@ func isRequestFlexible(apiVersion int16) bool {
 }
 
 func (req *MetadataRequest) Write(w io.Writer) error {
+	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, req.topicsEncoder, req.Topics); err != nil {
 			return err
 		}
-	} else if req.ApiVersion >= 1 {
-		if err := protocol.WriteNullableArray(w, req.topicsEncoder, req.Topics); err != nil {
-			return err
-		}
 	} else {
-		if err := protocol.WriteArray(w, req.topicsEncoder, *req.Topics); err != nil {
+		if err := protocol.WriteNullableArray(w, req.topicsEncoder, req.Topics); err != nil {
 			return err
 		}
 	}
 
-	// Allow auto-topic-creation
+	// AllowAutoTopicCreation (versions: 4+)
 	if req.ApiVersion >= 4 {
 		if err := protocol.WriteBool(w, req.AllowAutoTopicCreation); err != nil {
 			return err
 		}
 	}
 
-	// Include cluster authorized operations
+	// IncludeClusterAuthorizedOperations (versions: 8-10)
 	if req.ApiVersion >= 8 && req.ApiVersion <= 10 {
 		if err := protocol.WriteBool(w, req.IncludeClusterAuthorizedOperations); err != nil {
 			return err
 		}
 	}
 
-	// Include topic authorized operations
+	// IncludeTopicAuthorizedOperations (versions: 8+)
 	if req.ApiVersion >= 8 {
 		if err := protocol.WriteBool(w, req.IncludeTopicAuthorizedOperations); err != nil {
 			return err
@@ -66,8 +62,11 @@ func (req *MetadataRequest) Write(w io.Writer) error {
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		// Tagged fields
-		if err := protocol.WriteRawTaggedFields(w, req.rawTaggedFields); err != nil {
+		rawTaggedFields := []protocol.TaggedField{}
+		if req.rawTaggedFields != nil {
+			rawTaggedFields = *req.rawTaggedFields
+		}
+		if err := protocol.WriteRawTaggedFields(w, rawTaggedFields); err != nil {
 			return err
 		}
 	}
@@ -80,15 +79,11 @@ func (req *MetadataRequest) Read(request protocol.Request) error {
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
-	// Topics
+	var err error
+
+	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
 		topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
-		if err != nil {
-			return err
-		}
-		req.Topics = topics
-	} else if req.ApiVersion >= 1 {
-		topics, err := protocol.ReadNullableArray(r, req.topicsDecoder)
 		if err != nil {
 			return err
 		}
@@ -101,68 +96,72 @@ func (req *MetadataRequest) Read(request protocol.Request) error {
 		req.Topics = &topics
 	}
 
-	// Allow auto-topic-creation
-	if req.ApiVersion >= 4 {
-		allowAutoTopicCreation, err := protocol.ReadBool(r)
+	// AllowAutoTopicCreation (versions: 4+)
+	if request.ApiVersion >= 4 {
+		allowautotopiccreation, err := protocol.ReadBool(r)
 		if err != nil {
 			return err
 		}
-		req.AllowAutoTopicCreation = allowAutoTopicCreation
+		req.AllowAutoTopicCreation = allowautotopiccreation
 	}
 
-	// Include cluster authorized operations
-	if req.ApiVersion >= 8 && req.ApiVersion <= 10 {
-		includeClusterAuthorizedOperations, err := protocol.ReadBool(r)
+	// IncludeClusterAuthorizedOperations (versions: 8-10)
+	if request.ApiVersion >= 8 && request.ApiVersion <= 10 {
+		includeclusterauthorizedoperations, err := protocol.ReadBool(r)
 		if err != nil {
 			return err
 		}
-		req.IncludeClusterAuthorizedOperations = includeClusterAuthorizedOperations
+		req.IncludeClusterAuthorizedOperations = includeclusterauthorizedoperations
 	}
 
-	// Include topic authorized operations
-	if req.ApiVersion >= 8 {
-		includeTopicAuthorizedOperations, err := protocol.ReadBool(r)
+	// IncludeTopicAuthorizedOperations (versions: 8+)
+	if request.ApiVersion >= 8 {
+		includetopicauthorizedoperations, err := protocol.ReadBool(r)
 		if err != nil {
 			return err
 		}
-		req.IncludeTopicAuthorizedOperations = includeTopicAuthorizedOperations
+		req.IncludeTopicAuthorizedOperations = includetopicauthorizedoperations
 	}
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		// Tagged fields
-		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
+		var rawTaggedFields []protocol.TaggedField
+		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return err
 		}
-		req.rawTaggedFields = rawTaggedFields
+		req.rawTaggedFields = &rawTaggedFields
 	}
 
 	return nil
 }
 
 func (req *MetadataRequest) topicsEncoder(w io.Writer, value MetadataRequestTopic) error {
-	// Id
+	// TopicId (versions: 10+)
 	if req.ApiVersion >= 10 {
-		if err := protocol.WriteUUID(w, value.Id); err != nil {
+		if err := protocol.WriteUUID(w, value.TopicId); err != nil {
 			return err
 		}
 	}
 
-	// Topic name
+	// Name (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		if err := protocol.WriteCompactString(w, value.Name); err != nil {
+		if err := protocol.WriteNullableCompactString(w, value.Name); err != nil {
 			return err
 		}
 	} else {
-		if err := protocol.WriteString(w, value.Name); err != nil {
+		if err := protocol.WriteNullableString(w, value.Name); err != nil {
 			return err
 		}
 	}
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		if err := protocol.WriteRawTaggedFields(w, value.rawTaggedFields); err != nil {
+		rawTaggedFields := []protocol.TaggedField{}
+		if value.rawTaggedFields != nil {
+			rawTaggedFields = *value.rawTaggedFields
+		}
+		if err := protocol.WriteRawTaggedFields(w, rawTaggedFields); err != nil {
 			return err
 		}
 	}
@@ -171,60 +170,77 @@ func (req *MetadataRequest) topicsEncoder(w io.Writer, value MetadataRequestTopi
 }
 
 func (req *MetadataRequest) topicsDecoder(r io.Reader) (MetadataRequestTopic, error) {
-	topics := MetadataRequestTopic{}
+	metadatarequesttopic := MetadataRequestTopic{}
+	var err error
 
-	// Id
+	// TopicId (versions: 10+)
 	if req.ApiVersion >= 10 {
-		id, err := protocol.ReadUUID(r)
+		topicid, err := protocol.ReadUUID(r)
 		if err != nil {
-			return topics, err
+			return metadatarequesttopic, err
 		}
-		topics.Id = id
+		metadatarequesttopic.TopicId = topicid
 	}
 
-	// Topic name
+	// Name (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		name, err := protocol.ReadCompactString(r)
+		name, err := protocol.ReadNullableCompactString(r)
 		if err != nil {
-			return topics, err
+			return metadatarequesttopic, err
 		}
-		topics.Name = name
+		metadatarequesttopic.Name = name
 	} else {
-		name, err := protocol.ReadString(r)
+		name, err := protocol.ReadNullableString(r)
 		if err != nil {
-			return topics, err
+			return metadatarequesttopic, err
 		}
-		topics.Name = name
+		metadatarequesttopic.Name = name
 	}
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
+		var rawTaggedFields []protocol.TaggedField
+		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
 		if err != nil {
-			return topics, err
+			return metadatarequesttopic, err
 		}
-		topics.rawTaggedFields = rawTaggedFields
+		metadatarequesttopic.rawTaggedFields = &rawTaggedFields
 	}
 
-	return topics, nil
+	return metadatarequesttopic, nil
 }
 
 //goland:noinspection GoUnhandledErrorResult
 func (req *MetadataRequest) PrettyPrint() string {
 	w := bytes.NewBuffer([]byte{})
 
-	fmt.Fprintf(w, "-> MetadataRequest:\n")
+	fmt.Fprintf(w, "    -> MetadataRequest:\n")
 	if req.Topics != nil {
 		fmt.Fprintf(w, "        Topics:\n")
-		for _, topic := range *req.Topics {
-			fmt.Fprintf(w, "                Id: %s; Name: %s\n", topic.Id.String(), topic.Name)
+		for _, topics := range *req.Topics {
+			fmt.Fprintf(w, "%s", topics.PrettyPrint())
+			fmt.Fprintf(w, "            ----------------\n")
 		}
 	} else {
 		fmt.Fprintf(w, "        Topics: nil\n")
 	}
-	fmt.Fprintf(w, "        AllowAutoTopicCreation: %t\n", req.AllowAutoTopicCreation)
-	fmt.Fprintf(w, "        IncludeClusterAuthorizedOperations: %t\n", req.IncludeClusterAuthorizedOperations)
-	fmt.Fprintf(w, "        IncludeTopicAuthorizedOperations: %t\n", req.IncludeTopicAuthorizedOperations)
+	fmt.Fprintf(w, "        AllowAutoTopicCreation: %v\n", req.AllowAutoTopicCreation)
+	fmt.Fprintf(w, "        IncludeClusterAuthorizedOperations: %v\n", req.IncludeClusterAuthorizedOperations)
+	fmt.Fprintf(w, "        IncludeTopicAuthorizedOperations: %v\n", req.IncludeTopicAuthorizedOperations)
+
+	return w.String()
+}
+
+//goland:noinspection GoUnhandledErrorResult
+func (value *MetadataRequestTopic) PrettyPrint() string {
+	w := bytes.NewBuffer([]byte{})
+
+	fmt.Fprintf(w, "            TopicId: %v\n", value.TopicId)
+	if value.Name != nil {
+		fmt.Fprintf(w, "            Name: %v\n", *value.Name)
+	} else {
+		fmt.Fprintf(w, "            Name: nil\n")
+	}
 
 	return w.String()
 }

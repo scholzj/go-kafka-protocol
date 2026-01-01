@@ -11,43 +11,43 @@ import (
 
 type MetadataResponse struct {
 	ApiVersion                  int16
-	ThrottleTimeMs              int32
-	Brokers                     *[]MetadataResponseBroker
-	ClusterId                   *string
-	ControllerId                int32
-	Topics                      *[]MetadataResponseTopic
-	ClusterAuthorizedOperations int32
-	ErrorCode                   int16
-	rawTaggedFields             []protocol.TaggedField
+	ThrottleTimeMs              int32                     // The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.
+	Brokers                     *[]MetadataResponseBroker // A list of brokers present in the cluster.
+	ClusterId                   *string                   // The cluster ID that responding broker belongs to.
+	ControllerId                int32                     // The ID of the controller broker.
+	Topics                      *[]MetadataResponseTopic  // Each topic in the response.
+	ClusterAuthorizedOperations int32                     // 32-bit bitfield to represent authorized operations for this cluster.
+	ErrorCode                   int16                     // The top-level error code, or 0 if there was no error.
+	rawTaggedFields             *[]protocol.TaggedField
 }
 
 type MetadataResponseBroker struct {
-	NodeId          int32
-	Host            string
-	Port            int32
-	Rack            *string
-	rawTaggedFields []protocol.TaggedField
+	NodeId          int32   // The broker ID.
+	Host            *string // The broker hostname.
+	Port            int32   // The broker port.
+	Rack            *string // The rack of the broker, or null if it has not been assigned to a rack.
+	rawTaggedFields *[]protocol.TaggedField
 }
 
 type MetadataResponseTopic struct {
-	ErrorCode                 int16
-	Name                      *string
-	Id                        uuid.UUID
-	IsInternal                bool
-	Partitions                *[]MetadataResponseTopicPartition
-	TopicAuthorizedOperations int32
-	rawTaggedFields           []protocol.TaggedField
+	ErrorCode                 int16                             // The topic error, or 0 if there was no error.
+	Name                      *string                           // The topic name. Null for non-existing topics queried by ID. This is never null when ErrorCode is zero. One of Name and TopicId is always populated.
+	TopicId                   uuid.UUID                         // The topic id. Zero for non-existing topics queried by name. This is never zero when ErrorCode is zero. One of Name and TopicId is always populated.
+	IsInternal                bool                              // True if the topic is internal.
+	Partitions                *[]MetadataResponseTopicPartition // Each partition in the topic.
+	TopicAuthorizedOperations int32                             // 32-bit bitfield to represent authorized operations for this topic.
+	rawTaggedFields           *[]protocol.TaggedField
 }
 
 type MetadataResponseTopicPartition struct {
-	ErrorCode       int16
-	PartitionIndex  int32
-	LeaderId        int32
-	LeaderEpoch     int32
-	ReplicaNodes    *[]int32
-	IsrNodes        *[]int32
-	OfflineReplicas *[]int32
-	rawTaggedFields []protocol.TaggedField
+	ErrorCode       int16    // The partition error, or 0 if there was no error.
+	PartitionIndex  int32    // The partition index.
+	LeaderId        int32    // The ID of the leader broker.
+	LeaderEpoch     int32    // The leader epoch of this partition.
+	ReplicaNodes    *[]int32 // The set of all nodes that host this partition.
+	IsrNodes        *[]int32 // The set of nodes that are in sync with the leader for this partition.
+	OfflineReplicas *[]int32 // The set of offline replicas of this partition.
+	rawTaggedFields *[]protocol.TaggedField
 }
 
 func isResponseFlexible(apiVersion int16) bool {
@@ -55,63 +55,63 @@ func isResponseFlexible(apiVersion int16) bool {
 }
 
 func (res *MetadataResponse) Write(w io.Writer) error {
-	// ThrottleTime
+	// ThrottleTimeMs (versions: 3+)
 	if res.ApiVersion >= 3 {
 		if err := protocol.WriteInt32(w, res.ThrottleTimeMs); err != nil {
 			return err
 		}
 	}
 
-	// Brokers
+	// Brokers (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		if err := protocol.WriteNullableCompactArray(w, res.brokerEncoder, res.Brokers); err != nil {
+		if err := protocol.WriteNullableCompactArray(w, res.brokersEncoder, res.Brokers); err != nil {
 			return err
 		}
 	} else {
-		if err := protocol.WriteArray(w, res.brokerEncoder, *res.Brokers); err != nil {
+		if err := protocol.WriteArray(w, res.brokersEncoder, *res.Brokers); err != nil {
 			return err
 		}
 	}
 
-	// Cluster Id
+	// ClusterId (versions: 2+)
 	if res.ApiVersion >= 2 {
 		if isResponseFlexible(res.ApiVersion) {
-			if err := protocol.WriteNullableCompactString(w, res.ClusterId); err != nil {
+			if err := protocol.WriteCompactString(w, *res.ClusterId); err != nil {
 				return err
 			}
 		} else {
-			if err := protocol.WriteNullableString(w, res.ClusterId); err != nil {
+			if err := protocol.WriteString(w, *res.ClusterId); err != nil {
 				return err
 			}
 		}
 	}
 
-	// Controller Id
+	// ControllerId (versions: 1+)
 	if res.ApiVersion >= 1 {
 		if err := protocol.WriteInt32(w, res.ControllerId); err != nil {
 			return err
 		}
 	}
 
-	// Topics
+	// Topics (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		if err := protocol.WriteNullableCompactArray(w, res.topicEncoder, res.Topics); err != nil {
+		if err := protocol.WriteNullableCompactArray(w, res.topicsEncoder, res.Topics); err != nil {
 			return err
 		}
 	} else {
-		if err := protocol.WriteArray(w, res.topicEncoder, *res.Topics); err != nil {
+		if err := protocol.WriteArray(w, res.topicsEncoder, *res.Topics); err != nil {
 			return err
 		}
 	}
 
-	// Cluster Authorized Operations
+	// ClusterAuthorizedOperations (versions: 8-10)
 	if res.ApiVersion >= 8 && res.ApiVersion <= 10 {
 		if err := protocol.WriteInt32(w, res.ClusterAuthorizedOperations); err != nil {
 			return err
 		}
 	}
 
-	// ErrorCode
+	// ErrorCode (versions: 13+)
 	if res.ApiVersion >= 13 {
 		if err := protocol.WriteInt16(w, res.ErrorCode); err != nil {
 			return err
@@ -120,7 +120,11 @@ func (res *MetadataResponse) Write(w io.Writer) error {
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		if err := protocol.WriteRawTaggedFields(w, res.rawTaggedFields); err != nil {
+		rawTaggedFields := []protocol.TaggedField{}
+		if res.rawTaggedFields != nil {
+			rawTaggedFields = *res.rawTaggedFields
+		}
+		if err := protocol.WriteRawTaggedFields(w, rawTaggedFields); err != nil {
 			return err
 		}
 	}
@@ -133,130 +137,131 @@ func (res *MetadataResponse) Read(response protocol.Response) error {
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
-	// ThrottleTime
-	if res.ApiVersion >= 3 {
-		throttleTimeMs, err := protocol.ReadInt32(r)
+	var err error
+
+	// ThrottleTimeMs (versions: 3+)
+	if response.ApiVersion >= 3 {
+		throttletimems, err := protocol.ReadInt32(r)
 		if err != nil {
 			return err
 		}
-		res.ThrottleTimeMs = throttleTimeMs
+		res.ThrottleTimeMs = throttletimems
 	}
 
-	// Brokers
+	// Brokers (versions: 0+)
 	if isRequestFlexible(res.ApiVersion) {
-		brokers, err := protocol.ReadNullableCompactArray(r, res.brokerDecoder)
+		brokers, err := protocol.ReadNullableCompactArray(r, res.brokersDecoder)
 		if err != nil {
 			return err
 		}
 		res.Brokers = brokers
 	} else {
-		brokers, err := protocol.ReadArray(r, res.brokerDecoder)
+		brokers, err := protocol.ReadArray(r, res.brokersDecoder)
 		if err != nil {
 			return err
 		}
 		res.Brokers = &brokers
 	}
 
-	// Cluster ID
-	if res.ApiVersion >= 2 {
+	// ClusterId (versions: 2+)
+	if response.ApiVersion >= 2 {
 		if isRequestFlexible(res.ApiVersion) {
-			clusterId, err := protocol.ReadNullableCompactString(r)
+			clusterid, err := protocol.ReadCompactString(r)
 			if err != nil {
 				return err
 			}
-			res.ClusterId = clusterId
+			res.ClusterId = &clusterid
 		} else {
-			clusterId, err := protocol.ReadNullableString(r)
+			clusterid, err := protocol.ReadString(r)
 			if err != nil {
 				return err
 			}
-			res.ClusterId = clusterId
+			res.ClusterId = &clusterid
 		}
 	}
 
-	// Controller ID
-	if res.ApiVersion >= 1 {
-		controllerId, err := protocol.ReadInt32(r)
+	// ControllerId (versions: 1+)
+	if response.ApiVersion >= 1 {
+		controllerid, err := protocol.ReadInt32(r)
 		if err != nil {
 			return err
 		}
-		res.ControllerId = controllerId
-	} else {
-		res.ControllerId = -1
+		res.ControllerId = controllerid
 	}
 
-	// Topics
+	// Topics (versions: 0+)
 	if isRequestFlexible(res.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, res.topicDecoder)
+		topics, err := protocol.ReadNullableCompactArray(r, res.topicsDecoder)
 		if err != nil {
 			return err
 		}
 		res.Topics = topics
 	} else {
-		topics, err := protocol.ReadArray(r, res.topicDecoder)
+		topics, err := protocol.ReadArray(r, res.topicsDecoder)
 		if err != nil {
 			return err
 		}
 		res.Topics = &topics
 	}
 
-	// Cluster Authorized Operations
-	if res.ApiVersion >= 8 && res.ApiVersion <= 10 {
-		clusterAuthorizedOperations, err := protocol.ReadInt32(r)
+	// ClusterAuthorizedOperations (versions: 8-10)
+	if response.ApiVersion >= 8 && response.ApiVersion <= 10 {
+		clusterauthorizedoperations, err := protocol.ReadInt32(r)
 		if err != nil {
 			return err
 		}
-		res.ClusterAuthorizedOperations = clusterAuthorizedOperations
-	} else {
-		res.ClusterAuthorizedOperations = -2147483648
+		res.ClusterAuthorizedOperations = clusterauthorizedoperations
 	}
 
-	// ErrorCode
-	if res.ApiVersion >= 13 {
-		errorCode, err := protocol.ReadInt16(r)
+	// ErrorCode (versions: 13+)
+	if response.ApiVersion >= 13 {
+		errorcode, err := protocol.ReadInt16(r)
 		if err != nil {
 			return err
 		}
-		res.ErrorCode = errorCode
+		res.ErrorCode = errorcode
 	}
 
-	// Tagged fields
-	if isResponseFlexible(response.ApiVersion) {
-		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
+	if isResponseFlexible(res.ApiVersion) {
+		// Decode tagged fields
+		var rawTaggedFields []protocol.TaggedField
+		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return err
 		}
-		res.rawTaggedFields = rawTaggedFields
+		res.rawTaggedFields = &rawTaggedFields
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func (res *MetadataResponse) brokerEncoder(w io.Writer, value MetadataResponseBroker) error {
-	// Node Id
+func (res *MetadataResponse) brokersEncoder(w io.Writer, value MetadataResponseBroker) error {
+	// NodeId (versions: 0+)
 	if err := protocol.WriteInt32(w, value.NodeId); err != nil {
 		return err
 	}
 
-	// Host
+	// Host (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		if err := protocol.WriteCompactString(w, value.Host); err != nil {
+		if err := protocol.WriteCompactString(w, *value.Host); err != nil {
 			return err
 		}
 	} else {
-		if err := protocol.WriteString(w, value.Host); err != nil {
+		if err := protocol.WriteString(w, *value.Host); err != nil {
 			return err
 		}
 	}
 
-	// Port
+	// Port (versions: 0+)
 	if err := protocol.WriteInt32(w, value.Port); err != nil {
 		return err
 	}
 
-	// Is Internal
+	// Rack (versions: 1+)
 	if res.ApiVersion >= 1 {
-		// Host
 		if isResponseFlexible(res.ApiVersion) {
 			if err := protocol.WriteNullableCompactString(w, value.Rack); err != nil {
 				return err
@@ -270,7 +275,11 @@ func (res *MetadataResponse) brokerEncoder(w io.Writer, value MetadataResponseBr
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		if err := protocol.WriteRawTaggedFields(w, value.rawTaggedFields); err != nil {
+		rawTaggedFields := []protocol.TaggedField{}
+		if value.rawTaggedFields != nil {
+			rawTaggedFields = *value.rawTaggedFields
+		}
+		if err := protocol.WriteRawTaggedFields(w, rawTaggedFields); err != nil {
 			return err
 		}
 	}
@@ -278,74 +287,76 @@ func (res *MetadataResponse) brokerEncoder(w io.Writer, value MetadataResponseBr
 	return nil
 }
 
-func (res *MetadataResponse) brokerDecoder(r io.Reader) (MetadataResponseBroker, error) {
-	broker := MetadataResponseBroker{}
+func (res *MetadataResponse) brokersDecoder(r io.Reader) (MetadataResponseBroker, error) {
+	metadataresponsebroker := MetadataResponseBroker{}
+	var err error
 
-	// NodeId
-	nodeId, err := protocol.ReadInt32(r)
+	// NodeId (versions: 0+)
+	nodeid, err := protocol.ReadInt32(r)
 	if err != nil {
-		return broker, err
+		return metadataresponsebroker, err
 	}
-	broker.NodeId = nodeId
+	metadataresponsebroker.NodeId = nodeid
 
-	// Name
+	// Host (versions: 0+)
 	if isRequestFlexible(res.ApiVersion) {
 		host, err := protocol.ReadCompactString(r)
 		if err != nil {
-			return broker, err
+			return metadataresponsebroker, err
 		}
-		broker.Host = host
+		metadataresponsebroker.Host = &host
 	} else {
 		host, err := protocol.ReadString(r)
 		if err != nil {
-			return broker, err
+			return metadataresponsebroker, err
 		}
-		broker.Host = host
+		metadataresponsebroker.Host = &host
 	}
 
-	// Port
+	// Port (versions: 0+)
 	port, err := protocol.ReadInt32(r)
 	if err != nil {
-		return broker, err
+		return metadataresponsebroker, err
 	}
-	broker.Port = port
+	metadataresponsebroker.Port = port
 
-	// Rack
+	// Rack (versions: 1+)
 	if res.ApiVersion >= 1 {
 		if isRequestFlexible(res.ApiVersion) {
 			rack, err := protocol.ReadNullableCompactString(r)
 			if err != nil {
-				return broker, err
+				return metadataresponsebroker, err
 			}
-			broker.Rack = rack
+			metadataresponsebroker.Rack = rack
 		} else {
 			rack, err := protocol.ReadNullableString(r)
 			if err != nil {
-				return broker, err
+				return metadataresponsebroker, err
 			}
-			broker.Rack = rack
+			metadataresponsebroker.Rack = rack
 		}
 	}
 
 	// Tagged fields
-	if isResponseFlexible(res.ApiVersion) {
-		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
+	if isRequestFlexible(res.ApiVersion) {
+		var rawTaggedFields []protocol.TaggedField
+		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
 		if err != nil {
-			return broker, err
+			return metadataresponsebroker, err
 		}
-		broker.rawTaggedFields = rawTaggedFields
+		metadataresponsebroker.rawTaggedFields = &rawTaggedFields
 	}
 
-	return broker, nil
+	return metadataresponsebroker, nil
 }
 
-func (res *MetadataResponse) topicEncoder(w io.Writer, value MetadataResponseTopic) error {
-	// Error Code
+func (res *MetadataResponse) topicsEncoder(w io.Writer, value MetadataResponseTopic) error {
+	// ErrorCode (versions: 0+)
 	if err := protocol.WriteInt16(w, value.ErrorCode); err != nil {
 		return err
 	}
 
-	// Name
+	// Name (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
 		if err := protocol.WriteNullableCompactString(w, value.Name); err != nil {
 			return err
@@ -356,32 +367,32 @@ func (res *MetadataResponse) topicEncoder(w io.Writer, value MetadataResponseTop
 		}
 	}
 
-	// Topic ID
+	// TopicId (versions: 10+)
 	if res.ApiVersion >= 10 {
-		if err := protocol.WriteUUID(w, value.Id); err != nil {
+		if err := protocol.WriteUUID(w, value.TopicId); err != nil {
 			return err
 		}
 	}
 
-	// Is Internal
+	// IsInternal (versions: 1+)
 	if res.ApiVersion >= 1 {
 		if err := protocol.WriteBool(w, value.IsInternal); err != nil {
 			return err
 		}
 	}
 
-	// Partitions
+	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		if err := protocol.WriteNullableCompactArray(w, res.topicPartitionEncoder, value.Partitions); err != nil {
+		if err := protocol.WriteNullableCompactArray(w, res.partitionsEncoder, value.Partitions); err != nil {
 			return err
 		}
 	} else {
-		if err := protocol.WriteArray(w, res.topicPartitionEncoder, *value.Partitions); err != nil {
+		if err := protocol.WriteArray(w, res.partitionsEncoder, *value.Partitions); err != nil {
 			return err
 		}
 	}
 
-	// Topic Authorized Operations
+	// TopicAuthorizedOperations (versions: 8+)
 	if res.ApiVersion >= 8 {
 		if err := protocol.WriteInt32(w, value.TopicAuthorizedOperations); err != nil {
 			return err
@@ -390,7 +401,11 @@ func (res *MetadataResponse) topicEncoder(w io.Writer, value MetadataResponseTop
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		if err := protocol.WriteRawTaggedFields(w, value.rawTaggedFields); err != nil {
+		rawTaggedFields := []protocol.TaggedField{}
+		if value.rawTaggedFields != nil {
+			rawTaggedFields = *value.rawTaggedFields
+		}
+		if err := protocol.WriteRawTaggedFields(w, rawTaggedFields); err != nil {
 			return err
 		}
 	}
@@ -398,111 +413,111 @@ func (res *MetadataResponse) topicEncoder(w io.Writer, value MetadataResponseTop
 	return nil
 }
 
-func (res *MetadataResponse) topicDecoder(r io.Reader) (MetadataResponseTopic, error) {
-	topicPart := MetadataResponseTopic{
-		TopicAuthorizedOperations: -2147483648,
-	}
+func (res *MetadataResponse) topicsDecoder(r io.Reader) (MetadataResponseTopic, error) {
+	metadataresponsetopic := MetadataResponseTopic{}
+	var err error
 
-	// Error Code
-	errorCode, err := protocol.ReadInt16(r)
+	// ErrorCode (versions: 0+)
+	errorcode, err := protocol.ReadInt16(r)
 	if err != nil {
-		return topicPart, err
+		return metadataresponsetopic, err
 	}
-	topicPart.ErrorCode = errorCode
+	metadataresponsetopic.ErrorCode = errorcode
 
-	// Name
+	// Name (versions: 0+)
 	if isRequestFlexible(res.ApiVersion) {
 		name, err := protocol.ReadNullableCompactString(r)
 		if err != nil {
-			return topicPart, err
+			return metadataresponsetopic, err
 		}
-		topicPart.Name = name
+		metadataresponsetopic.Name = name
 	} else {
 		name, err := protocol.ReadNullableString(r)
 		if err != nil {
-			return topicPart, err
+			return metadataresponsetopic, err
 		}
-		topicPart.Name = name
+		metadataresponsetopic.Name = name
 	}
 
-	// Id
+	// TopicId (versions: 10+)
 	if res.ApiVersion >= 10 {
-		id, err := protocol.ReadUUID(r)
+		topicid, err := protocol.ReadUUID(r)
 		if err != nil {
-			return topicPart, err
+			return metadataresponsetopic, err
 		}
-		topicPart.Id = id
+		metadataresponsetopic.TopicId = topicid
 	}
 
-	// IsInternal
+	// IsInternal (versions: 1+)
 	if res.ApiVersion >= 1 {
-		isInternal, err := protocol.ReadBool(r)
+		isinternal, err := protocol.ReadBool(r)
 		if err != nil {
-			return topicPart, err
+			return metadataresponsetopic, err
 		}
-		topicPart.IsInternal = isInternal
+		metadataresponsetopic.IsInternal = isinternal
 	}
 
-	// Partitions
+	// Partitions (versions: 0+)
 	if isRequestFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, res.topicPartitionDecoder)
+		partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
 		if err != nil {
-			return topicPart, err
+			return metadataresponsetopic, err
 		}
-		topicPart.Partitions = partitions
+		metadataresponsetopic.Partitions = partitions
 	} else {
-		partitions, err := protocol.ReadArray(r, res.topicPartitionDecoder)
+		partitions, err := protocol.ReadArray(r, res.partitionsDecoder)
 		if err != nil {
-			return topicPart, err
+			return metadataresponsetopic, err
 		}
-		topicPart.Partitions = &partitions
+		metadataresponsetopic.Partitions = &partitions
 	}
 
-	// Topic Authorized Operations
+	// TopicAuthorizedOperations (versions: 8+)
 	if res.ApiVersion >= 8 {
-		topicAuthorizedOperations, err := protocol.ReadInt32(r)
+		topicauthorizedoperations, err := protocol.ReadInt32(r)
 		if err != nil {
-			return topicPart, err
+			return metadataresponsetopic, err
 		}
-		topicPart.TopicAuthorizedOperations = topicAuthorizedOperations
+		metadataresponsetopic.TopicAuthorizedOperations = topicauthorizedoperations
 	}
 
 	// Tagged fields
-	if isResponseFlexible(res.ApiVersion) {
-		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
+	if isRequestFlexible(res.ApiVersion) {
+		var rawTaggedFields []protocol.TaggedField
+		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
 		if err != nil {
-			return topicPart, err
+			return metadataresponsetopic, err
 		}
-		topicPart.rawTaggedFields = rawTaggedFields
+		metadataresponsetopic.rawTaggedFields = &rawTaggedFields
 	}
 
-	return topicPart, nil
+	return metadataresponsetopic, nil
 }
 
-func (res *MetadataResponse) topicPartitionEncoder(w io.Writer, value MetadataResponseTopicPartition) error {
-	// Error Code
+func (res *MetadataResponse) partitionsEncoder(w io.Writer, value MetadataResponseTopicPartition) error {
+	// ErrorCode (versions: 0+)
 	if err := protocol.WriteInt16(w, value.ErrorCode); err != nil {
 		return err
 	}
 
-	// PArtition Index
+	// PartitionIndex (versions: 0+)
 	if err := protocol.WriteInt32(w, value.PartitionIndex); err != nil {
 		return err
 	}
 
-	// LeaderId
+	// LeaderId (versions: 0+)
 	if err := protocol.WriteInt32(w, value.LeaderId); err != nil {
 		return err
 	}
 
-	// Leader Epoch
+	// LeaderEpoch (versions: 7+)
 	if res.ApiVersion >= 7 {
 		if err := protocol.WriteInt32(w, value.LeaderEpoch); err != nil {
 			return err
 		}
 	}
 
-	// ReplicaNodes
+	// ReplicaNodes (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, protocol.WriteInt32, value.ReplicaNodes); err != nil {
 			return err
@@ -513,7 +528,7 @@ func (res *MetadataResponse) topicPartitionEncoder(w io.Writer, value MetadataRe
 		}
 	}
 
-	// ISR Nodes
+	// IsrNodes (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, protocol.WriteInt32, value.IsrNodes); err != nil {
 			return err
@@ -524,7 +539,7 @@ func (res *MetadataResponse) topicPartitionEncoder(w io.Writer, value MetadataRe
 		}
 	}
 
-	// Offline Replicas
+	// OfflineReplicas (versions: 5+)
 	if res.ApiVersion >= 5 {
 		if isResponseFlexible(res.ApiVersion) {
 			if err := protocol.WriteNullableCompactArray(w, protocol.WriteInt32, value.OfflineReplicas); err != nil {
@@ -539,7 +554,11 @@ func (res *MetadataResponse) topicPartitionEncoder(w io.Writer, value MetadataRe
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		if err := protocol.WriteRawTaggedFields(w, value.rawTaggedFields); err != nil {
+		rawTaggedFields := []protocol.TaggedField{}
+		if value.rawTaggedFields != nil {
+			rawTaggedFields = *value.rawTaggedFields
+		}
+		if err := protocol.WriteRawTaggedFields(w, rawTaggedFields); err != nil {
 			return err
 		}
 	}
@@ -547,150 +566,205 @@ func (res *MetadataResponse) topicPartitionEncoder(w io.Writer, value MetadataRe
 	return nil
 }
 
-func (res *MetadataResponse) topicPartitionDecoder(r io.Reader) (MetadataResponseTopicPartition, error) {
-	topicPart := MetadataResponseTopicPartition{
-		LeaderEpoch: -1,
-	}
+func (res *MetadataResponse) partitionsDecoder(r io.Reader) (MetadataResponseTopicPartition, error) {
+	metadataresponsetopicpartition := MetadataResponseTopicPartition{}
+	var err error
 
-	// Error Code
-	errorCode, err := protocol.ReadInt16(r)
+	// ErrorCode (versions: 0+)
+	errorcode, err := protocol.ReadInt16(r)
 	if err != nil {
-		return topicPart, err
+		return metadataresponsetopicpartition, err
 	}
-	topicPart.ErrorCode = errorCode
+	metadataresponsetopicpartition.ErrorCode = errorcode
 
-	// Partition Index
-	partitionIndex, err := protocol.ReadInt32(r)
+	// PartitionIndex (versions: 0+)
+	partitionindex, err := protocol.ReadInt32(r)
 	if err != nil {
-		return topicPart, err
+		return metadataresponsetopicpartition, err
 	}
-	topicPart.PartitionIndex = partitionIndex
+	metadataresponsetopicpartition.PartitionIndex = partitionindex
 
-	// Leader ID
-	leaderId, err := protocol.ReadInt32(r)
+	// LeaderId (versions: 0+)
+	leaderid, err := protocol.ReadInt32(r)
 	if err != nil {
-		return topicPart, err
+		return metadataresponsetopicpartition, err
 	}
-	topicPart.LeaderId = leaderId
+	metadataresponsetopicpartition.LeaderId = leaderid
 
-	// Leader Epoch
+	// LeaderEpoch (versions: 7+)
 	if res.ApiVersion >= 7 {
-		leaderEpoch, err := protocol.ReadInt32(r)
+		leaderepoch, err := protocol.ReadInt32(r)
 		if err != nil {
-			return topicPart, err
+			return metadataresponsetopicpartition, err
 		}
-		topicPart.LeaderEpoch = leaderEpoch
+		metadataresponsetopicpartition.LeaderEpoch = leaderepoch
 	}
 
-	// Replica Nodes
+	// ReplicaNodes (versions: 0+)
 	if isRequestFlexible(res.ApiVersion) {
-		replicaNodes, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		replicanodes, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
 		if err != nil {
-			return topicPart, err
+			return metadataresponsetopicpartition, err
 		}
-		topicPart.ReplicaNodes = replicaNodes
+		metadataresponsetopicpartition.ReplicaNodes = replicanodes
 	} else {
-		replicaNodes, err := protocol.ReadArray(r, protocol.ReadInt32)
+		replicanodes, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {
-			return topicPart, err
+			return metadataresponsetopicpartition, err
 		}
-		topicPart.ReplicaNodes = &replicaNodes
+		metadataresponsetopicpartition.ReplicaNodes = &replicanodes
 	}
 
-	// ISR Nodes
+	// IsrNodes (versions: 0+)
 	if isRequestFlexible(res.ApiVersion) {
-		isrNodes, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		isrnodes, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
 		if err != nil {
-			return topicPart, err
+			return metadataresponsetopicpartition, err
 		}
-		topicPart.IsrNodes = isrNodes
+		metadataresponsetopicpartition.IsrNodes = isrnodes
 	} else {
-		isrNodes, err := protocol.ReadArray(r, protocol.ReadInt32)
+		isrnodes, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {
-			return topicPart, err
+			return metadataresponsetopicpartition, err
 		}
-		topicPart.IsrNodes = &isrNodes
+		metadataresponsetopicpartition.IsrNodes = &isrnodes
 	}
 
-	// OfflineReplicas
+	// OfflineReplicas (versions: 5+)
 	if res.ApiVersion >= 5 {
 		if isRequestFlexible(res.ApiVersion) {
-			offlineReplicas, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+			offlinereplicas, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
 			if err != nil {
-				return topicPart, err
+				return metadataresponsetopicpartition, err
 			}
-			topicPart.OfflineReplicas = offlineReplicas
+			metadataresponsetopicpartition.OfflineReplicas = offlinereplicas
 		} else {
-			offlineReplicas, err := protocol.ReadArray(r, protocol.ReadInt32)
+			offlinereplicas, err := protocol.ReadArray(r, protocol.ReadInt32)
 			if err != nil {
-				return topicPart, err
+				return metadataresponsetopicpartition, err
 			}
-			topicPart.OfflineReplicas = &offlineReplicas
+			metadataresponsetopicpartition.OfflineReplicas = &offlinereplicas
 		}
 	}
 
 	// Tagged fields
-	if isResponseFlexible(res.ApiVersion) {
-		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
+	if isRequestFlexible(res.ApiVersion) {
+		var rawTaggedFields []protocol.TaggedField
+		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
 		if err != nil {
-			return topicPart, err
+			return metadataresponsetopicpartition, err
 		}
-		topicPart.rawTaggedFields = rawTaggedFields
+		metadataresponsetopicpartition.rawTaggedFields = &rawTaggedFields
 	}
 
-	return topicPart, nil
+	return metadataresponsetopicpartition, nil
 }
 
 //goland:noinspection GoUnhandledErrorResult
 func (res *MetadataResponse) PrettyPrint() string {
 	w := bytes.NewBuffer([]byte{})
 
-	fmt.Fprintf(w, "<- MetadataResponse:\n")
-	fmt.Fprintf(w, "        ThrottleTimeMs: %d\n", res.ThrottleTimeMs)
+	fmt.Fprintf(w, "    <- MetadataResponse:\n")
+	fmt.Fprintf(w, "        ThrottleTimeMs: %v\n", res.ThrottleTimeMs)
 	if res.Brokers != nil {
 		fmt.Fprintf(w, "        Brokers:\n")
-		for _, broker := range *res.Brokers {
-			fmt.Fprintf(w, "                Id: %d\n", broker.NodeId)
-			fmt.Fprintf(w, "                Host: %s\n", broker.Host)
-			fmt.Fprintf(w, "                Port: %d\n", broker.Port)
-			fmt.Fprintf(w, "                Rack: %s\n", *broker.Rack)
-			fmt.Fprintf(w, "                ----------\n")
+		for _, brokers := range *res.Brokers {
+			fmt.Fprintf(w, "%s", brokers.PrettyPrint())
+			fmt.Fprintf(w, "            ----------------\n")
 		}
 	} else {
 		fmt.Fprintf(w, "        Brokers: nil\n")
 	}
-	fmt.Fprintf(w, "        ClusterId: %s\n", *res.ClusterId)
-	fmt.Fprintf(w, "        ControllerId: %d\n", res.ControllerId)
+	if res.ClusterId != nil {
+		fmt.Fprintf(w, "        ClusterId: %v\n", *res.ClusterId)
+	} else {
+		fmt.Fprintf(w, "        ClusterId: nil\n")
+	}
+	fmt.Fprintf(w, "        ControllerId: %v\n", res.ControllerId)
 	if res.Topics != nil {
 		fmt.Fprintf(w, "        Topics:\n")
-		for _, topic := range *res.Topics {
-			fmt.Fprintf(w, "                ErrorCode: %d\n", topic.ErrorCode)
-			fmt.Fprintf(w, "                Name: %s\n", *topic.Name)
-			fmt.Fprintf(w, "                Id: %s\n", topic.Id.String())
-			fmt.Fprintf(w, "                IsInternal: %t\n", topic.IsInternal)
-			if topic.Partitions != nil {
-				fmt.Fprintf(w, "                Partitions:\n")
-				for _, partition := range *topic.Partitions {
-					fmt.Fprintf(w, "                        ErrorCode: %d\n", partition.ErrorCode)
-					fmt.Fprintf(w, "                        Index: %d\n", partition.PartitionIndex)
-					fmt.Fprintf(w, "                        LeaderId: %d\n", partition.LeaderId)
-					fmt.Fprintf(w, "                        LeaderEpoch: %d\n", partition.LeaderEpoch)
-					fmt.Fprintf(w, "                        ReplicaNodes: %v\n", *partition.ReplicaNodes)
-					fmt.Fprintf(w, "                        IsrNodes: %v\n", *partition.IsrNodes)
-					fmt.Fprintf(w, "                        OfflineReplicas: %v\n", *partition.OfflineReplicas)
-					fmt.Fprintf(w, "                        ----------\n")
-				}
-			} else {
-				fmt.Fprintf(w, "                Partitions: nil\n")
-			}
-			fmt.Fprintf(w, "                TopicAuthorizedOperations: %d\n", topic.TopicAuthorizedOperations)
-			fmt.Fprintf(w, "                ----------\n")
+		for _, topics := range *res.Topics {
+			fmt.Fprintf(w, "%s", topics.PrettyPrint())
+			fmt.Fprintf(w, "            ----------------\n")
 		}
 	} else {
 		fmt.Fprintf(w, "        Topics: nil\n")
 	}
-	fmt.Fprintf(w, "        TopicAuthorizedOperations: %d\n", res.ClusterAuthorizedOperations)
-	fmt.Fprintf(w, "        ErrorCode: %d\n", res.ErrorCode)
+	fmt.Fprintf(w, "        ClusterAuthorizedOperations: %v\n", res.ClusterAuthorizedOperations)
+	fmt.Fprintf(w, "        ErrorCode: %v\n", res.ErrorCode)
+
+	return w.String()
+}
+
+//goland:noinspection GoUnhandledErrorResult
+func (value *MetadataResponseBroker) PrettyPrint() string {
+	w := bytes.NewBuffer([]byte{})
+
+	fmt.Fprintf(w, "            NodeId: %v\n", value.NodeId)
+	if value.Host != nil {
+		fmt.Fprintf(w, "            Host: %v\n", *value.Host)
+	} else {
+		fmt.Fprintf(w, "            Host: nil\n")
+	}
+	fmt.Fprintf(w, "            Port: %v\n", value.Port)
+	if value.Rack != nil {
+		fmt.Fprintf(w, "            Rack: %v\n", *value.Rack)
+	} else {
+		fmt.Fprintf(w, "            Rack: nil\n")
+	}
+
+	return w.String()
+}
+
+//goland:noinspection GoUnhandledErrorResult
+func (value *MetadataResponseTopic) PrettyPrint() string {
+	w := bytes.NewBuffer([]byte{})
+
+	fmt.Fprintf(w, "            ErrorCode: %v\n", value.ErrorCode)
+	if value.Name != nil {
+		fmt.Fprintf(w, "            Name: %v\n", *value.Name)
+	} else {
+		fmt.Fprintf(w, "            Name: nil\n")
+	}
+	fmt.Fprintf(w, "            TopicId: %v\n", value.TopicId)
+	fmt.Fprintf(w, "            IsInternal: %v\n", value.IsInternal)
+	if value.Partitions != nil {
+		fmt.Fprintf(w, "            Partitions:\n")
+		for _, partitions := range *value.Partitions {
+			fmt.Fprintf(w, "%s", partitions.PrettyPrint())
+			fmt.Fprintf(w, "                ----------------\n")
+		}
+	} else {
+		fmt.Fprintf(w, "            Partitions: nil\n")
+	}
+	fmt.Fprintf(w, "            TopicAuthorizedOperations: %v\n", value.TopicAuthorizedOperations)
+
+	return w.String()
+}
+
+//goland:noinspection GoUnhandledErrorResult
+func (value *MetadataResponseTopicPartition) PrettyPrint() string {
+	w := bytes.NewBuffer([]byte{})
+
+	fmt.Fprintf(w, "                ErrorCode: %v\n", value.ErrorCode)
+	fmt.Fprintf(w, "                PartitionIndex: %v\n", value.PartitionIndex)
+	fmt.Fprintf(w, "                LeaderId: %v\n", value.LeaderId)
+	fmt.Fprintf(w, "                LeaderEpoch: %v\n", value.LeaderEpoch)
+	if value.ReplicaNodes != nil {
+		fmt.Fprintf(w, "                ReplicaNodes: %v\n", *value.ReplicaNodes)
+	} else {
+		fmt.Fprintf(w, "                ReplicaNodes: nil\n")
+	}
+	if value.IsrNodes != nil {
+		fmt.Fprintf(w, "                IsrNodes: %v\n", *value.IsrNodes)
+	} else {
+		fmt.Fprintf(w, "                IsrNodes: nil\n")
+	}
+	if value.OfflineReplicas != nil {
+		fmt.Fprintf(w, "                OfflineReplicas: %v\n", *value.OfflineReplicas)
+	} else {
+		fmt.Fprintf(w, "                OfflineReplicas: nil\n")
+	}
 
 	return w.String()
 }
