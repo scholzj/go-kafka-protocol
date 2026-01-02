@@ -3,8 +3,9 @@ package findcoordinator
 import (
 	"bytes"
 	"fmt"
-	"github.com/scholzj/go-kafka-protocol/protocol"
 	"io"
+
+	"github.com/scholzj/go-kafka-protocol/protocol"
 )
 
 type FindCoordinatorRequest struct {
@@ -43,7 +44,7 @@ func (req *FindCoordinatorRequest) Write(w io.Writer) error {
 	// CoordinatorKeys (versions: 4+)
 	if req.ApiVersion >= 4 {
 		if isRequestFlexible(req.ApiVersion) {
-			if err := protocol.WriteNullableCompactArray(w, protocol.WriteString, req.CoordinatorKeys); err != nil {
+			if err := protocol.WriteNullableCompactArray(w, protocol.WriteCompactString, req.CoordinatorKeys); err != nil {
 				return err
 			}
 		} else {
@@ -103,7 +104,7 @@ func (req *FindCoordinatorRequest) Read(request protocol.Request) error {
 	// CoordinatorKeys (versions: 4+)
 	if request.ApiVersion >= 4 {
 		if isRequestFlexible(req.ApiVersion) {
-			coordinatorkeys, err := protocol.ReadNullableCompactArray(r, protocol.ReadString)
+			coordinatorkeys, err := protocol.ReadNullableCompactArray(r, protocol.ReadCompactString)
 			if err != nil {
 				return err
 			}

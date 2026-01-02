@@ -3,10 +3,9 @@ package metadata
 import (
 	"bytes"
 	"fmt"
-	"io"
-
 	"github.com/google/uuid"
 	"github.com/scholzj/go-kafka-protocol/protocol"
+	"io"
 )
 
 type MetadataResponse struct {
