@@ -77,7 +77,10 @@ func ReadRawTaggedField(r io.Reader) (TaggedField, error) {
 	}
 
 	rawTaggedField := make([]byte, tagLength)
-	_, err = r.Read(rawTaggedField)
+	_, err = io.ReadFull(r, rawTaggedField)
+	if err != nil {
+		return taggedField, err
+	}
 	taggedField.Field = rawTaggedField
 
 	return taggedField, nil

@@ -89,11 +89,11 @@ func (req *MetadataRequest) Read(request protocol.Request) error {
 		}
 		req.Topics = topics
 	} else {
-		topics, err := protocol.ReadArray(r, req.topicsDecoder)
+		topics, err := protocol.ReadNullableArray(r, req.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Topics = &topics
+		req.Topics = topics
 	}
 
 	// AllowAutoTopicCreation (versions: 4+)
