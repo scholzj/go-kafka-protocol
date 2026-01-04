@@ -197,17 +197,14 @@ func (res *DescribeClusterResponse) Read(response protocol.Response) error {
 	}
 	res.ClusterAuthorizedOperations = clusterauthorizedoperations
 
+	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		// Decode tagged fields
 		var rawTaggedFields []protocol.TaggedField
 		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return err
 		}
 		res.rawTaggedFields = &rawTaggedFields
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil
@@ -279,7 +276,7 @@ func (res *DescribeClusterResponse) brokersDecoder(r io.Reader) (DescribeCluster
 	describeclusterresponsebroker.BrokerId = brokerid
 
 	// Host (versions: 0+)
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		host, err := protocol.ReadCompactString(r)
 		if err != nil {
 			return describeclusterresponsebroker, err
@@ -301,7 +298,7 @@ func (res *DescribeClusterResponse) brokersDecoder(r io.Reader) (DescribeCluster
 	describeclusterresponsebroker.Port = port
 
 	// Rack (versions: 0+)
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		rack, err := protocol.ReadNullableCompactString(r)
 		if err != nil {
 			return describeclusterresponsebroker, err
@@ -325,7 +322,7 @@ func (res *DescribeClusterResponse) brokersDecoder(r io.Reader) (DescribeCluster
 	}
 
 	// Tagged fields
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		var rawTaggedFields []protocol.TaggedField
 		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
 		if err != nil {

@@ -209,17 +209,14 @@ func (res *FindCoordinatorResponse) Read(response protocol.Response) error {
 		}
 	}
 
+	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		// Decode tagged fields
 		var rawTaggedFields []protocol.TaggedField
 		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return err
 		}
 		res.rawTaggedFields = &rawTaggedFields
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil
@@ -306,7 +303,7 @@ func (res *FindCoordinatorResponse) coordinatorsDecoder(r io.Reader) (FindCoordi
 
 	// Key (versions: 4+)
 	if res.ApiVersion >= 4 {
-		if isRequestFlexible(res.ApiVersion) {
+		if isResponseFlexible(res.ApiVersion) {
 			key, err := protocol.ReadCompactString(r)
 			if err != nil {
 				return findcoordinatorresponsecoordinator, err
@@ -332,7 +329,7 @@ func (res *FindCoordinatorResponse) coordinatorsDecoder(r io.Reader) (FindCoordi
 
 	// Host (versions: 4+)
 	if res.ApiVersion >= 4 {
-		if isRequestFlexible(res.ApiVersion) {
+		if isResponseFlexible(res.ApiVersion) {
 			host, err := protocol.ReadCompactString(r)
 			if err != nil {
 				return findcoordinatorresponsecoordinator, err
@@ -367,7 +364,7 @@ func (res *FindCoordinatorResponse) coordinatorsDecoder(r io.Reader) (FindCoordi
 
 	// ErrorMessage (versions: 4+)
 	if res.ApiVersion >= 4 {
-		if isRequestFlexible(res.ApiVersion) {
+		if isResponseFlexible(res.ApiVersion) {
 			errormessage, err := protocol.ReadNullableCompactString(r)
 			if err != nil {
 				return findcoordinatorresponsecoordinator, err
@@ -383,7 +380,7 @@ func (res *FindCoordinatorResponse) coordinatorsDecoder(r io.Reader) (FindCoordi
 	}
 
 	// Tagged fields
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		var rawTaggedFields []protocol.TaggedField
 		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
 		if err != nil {
