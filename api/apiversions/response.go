@@ -121,8 +121,8 @@ func (res *ApiVersionsResponse) Read(response protocol.Response) error {
 		res.ThrottleTimeMs = throttletimems
 	}
 
+	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		// Decode tagged fields
 		err = protocol.ReadTaggedFields(r, res.taggedFieldsDecoder)
 		if err != nil {
 			return err
@@ -188,7 +188,7 @@ func (res *ApiVersionsResponse) apiKeysDecoder(r io.Reader) (ApiVersionsResponse
 	apiversionsresponseapikey.MaxVersion = maxversion
 
 	// Tagged fields
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		var rawTaggedFields []protocol.TaggedField
 		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
 		if err != nil {
@@ -248,7 +248,7 @@ func (res *ApiVersionsResponse) supportedFeaturesDecoder(r io.Reader) (ApiVersio
 
 	// Name (versions: 3+)
 	if res.ApiVersion >= 3 {
-		if isRequestFlexible(res.ApiVersion) {
+		if isResponseFlexible(res.ApiVersion) {
 			name, err := protocol.ReadCompactString(r)
 			if err != nil {
 				return apiversionsresponsesupportedfeature, err
@@ -282,7 +282,7 @@ func (res *ApiVersionsResponse) supportedFeaturesDecoder(r io.Reader) (ApiVersio
 	}
 
 	// Tagged fields
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		var rawTaggedFields []protocol.TaggedField
 		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
 		if err != nil {
@@ -342,7 +342,7 @@ func (res *ApiVersionsResponse) finalizedFeaturesDecoder(r io.Reader) (ApiVersio
 
 	// Name (versions: 3+)
 	if res.ApiVersion >= 3 {
-		if isRequestFlexible(res.ApiVersion) {
+		if isResponseFlexible(res.ApiVersion) {
 			name, err := protocol.ReadCompactString(r)
 			if err != nil {
 				return apiversionsresponsefinalizedfeature, err
@@ -376,7 +376,7 @@ func (res *ApiVersionsResponse) finalizedFeaturesDecoder(r io.Reader) (ApiVersio
 	}
 
 	// Tagged fields
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		var rawTaggedFields []protocol.TaggedField
 		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
 		if err != nil {
@@ -398,12 +398,14 @@ func (res *ApiVersionsResponse) taggedFieldsEncoder() ([]protocol.TaggedField, e
 	buf := bytes.NewBuffer(make([]byte, 0))
 
 	// Tag 0
-	buf = bytes.NewBuffer(make([]byte, 0))
-	if err := protocol.WriteNullableCompactArray(buf, res.supportedFeaturesEncoder, res.SupportedFeatures); err != nil {
-		return taggedFields, err
-	}
+	if res.SupportedFeatures != nil {
+		buf = bytes.NewBuffer(make([]byte, 0))
+		if err := protocol.WriteNullableCompactArray(buf, res.supportedFeaturesEncoder, res.SupportedFeatures); err != nil {
+			return taggedFields, err
+		}
 
-	taggedFields = append(taggedFields, protocol.TaggedField{Tag: 0, Field: buf.Bytes()})
+		taggedFields = append(taggedFields, protocol.TaggedField{Tag: 0, Field: buf.Bytes()})
+	}
 
 	// Tag 1
 	buf = bytes.NewBuffer(make([]byte, 0))
@@ -414,12 +416,14 @@ func (res *ApiVersionsResponse) taggedFieldsEncoder() ([]protocol.TaggedField, e
 	taggedFields = append(taggedFields, protocol.TaggedField{Tag: 1, Field: buf.Bytes()})
 
 	// Tag 2
-	buf = bytes.NewBuffer(make([]byte, 0))
-	if err := protocol.WriteNullableCompactArray(buf, res.finalizedFeaturesEncoder, res.FinalizedFeatures); err != nil {
-		return taggedFields, err
-	}
+	if res.FinalizedFeatures != nil {
+		buf = bytes.NewBuffer(make([]byte, 0))
+		if err := protocol.WriteNullableCompactArray(buf, res.finalizedFeaturesEncoder, res.FinalizedFeatures); err != nil {
+			return taggedFields, err
+		}
 
-	taggedFields = append(taggedFields, protocol.TaggedField{Tag: 2, Field: buf.Bytes()})
+		taggedFields = append(taggedFields, protocol.TaggedField{Tag: 2, Field: buf.Bytes()})
+	}
 
 	// Tag 3
 	buf = bytes.NewBuffer(make([]byte, 0))

@@ -3,9 +3,8 @@ package findcoordinator
 import (
 	"bytes"
 	"fmt"
-	"io"
-
 	"github.com/scholzj/go-kafka-protocol/protocol"
+	"io"
 )
 
 type FindCoordinatorRequest struct {

@@ -221,17 +221,14 @@ func (res *MetadataResponse) Read(response protocol.Response) error {
 		res.ErrorCode = errorcode
 	}
 
+	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		// Decode tagged fields
 		var rawTaggedFields []protocol.TaggedField
 		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return err
 		}
 		res.rawTaggedFields = &rawTaggedFields
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil
@@ -298,7 +295,7 @@ func (res *MetadataResponse) brokersDecoder(r io.Reader) (MetadataResponseBroker
 	metadataresponsebroker.NodeId = nodeid
 
 	// Host (versions: 0+)
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		host, err := protocol.ReadCompactString(r)
 		if err != nil {
 			return metadataresponsebroker, err
@@ -321,7 +318,7 @@ func (res *MetadataResponse) brokersDecoder(r io.Reader) (MetadataResponseBroker
 
 	// Rack (versions: 1+)
 	if res.ApiVersion >= 1 {
-		if isRequestFlexible(res.ApiVersion) {
+		if isResponseFlexible(res.ApiVersion) {
 			rack, err := protocol.ReadNullableCompactString(r)
 			if err != nil {
 				return metadataresponsebroker, err
@@ -337,7 +334,7 @@ func (res *MetadataResponse) brokersDecoder(r io.Reader) (MetadataResponseBroker
 	}
 
 	// Tagged fields
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		var rawTaggedFields []protocol.TaggedField
 		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
 		if err != nil {
@@ -424,7 +421,7 @@ func (res *MetadataResponse) topicsDecoder(r io.Reader) (MetadataResponseTopic, 
 	metadataresponsetopic.ErrorCode = errorcode
 
 	// Name (versions: 0+)
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		name, err := protocol.ReadNullableCompactString(r)
 		if err != nil {
 			return metadataresponsetopic, err
@@ -457,7 +454,7 @@ func (res *MetadataResponse) topicsDecoder(r io.Reader) (MetadataResponseTopic, 
 	}
 
 	// Partitions (versions: 0+)
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
 		if err != nil {
 			return metadataresponsetopic, err
@@ -481,7 +478,7 @@ func (res *MetadataResponse) topicsDecoder(r io.Reader) (MetadataResponseTopic, 
 	}
 
 	// Tagged fields
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		var rawTaggedFields []protocol.TaggedField
 		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
 		if err != nil {
@@ -600,7 +597,7 @@ func (res *MetadataResponse) partitionsDecoder(r io.Reader) (MetadataResponseTop
 	}
 
 	// ReplicaNodes (versions: 0+)
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		replicanodes, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return metadataresponsetopicpartition, err
@@ -615,7 +612,7 @@ func (res *MetadataResponse) partitionsDecoder(r io.Reader) (MetadataResponseTop
 	}
 
 	// IsrNodes (versions: 0+)
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		isrnodes, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return metadataresponsetopicpartition, err
@@ -631,7 +628,7 @@ func (res *MetadataResponse) partitionsDecoder(r io.Reader) (MetadataResponseTop
 
 	// OfflineReplicas (versions: 5+)
 	if res.ApiVersion >= 5 {
-		if isRequestFlexible(res.ApiVersion) {
+		if isResponseFlexible(res.ApiVersion) {
 			offlinereplicas, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
 			if err != nil {
 				return metadataresponsetopicpartition, err
@@ -647,7 +644,7 @@ func (res *MetadataResponse) partitionsDecoder(r io.Reader) (MetadataResponseTop
 	}
 
 	// Tagged fields
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		var rawTaggedFields []protocol.TaggedField
 		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
 		if err != nil {
