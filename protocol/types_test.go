@@ -729,4 +729,3 @@ func byteSlicePtr(b []byte) *[]byte {
 func int32SlicePtr(i []int32) *[]int32 {
 	return &i
 }
-

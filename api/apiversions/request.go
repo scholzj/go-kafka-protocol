@@ -3,8 +3,9 @@ package apiversions
 import (
 	"bytes"
 	"fmt"
-	"github.com/scholzj/go-kafka-protocol/protocol"
 	"io"
+
+	"github.com/scholzj/go-kafka-protocol/protocol"
 )
 
 type ApiVersionsRequest struct {
