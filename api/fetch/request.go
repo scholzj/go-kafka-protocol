@@ -10,50 +10,50 @@ import (
 
 type FetchRequest struct {
 	ApiVersion          int16
-	ClusterId           *string                            // tag 0: The clusterId if known. This is used to validate metadata fetches prior to broker registration.
-	ReplicaId           int32                              // The broker ID of the follower, of -1 if this request is from a consumer.
-	ReplicaState        *FetchRequestReplicaState          // tag 1: The state of the replica in the follower.
-	MaxWaitMs           int32                              // The maximum time in milliseconds to wait for the response.
-	MinBytes            int32                              // The minimum bytes to accumulate in the response.
-	MaxBytes            int32                              // The maximum bytes to fetch.  See KIP-74 for cases where this limit may not be honored.
-	IsolationLevel      int8                               // This setting controls the visibility of transactional records. Using READ_UNCOMMITTED (isolation_level = 0) makes all records visible. With READ_COMMITTED (isolation_level = 1), non-transactional and COMMITTED transactional records are visible. To be more concrete, READ_COMMITTED returns all data from offsets smaller than the current LSO (last stable offset), and enables the inclusion of the list of aborted transactions in the result, which allows consumers to discard ABORTED transactional records.
-	SessionId           int32                              // The fetch session ID.
-	SessionEpoch        int32                              // The fetch session epoch, which is used for ordering requests in a session.
-	Topics              *[]FetchRequestTopic               // The topics to fetch.
-	ForgottenTopicsData *[]FetchRequestForgottenTopicsData // In an incremental fetch request, the partitions to remove.
-	RackId              *string                            // Rack ID of the consumer making this request.
+	ClusterId           *string                            // tag 0: The clusterId if known. This is used to validate metadata fetches prior to broker registration. (versions: 12+, nullable: 12+)
+	ReplicaId           int32                              // The broker ID of the follower, of -1 if this request is from a consumer. (versions: 0-14)
+	ReplicaState        *FetchRequestReplicaState          // tag 1: The state of the replica in the follower. (versions: 15+)
+	MaxWaitMs           int32                              // The maximum time in milliseconds to wait for the response. (versions: 0+)
+	MinBytes            int32                              // The minimum bytes to accumulate in the response. (versions: 0+)
+	MaxBytes            int32                              // The maximum bytes to fetch.  See KIP-74 for cases where this limit may not be honored. (versions: 3+)
+	IsolationLevel      int8                               // This setting controls the visibility of transactional records. Using READ_UNCOMMITTED (isolation_level = 0) makes all records visible. With READ_COMMITTED (isolation_level = 1), non-transactional and COMMITTED transactional records are visible. To be more concrete, READ_COMMITTED returns all data from offsets smaller than the current LSO (last stable offset), and enables the inclusion of the list of aborted transactions in the result, which allows consumers to discard ABORTED transactional records. (versions: 4+)
+	SessionId           int32                              // The fetch session ID. (versions: 7+)
+	SessionEpoch        int32                              // The fetch session epoch, which is used for ordering requests in a session. (versions: 7+)
+	Topics              *[]FetchRequestTopic               // The topics to fetch. (versions: 0+)
+	ForgottenTopicsData *[]FetchRequestForgottenTopicsData // In an incremental fetch request, the partitions to remove. (versions: 7+)
+	RackId              *string                            // Rack ID of the consumer making this request. (versions: 11+)
 	rawTaggedFields     *[]protocol.TaggedField
 }
 
 type FetchRequestReplicaState struct {
-	ReplicaId       int32 // The replica ID of the follower, or -1 if this request is from a consumer.
-	ReplicaEpoch    int64 // The epoch of this follower, or -1 if not available.
+	ReplicaId       int32 // The replica ID of the follower, or -1 if this request is from a consumer. (versions: 15+)
+	ReplicaEpoch    int64 // The epoch of this follower, or -1 if not available. (versions: 15+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
 type FetchRequestTopic struct {
-	Topic           *string                       // The name of the topic to fetch.
-	TopicId         uuid.UUID                     // The unique topic ID.
-	Partitions      *[]FetchRequestTopicPartition // The partitions to fetch.
+	Topic           *string                       // The name of the topic to fetch. (versions: 0-12)
+	TopicId         uuid.UUID                     // The unique topic ID. (versions: 13+)
+	Partitions      *[]FetchRequestTopicPartition // The partitions to fetch. (versions: 0+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
 type FetchRequestTopicPartition struct {
-	Partition          int32     // The partition index.
-	CurrentLeaderEpoch int32     // The current leader epoch of the partition.
-	FetchOffset        int64     // The message offset.
-	LastFetchedEpoch   int32     // The epoch of the last fetched record or -1 if there is none.
-	LogStartOffset     int64     // The earliest available offset of the follower replica.  The field is only used when the request is sent by the follower.
-	PartitionMaxBytes  int32     // The maximum bytes to fetch from this partition.  See KIP-74 for cases where this limit may not be honored.
-	ReplicaDirectoryId uuid.UUID // tag 0: The directory id of the follower fetching.
-	HighWatermark      int64     // tag 1: The high-watermark known by the replica. -1 if the high-watermark is not known and 9223372036854775807 if the feature is not supported.
+	Partition          int32     // The partition index. (versions: 0+)
+	CurrentLeaderEpoch int32     // The current leader epoch of the partition. (versions: 9+)
+	FetchOffset        int64     // The message offset. (versions: 0+)
+	LastFetchedEpoch   int32     // The epoch of the last fetched record or -1 if there is none. (versions: 12+)
+	LogStartOffset     int64     // The earliest available offset of the follower replica.  The field is only used when the request is sent by the follower. (versions: 5+)
+	PartitionMaxBytes  int32     // The maximum bytes to fetch from this partition.  See KIP-74 for cases where this limit may not be honored. (versions: 0+)
+	ReplicaDirectoryId uuid.UUID // tag 0: The directory id of the follower fetching. (versions: 17+)
+	HighWatermark      int64     // tag 1: The high-watermark known by the replica. -1 if the high-watermark is not known and 9223372036854775807 if the feature is not supported. (versions: 18+)
 	rawTaggedFields    *[]protocol.TaggedField
 }
 
 type FetchRequestForgottenTopicsData struct {
-	Topic           *string   // The topic name.
-	TopicId         uuid.UUID // The unique topic ID.
-	Partitions      *[]int32  // The partitions indexes to forget.
+	Topic           *string   // The topic name. (versions: 7-12)
+	TopicId         uuid.UUID // The unique topic ID. (versions: 13+)
+	Partitions      *[]int32  // The partitions indexes to forget. (versions: 7+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
@@ -108,6 +108,9 @@ func (req *FetchRequest) Write(w io.Writer) error {
 	}
 
 	// Topics (versions: 0+)
+	if req.Topics == nil {
+		return fmt.Errorf("FetchRequest.Topics must not be nil in version %d", req.ApiVersion)
+	}
 	if isRequestFlexible(req.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, req.topicsEncoder, req.Topics); err != nil {
 			return err
@@ -120,6 +123,9 @@ func (req *FetchRequest) Write(w io.Writer) error {
 
 	// ForgottenTopicsData (versions: 7+)
 	if req.ApiVersion >= 7 {
+		if req.ForgottenTopicsData == nil {
+			return fmt.Errorf("FetchRequest.ForgottenTopicsData must not be nil in version %d", req.ApiVersion)
+		}
 		if isRequestFlexible(req.ApiVersion) {
 			if err := protocol.WriteNullableCompactArray(w, req.forgottenTopicsDataEncoder, req.ForgottenTopicsData); err != nil {
 				return err
@@ -133,6 +139,9 @@ func (req *FetchRequest) Write(w io.Writer) error {
 
 	// RackId (versions: 11+)
 	if req.ApiVersion >= 11 {
+		if req.RackId == nil {
+			return fmt.Errorf("FetchRequest.RackId must not be nil in version %d", req.ApiVersion)
+		}
 		if isRequestFlexible(req.ApiVersion) {
 			if err := protocol.WriteCompactString(w, *req.RackId); err != nil {
 				return err
@@ -146,11 +155,12 @@ func (req *FetchRequest) Write(w io.Writer) error {
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		rawTaggedFields := []protocol.TaggedField{}
-		if req.rawTaggedFields != nil {
-			rawTaggedFields = *req.rawTaggedFields
+		taggedFields, err := req.taggedFieldsEncoder()
+		if err != nil {
+			return err
 		}
-		if err := protocol.WriteRawTaggedFields(w, rawTaggedFields); err != nil {
+
+		if err := protocol.WriteRawTaggedFields(w, taggedFields); err != nil {
 			return err
 		}
 	}
@@ -159,14 +169,16 @@ func (req *FetchRequest) Write(w io.Writer) error {
 }
 
 // TODO: pass version and bytes only
-func (req *FetchRequest) Read(request protocol.Request) error {
+func (req *FetchRequest) Read(request *protocol.Request) error {
+	if request == nil || request.Body == nil {
+		return fmt.Errorf("FetchRequest.Read: request or its body is nil")
+	}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
-	var err error
-
 	// ReplicaId (versions: 0-14)
-	if request.ApiVersion <= 14 {
+	if req.ApiVersion <= 14 {
 		replicaid, err := protocol.ReadInt32(r)
 		if err != nil {
 			return err
@@ -189,7 +201,7 @@ func (req *FetchRequest) Read(request protocol.Request) error {
 	req.MinBytes = minbytes
 
 	// MaxBytes (versions: 3+)
-	if request.ApiVersion >= 3 {
+	if req.ApiVersion >= 3 {
 		maxbytes, err := protocol.ReadInt32(r)
 		if err != nil {
 			return err
@@ -198,7 +210,7 @@ func (req *FetchRequest) Read(request protocol.Request) error {
 	}
 
 	// IsolationLevel (versions: 4+)
-	if request.ApiVersion >= 4 {
+	if req.ApiVersion >= 4 {
 		isolationlevel, err := protocol.ReadInt8(r)
 		if err != nil {
 			return err
@@ -207,7 +219,7 @@ func (req *FetchRequest) Read(request protocol.Request) error {
 	}
 
 	// SessionId (versions: 7+)
-	if request.ApiVersion >= 7 {
+	if req.ApiVersion >= 7 {
 		sessionid, err := protocol.ReadInt32(r)
 		if err != nil {
 			return err
@@ -216,7 +228,7 @@ func (req *FetchRequest) Read(request protocol.Request) error {
 	}
 
 	// SessionEpoch (versions: 7+)
-	if request.ApiVersion >= 7 {
+	if req.ApiVersion >= 7 {
 		sessionepoch, err := protocol.ReadInt32(r)
 		if err != nil {
 			return err
@@ -240,7 +252,7 @@ func (req *FetchRequest) Read(request protocol.Request) error {
 	}
 
 	// ForgottenTopicsData (versions: 7+)
-	if request.ApiVersion >= 7 {
+	if req.ApiVersion >= 7 {
 		if isRequestFlexible(req.ApiVersion) {
 			forgottentopicsdata, err := protocol.ReadNullableCompactArray(r, req.forgottenTopicsDataDecoder)
 			if err != nil {
@@ -257,7 +269,7 @@ func (req *FetchRequest) Read(request protocol.Request) error {
 	}
 
 	// RackId (versions: 11+)
-	if request.ApiVersion >= 11 {
+	if req.ApiVersion >= 11 {
 		if isRequestFlexible(req.ApiVersion) {
 			rackid, err := protocol.ReadCompactString(r)
 			if err != nil {
@@ -275,8 +287,7 @@ func (req *FetchRequest) Read(request protocol.Request) error {
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		err = protocol.ReadTaggedFields(r, req.taggedFieldsDecoder)
-		if err != nil {
+		if err := protocol.ReadTaggedFields(r, req.taggedFieldsDecoder); err != nil {
 			return err
 		}
 	}
@@ -315,7 +326,6 @@ func (req *FetchRequest) replicaStateEncoder(w io.Writer, value FetchRequestRepl
 
 func (req *FetchRequest) replicaStateDecoder(r io.Reader) (FetchRequestReplicaState, error) {
 	fetchrequestreplicastate := FetchRequestReplicaState{}
-	var err error
 
 	// ReplicaId (versions: 15+)
 	if req.ApiVersion >= 15 {
@@ -337,8 +347,7 @@ func (req *FetchRequest) replicaStateDecoder(r io.Reader) (FetchRequestReplicaSt
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return fetchrequestreplicastate, err
 		}
@@ -351,6 +360,9 @@ func (req *FetchRequest) replicaStateDecoder(r io.Reader) (FetchRequestReplicaSt
 func (req *FetchRequest) topicsEncoder(w io.Writer, value FetchRequestTopic) error {
 	// Topic (versions: 0-12)
 	if req.ApiVersion <= 12 {
+		if value.Topic == nil {
+			return fmt.Errorf("FetchRequestTopic.Topic must not be nil in version %d", req.ApiVersion)
+		}
 		if isRequestFlexible(req.ApiVersion) {
 			if err := protocol.WriteCompactString(w, *value.Topic); err != nil {
 				return err
@@ -370,6 +382,9 @@ func (req *FetchRequest) topicsEncoder(w io.Writer, value FetchRequestTopic) err
 	}
 
 	// Partitions (versions: 0+)
+	if value.Partitions == nil {
+		return fmt.Errorf("FetchRequestTopic.Partitions must not be nil in version %d", req.ApiVersion)
+	}
 	if isRequestFlexible(req.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, req.partitionsEncoder, value.Partitions); err != nil {
 			return err
@@ -396,7 +411,6 @@ func (req *FetchRequest) topicsEncoder(w io.Writer, value FetchRequestTopic) err
 
 func (req *FetchRequest) topicsDecoder(r io.Reader) (FetchRequestTopic, error) {
 	fetchrequesttopic := FetchRequestTopic{}
-	var err error
 
 	// Topic (versions: 0-12)
 	if req.ApiVersion <= 12 {
@@ -441,8 +455,7 @@ func (req *FetchRequest) topicsDecoder(r io.Reader) (FetchRequestTopic, error) {
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return fetchrequesttopic, err
 		}
@@ -524,7 +537,6 @@ func (req *FetchRequest) partitionsEncoder(w io.Writer, value FetchRequestTopicP
 
 func (req *FetchRequest) partitionsDecoder(r io.Reader) (FetchRequestTopicPartition, error) {
 	fetchrequesttopicpartition := FetchRequestTopicPartition{}
-	var err error
 
 	// Partition (versions: 0+)
 	partition, err := protocol.ReadInt32(r)
@@ -598,11 +610,9 @@ func (req *FetchRequest) partitionsDecoder(r io.Reader) (FetchRequestTopicPartit
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		// Decode tagged fields
-		err = protocol.ReadTaggedFields(r, func(r io.Reader, tag uint64, tagLength uint64) error {
+		if err := protocol.ReadTaggedFields(r, func(r io.Reader, tag uint64, tagLength uint64) error {
 			return req.taggedFieldsDecoderPartitions(r, tag, tagLength, &fetchrequesttopicpartition)
-		})
-		if err != nil {
+		}); err != nil {
 			return fetchrequesttopicpartition, err
 		}
 	}
@@ -615,7 +625,7 @@ func (req *FetchRequest) taggedFieldsEncoderPartitions(value FetchRequestTopicPa
 	if value.rawTaggedFields != nil {
 		rawTaggedFieldsLen = len(*value.rawTaggedFields)
 	}
-	taggedFields := make([]protocol.TaggedField, 0, 3+rawTaggedFieldsLen)
+	taggedFields := make([]protocol.TaggedField, 0, 2+rawTaggedFieldsLen)
 
 	buf := bytes.NewBuffer(make([]byte, 0))
 
@@ -662,12 +672,12 @@ func (req *FetchRequest) taggedFieldsDecoderPartitions(r io.Reader, tag uint64, 
 		}
 		value.HighWatermark = highwatermark
 	default:
-		// Decode as raw tags
-		taggedField, err := protocol.ReadRawTaggedField(r)
+		// Unknown tag - keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
+		field, err := io.ReadAll(r)
 		if err != nil {
 			return err
 		}
-		rawTaggedFields = append(rawTaggedFields, taggedField)
+		rawTaggedFields = append(rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
 	}
 
 	// Set the raw tagged fields
@@ -679,6 +689,9 @@ func (req *FetchRequest) taggedFieldsDecoderPartitions(r io.Reader, tag uint64, 
 func (req *FetchRequest) forgottenTopicsDataEncoder(w io.Writer, value FetchRequestForgottenTopicsData) error {
 	// Topic (versions: 7-12)
 	if req.ApiVersion >= 7 && req.ApiVersion <= 12 {
+		if value.Topic == nil {
+			return fmt.Errorf("FetchRequestForgottenTopicsData.Topic must not be nil in version %d", req.ApiVersion)
+		}
 		if isRequestFlexible(req.ApiVersion) {
 			if err := protocol.WriteCompactString(w, *value.Topic); err != nil {
 				return err
@@ -699,6 +712,9 @@ func (req *FetchRequest) forgottenTopicsDataEncoder(w io.Writer, value FetchRequ
 
 	// Partitions (versions: 7+)
 	if req.ApiVersion >= 7 {
+		if value.Partitions == nil {
+			return fmt.Errorf("FetchRequestForgottenTopicsData.Partitions must not be nil in version %d", req.ApiVersion)
+		}
 		if isRequestFlexible(req.ApiVersion) {
 			if err := protocol.WriteNullableCompactArray(w, protocol.WriteInt32, value.Partitions); err != nil {
 				return err
@@ -726,7 +742,6 @@ func (req *FetchRequest) forgottenTopicsDataEncoder(w io.Writer, value FetchRequ
 
 func (req *FetchRequest) forgottenTopicsDataDecoder(r io.Reader) (FetchRequestForgottenTopicsData, error) {
 	fetchrequestforgottentopicsdata := FetchRequestForgottenTopicsData{}
-	var err error
 
 	// Topic (versions: 7-12)
 	if req.ApiVersion >= 7 && req.ApiVersion <= 12 {
@@ -773,8 +788,7 @@ func (req *FetchRequest) forgottenTopicsDataDecoder(r io.Reader) (FetchRequestFo
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return fetchrequestforgottentopicsdata, err
 		}
@@ -789,7 +803,7 @@ func (req *FetchRequest) taggedFieldsEncoder() ([]protocol.TaggedField, error) {
 	if req.rawTaggedFields != nil {
 		rawTaggedFieldsLen = len(*req.rawTaggedFields)
 	}
-	taggedFields := make([]protocol.TaggedField, 0, 3+rawTaggedFieldsLen)
+	taggedFields := make([]protocol.TaggedField, 0, 2+rawTaggedFieldsLen)
 
 	buf := bytes.NewBuffer(make([]byte, 0))
 
@@ -840,12 +854,12 @@ func (req *FetchRequest) taggedFieldsDecoder(r io.Reader, tag uint64, tagLength 
 		}
 		req.ReplicaState = &replicastateVal
 	default:
-		// Decode as raw tags
-		taggedField, err := protocol.ReadRawTaggedField(r)
+		// Unknown tag - keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
+		field, err := io.ReadAll(r)
 		if err != nil {
 			return err
 		}
-		rawTaggedFields = append(rawTaggedFields, taggedField)
+		rawTaggedFields = append(rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
 	}
 
 	// Set the raw tagged fields
@@ -859,24 +873,29 @@ func (req *FetchRequest) PrettyPrint() string {
 	w := bytes.NewBuffer([]byte{})
 
 	fmt.Fprintf(w, "    -> FetchRequest:\n")
+
 	if req.ClusterId != nil {
 		fmt.Fprintf(w, "        ClusterId: %v\n", *req.ClusterId)
 	} else {
 		fmt.Fprintf(w, "        ClusterId: nil\n")
 	}
+
 	fmt.Fprintf(w, "        ReplicaId: %v\n", req.ReplicaId)
+
 	fmt.Fprintf(w, "        ReplicaState:\n")
 	if req.ReplicaState != nil {
 		fmt.Fprintf(w, "%s", req.ReplicaState.PrettyPrint())
 	} else {
 		fmt.Fprintf(w, "            nil\n")
 	}
+
 	fmt.Fprintf(w, "        MaxWaitMs: %v\n", req.MaxWaitMs)
 	fmt.Fprintf(w, "        MinBytes: %v\n", req.MinBytes)
 	fmt.Fprintf(w, "        MaxBytes: %v\n", req.MaxBytes)
 	fmt.Fprintf(w, "        IsolationLevel: %v\n", req.IsolationLevel)
 	fmt.Fprintf(w, "        SessionId: %v\n", req.SessionId)
 	fmt.Fprintf(w, "        SessionEpoch: %v\n", req.SessionEpoch)
+
 	if req.Topics != nil {
 		fmt.Fprintf(w, "        Topics:\n")
 		for _, topics := range *req.Topics {
@@ -886,6 +905,7 @@ func (req *FetchRequest) PrettyPrint() string {
 	} else {
 		fmt.Fprintf(w, "        Topics: nil\n")
 	}
+
 	if req.ForgottenTopicsData != nil {
 		fmt.Fprintf(w, "        ForgottenTopicsData:\n")
 		for _, forgottentopicsdata := range *req.ForgottenTopicsData {
@@ -895,6 +915,7 @@ func (req *FetchRequest) PrettyPrint() string {
 	} else {
 		fmt.Fprintf(w, "        ForgottenTopicsData: nil\n")
 	}
+
 	if req.RackId != nil {
 		fmt.Fprintf(w, "        RackId: %v\n", *req.RackId)
 	} else {
@@ -923,7 +944,9 @@ func (value *FetchRequestTopic) PrettyPrint() string {
 	} else {
 		fmt.Fprintf(w, "            Topic: nil\n")
 	}
+
 	fmt.Fprintf(w, "            TopicId: %v\n", value.TopicId)
+
 	if value.Partitions != nil {
 		fmt.Fprintf(w, "            Partitions:\n")
 		for _, partitions := range *value.Partitions {
@@ -962,7 +985,9 @@ func (value *FetchRequestForgottenTopicsData) PrettyPrint() string {
 	} else {
 		fmt.Fprintf(w, "            Topic: nil\n")
 	}
+
 	fmt.Fprintf(w, "            TopicId: %v\n", value.TopicId)
+
 	if value.Partitions != nil {
 		fmt.Fprintf(w, "            Partitions: %v\n", *value.Partitions)
 	} else {

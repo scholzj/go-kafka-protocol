@@ -10,44 +10,44 @@ import (
 
 type ShareFetchRequest struct {
 	ApiVersion          int16
-	GroupId             *string                                 // The group identifier.
-	MemberId            *string                                 // The member ID.
-	ShareSessionEpoch   int32                                   // The current share session epoch: 0 to open a share session; -1 to close it; otherwise increments for consecutive requests.
-	MaxWaitMs           int32                                   // The maximum time in milliseconds to wait for the response.
-	MinBytes            int32                                   // The minimum bytes to accumulate in the response.
-	MaxBytes            int32                                   // The maximum bytes to fetch. See KIP-74 for cases where this limit may not be honored.
-	MaxRecords          int32                                   // The maximum number of records to fetch. This limit can be exceeded for alignment of batch boundaries.
-	BatchSize           int32                                   // The optimal number of records for batches of acquired records and acknowledgements.
-	ShareAcquireMode    int8                                    // The acquire mode to control the fetch behavior - 0:batch-optimized,1:record-limit.
-	IsRenewAck          bool                                    // Whether Renew type acknowledgements present in AcknowledgementBatches.
-	Topics              *[]ShareFetchRequestTopic               // The topics to fetch.
-	ForgottenTopicsData *[]ShareFetchRequestForgottenTopicsData // The partitions to remove from this share session.
+	GroupId             *string                                 // The group identifier. (versions: 0+, nullable: 0+)
+	MemberId            *string                                 // The member ID. (versions: 0+, nullable: 0+)
+	ShareSessionEpoch   int32                                   // The current share session epoch: 0 to open a share session; -1 to close it; otherwise increments for consecutive requests. (versions: 0+)
+	MaxWaitMs           int32                                   // The maximum time in milliseconds to wait for the response. (versions: 0+)
+	MinBytes            int32                                   // The minimum bytes to accumulate in the response. (versions: 0+)
+	MaxBytes            int32                                   // The maximum bytes to fetch. See KIP-74 for cases where this limit may not be honored. (versions: 0+)
+	MaxRecords          int32                                   // The maximum number of records to fetch. This limit can be exceeded for alignment of batch boundaries. (versions: 1+)
+	BatchSize           int32                                   // The optimal number of records for batches of acquired records and acknowledgements. (versions: 1+)
+	ShareAcquireMode    int8                                    // The acquire mode to control the fetch behavior - 0:batch-optimized,1:record-limit. (versions: 2+)
+	IsRenewAck          bool                                    // Whether Renew type acknowledgements present in AcknowledgementBatches. (versions: 2+)
+	Topics              *[]ShareFetchRequestTopic               // The topics to fetch. (versions: 0+)
+	ForgottenTopicsData *[]ShareFetchRequestForgottenTopicsData // The partitions to remove from this share session. (versions: 0+)
 	rawTaggedFields     *[]protocol.TaggedField
 }
 
 type ShareFetchRequestTopic struct {
-	TopicId         uuid.UUID                          // The unique topic ID.
-	Partitions      *[]ShareFetchRequestTopicPartition // The partitions to fetch.
+	TopicId         uuid.UUID                          // The unique topic ID. (versions: 0+)
+	Partitions      *[]ShareFetchRequestTopicPartition // The partitions to fetch. (versions: 0+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
 type ShareFetchRequestTopicPartition struct {
-	PartitionIndex         int32                                                   // The partition index.
-	PartitionMaxBytes      int32                                                   // The maximum bytes to fetch from this partition. 0 when only acknowledgement with no fetching is required. See KIP-74 for cases where this limit may not be honored.
-	AcknowledgementBatches *[]ShareFetchRequestTopicPartitionAcknowledgementBatche // Record batches to acknowledge.
+	PartitionIndex         int32                                                   // The partition index. (versions: 0+)
+	PartitionMaxBytes      int32                                                   // The maximum bytes to fetch from this partition. 0 when only acknowledgement with no fetching is required. See KIP-74 for cases where this limit may not be honored. (versions: 0)
+	AcknowledgementBatches *[]ShareFetchRequestTopicPartitionAcknowledgementBatche // Record batches to acknowledge. (versions: 0+)
 	rawTaggedFields        *[]protocol.TaggedField
 }
 
 type ShareFetchRequestTopicPartitionAcknowledgementBatche struct {
-	FirstOffset      int64   // First offset of batch of records to acknowledge.
-	LastOffset       int64   // Last offset (inclusive) of batch of records to acknowledge.
-	AcknowledgeTypes *[]int8 // Array of acknowledge types - 0:Gap,1:Accept,2:Release,3:Reject,4:Renew.
+	FirstOffset      int64   // First offset of batch of records to acknowledge. (versions: 0+)
+	LastOffset       int64   // Last offset (inclusive) of batch of records to acknowledge. (versions: 0+)
+	AcknowledgeTypes *[]int8 // Array of acknowledge types - 0:Gap,1:Accept,2:Release,3:Reject,4:Renew. (versions: 0+)
 	rawTaggedFields  *[]protocol.TaggedField
 }
 
 type ShareFetchRequestForgottenTopicsData struct {
-	TopicId         uuid.UUID // The unique topic ID.
-	Partitions      *[]int32  // The partitions indexes to forget.
+	TopicId         uuid.UUID // The unique topic ID. (versions: 0+)
+	Partitions      *[]int32  // The partitions indexes to forget. (versions: 0+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
@@ -127,6 +127,9 @@ func (req *ShareFetchRequest) Write(w io.Writer) error {
 	}
 
 	// Topics (versions: 0+)
+	if req.Topics == nil {
+		return fmt.Errorf("ShareFetchRequest.Topics must not be nil in version %d", req.ApiVersion)
+	}
 	if isRequestFlexible(req.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, req.topicsEncoder, req.Topics); err != nil {
 			return err
@@ -138,6 +141,9 @@ func (req *ShareFetchRequest) Write(w io.Writer) error {
 	}
 
 	// ForgottenTopicsData (versions: 0+)
+	if req.ForgottenTopicsData == nil {
+		return fmt.Errorf("ShareFetchRequest.ForgottenTopicsData must not be nil in version %d", req.ApiVersion)
+	}
 	if isRequestFlexible(req.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, req.forgottenTopicsDataEncoder, req.ForgottenTopicsData); err != nil {
 			return err
@@ -163,11 +169,13 @@ func (req *ShareFetchRequest) Write(w io.Writer) error {
 }
 
 // TODO: pass version and bytes only
-func (req *ShareFetchRequest) Read(request protocol.Request) error {
+func (req *ShareFetchRequest) Read(request *protocol.Request) error {
+	if request == nil || request.Body == nil {
+		return fmt.Errorf("ShareFetchRequest.Read: request or its body is nil")
+	}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
-
-	var err error
 
 	// GroupId (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
@@ -228,7 +236,7 @@ func (req *ShareFetchRequest) Read(request protocol.Request) error {
 	req.MaxBytes = maxbytes
 
 	// MaxRecords (versions: 1+)
-	if request.ApiVersion >= 1 {
+	if req.ApiVersion >= 1 {
 		maxrecords, err := protocol.ReadInt32(r)
 		if err != nil {
 			return err
@@ -237,7 +245,7 @@ func (req *ShareFetchRequest) Read(request protocol.Request) error {
 	}
 
 	// BatchSize (versions: 1+)
-	if request.ApiVersion >= 1 {
+	if req.ApiVersion >= 1 {
 		batchsize, err := protocol.ReadInt32(r)
 		if err != nil {
 			return err
@@ -246,7 +254,7 @@ func (req *ShareFetchRequest) Read(request protocol.Request) error {
 	}
 
 	// ShareAcquireMode (versions: 2+)
-	if request.ApiVersion >= 2 {
+	if req.ApiVersion >= 2 {
 		shareacquiremode, err := protocol.ReadInt8(r)
 		if err != nil {
 			return err
@@ -255,7 +263,7 @@ func (req *ShareFetchRequest) Read(request protocol.Request) error {
 	}
 
 	// IsRenewAck (versions: 2+)
-	if request.ApiVersion >= 2 {
+	if req.ApiVersion >= 2 {
 		isrenewack, err := protocol.ReadBool(r)
 		if err != nil {
 			return err
@@ -295,8 +303,7 @@ func (req *ShareFetchRequest) Read(request protocol.Request) error {
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return err
 		}
@@ -313,6 +320,9 @@ func (req *ShareFetchRequest) topicsEncoder(w io.Writer, value ShareFetchRequest
 	}
 
 	// Partitions (versions: 0+)
+	if value.Partitions == nil {
+		return fmt.Errorf("ShareFetchRequestTopic.Partitions must not be nil in version %d", req.ApiVersion)
+	}
 	if isRequestFlexible(req.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, req.partitionsEncoder, value.Partitions); err != nil {
 			return err
@@ -339,7 +349,6 @@ func (req *ShareFetchRequest) topicsEncoder(w io.Writer, value ShareFetchRequest
 
 func (req *ShareFetchRequest) topicsDecoder(r io.Reader) (ShareFetchRequestTopic, error) {
 	sharefetchrequesttopic := ShareFetchRequestTopic{}
-	var err error
 
 	// TopicId (versions: 0+)
 	topicid, err := protocol.ReadUUID(r)
@@ -365,8 +374,7 @@ func (req *ShareFetchRequest) topicsDecoder(r io.Reader) (ShareFetchRequestTopic
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return sharefetchrequesttopic, err
 		}
@@ -390,6 +398,9 @@ func (req *ShareFetchRequest) partitionsEncoder(w io.Writer, value ShareFetchReq
 	}
 
 	// AcknowledgementBatches (versions: 0+)
+	if value.AcknowledgementBatches == nil {
+		return fmt.Errorf("ShareFetchRequestTopicPartition.AcknowledgementBatches must not be nil in version %d", req.ApiVersion)
+	}
 	if isRequestFlexible(req.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, req.acknowledgementBatchesEncoder, value.AcknowledgementBatches); err != nil {
 			return err
@@ -416,7 +427,6 @@ func (req *ShareFetchRequest) partitionsEncoder(w io.Writer, value ShareFetchReq
 
 func (req *ShareFetchRequest) partitionsDecoder(r io.Reader) (ShareFetchRequestTopicPartition, error) {
 	sharefetchrequesttopicpartition := ShareFetchRequestTopicPartition{}
-	var err error
 
 	// PartitionIndex (versions: 0+)
 	partitionindex, err := protocol.ReadInt32(r)
@@ -451,8 +461,7 @@ func (req *ShareFetchRequest) partitionsDecoder(r io.Reader) (ShareFetchRequestT
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return sharefetchrequesttopicpartition, err
 		}
@@ -474,6 +483,9 @@ func (req *ShareFetchRequest) acknowledgementBatchesEncoder(w io.Writer, value S
 	}
 
 	// AcknowledgeTypes (versions: 0+)
+	if value.AcknowledgeTypes == nil {
+		return fmt.Errorf("ShareFetchRequestTopicPartitionAcknowledgementBatche.AcknowledgeTypes must not be nil in version %d", req.ApiVersion)
+	}
 	if isRequestFlexible(req.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, protocol.WriteInt8, value.AcknowledgeTypes); err != nil {
 			return err
@@ -500,7 +512,6 @@ func (req *ShareFetchRequest) acknowledgementBatchesEncoder(w io.Writer, value S
 
 func (req *ShareFetchRequest) acknowledgementBatchesDecoder(r io.Reader) (ShareFetchRequestTopicPartitionAcknowledgementBatche, error) {
 	sharefetchrequesttopicpartitionacknowledgementbatche := ShareFetchRequestTopicPartitionAcknowledgementBatche{}
-	var err error
 
 	// FirstOffset (versions: 0+)
 	firstoffset, err := protocol.ReadInt64(r)
@@ -533,8 +544,7 @@ func (req *ShareFetchRequest) acknowledgementBatchesDecoder(r io.Reader) (ShareF
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return sharefetchrequesttopicpartitionacknowledgementbatche, err
 		}
@@ -551,6 +561,9 @@ func (req *ShareFetchRequest) forgottenTopicsDataEncoder(w io.Writer, value Shar
 	}
 
 	// Partitions (versions: 0+)
+	if value.Partitions == nil {
+		return fmt.Errorf("ShareFetchRequestForgottenTopicsData.Partitions must not be nil in version %d", req.ApiVersion)
+	}
 	if isRequestFlexible(req.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, protocol.WriteInt32, value.Partitions); err != nil {
 			return err
@@ -577,7 +590,6 @@ func (req *ShareFetchRequest) forgottenTopicsDataEncoder(w io.Writer, value Shar
 
 func (req *ShareFetchRequest) forgottenTopicsDataDecoder(r io.Reader) (ShareFetchRequestForgottenTopicsData, error) {
 	sharefetchrequestforgottentopicsdata := ShareFetchRequestForgottenTopicsData{}
-	var err error
 
 	// TopicId (versions: 0+)
 	topicid, err := protocol.ReadUUID(r)
@@ -603,8 +615,7 @@ func (req *ShareFetchRequest) forgottenTopicsDataDecoder(r io.Reader) (ShareFetc
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return sharefetchrequestforgottentopicsdata, err
 		}
@@ -619,16 +630,19 @@ func (req *ShareFetchRequest) PrettyPrint() string {
 	w := bytes.NewBuffer([]byte{})
 
 	fmt.Fprintf(w, "    -> ShareFetchRequest:\n")
+
 	if req.GroupId != nil {
 		fmt.Fprintf(w, "        GroupId: %v\n", *req.GroupId)
 	} else {
 		fmt.Fprintf(w, "        GroupId: nil\n")
 	}
+
 	if req.MemberId != nil {
 		fmt.Fprintf(w, "        MemberId: %v\n", *req.MemberId)
 	} else {
 		fmt.Fprintf(w, "        MemberId: nil\n")
 	}
+
 	fmt.Fprintf(w, "        ShareSessionEpoch: %v\n", req.ShareSessionEpoch)
 	fmt.Fprintf(w, "        MaxWaitMs: %v\n", req.MaxWaitMs)
 	fmt.Fprintf(w, "        MinBytes: %v\n", req.MinBytes)
@@ -637,6 +651,7 @@ func (req *ShareFetchRequest) PrettyPrint() string {
 	fmt.Fprintf(w, "        BatchSize: %v\n", req.BatchSize)
 	fmt.Fprintf(w, "        ShareAcquireMode: %v\n", req.ShareAcquireMode)
 	fmt.Fprintf(w, "        IsRenewAck: %v\n", req.IsRenewAck)
+
 	if req.Topics != nil {
 		fmt.Fprintf(w, "        Topics:\n")
 		for _, topics := range *req.Topics {
@@ -646,6 +661,7 @@ func (req *ShareFetchRequest) PrettyPrint() string {
 	} else {
 		fmt.Fprintf(w, "        Topics: nil\n")
 	}
+
 	if req.ForgottenTopicsData != nil {
 		fmt.Fprintf(w, "        ForgottenTopicsData:\n")
 		for _, forgottentopicsdata := range *req.ForgottenTopicsData {
@@ -664,6 +680,7 @@ func (value *ShareFetchRequestTopic) PrettyPrint() string {
 	w := bytes.NewBuffer([]byte{})
 
 	fmt.Fprintf(w, "            TopicId: %v\n", value.TopicId)
+
 	if value.Partitions != nil {
 		fmt.Fprintf(w, "            Partitions:\n")
 		for _, partitions := range *value.Partitions {
@@ -683,6 +700,7 @@ func (value *ShareFetchRequestTopicPartition) PrettyPrint() string {
 
 	fmt.Fprintf(w, "                PartitionIndex: %v\n", value.PartitionIndex)
 	fmt.Fprintf(w, "                PartitionMaxBytes: %v\n", value.PartitionMaxBytes)
+
 	if value.AcknowledgementBatches != nil {
 		fmt.Fprintf(w, "                AcknowledgementBatches:\n")
 		for _, acknowledgementbatches := range *value.AcknowledgementBatches {
@@ -702,6 +720,7 @@ func (value *ShareFetchRequestTopicPartitionAcknowledgementBatche) PrettyPrint()
 
 	fmt.Fprintf(w, "                    FirstOffset: %v\n", value.FirstOffset)
 	fmt.Fprintf(w, "                    LastOffset: %v\n", value.LastOffset)
+
 	if value.AcknowledgeTypes != nil {
 		fmt.Fprintf(w, "                    AcknowledgeTypes: %v\n", *value.AcknowledgeTypes)
 	} else {
@@ -716,6 +735,7 @@ func (value *ShareFetchRequestForgottenTopicsData) PrettyPrint() string {
 	w := bytes.NewBuffer([]byte{})
 
 	fmt.Fprintf(w, "            TopicId: %v\n", value.TopicId)
+
 	if value.Partitions != nil {
 		fmt.Fprintf(w, "            Partitions: %v\n", *value.Partitions)
 	} else {

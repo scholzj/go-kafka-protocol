@@ -10,40 +10,40 @@ import (
 
 type ShareAcknowledgeResponse struct {
 	ApiVersion               int16
-	ThrottleTimeMs           int32                                   // The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.
-	ErrorCode                int16                                   // The top level response error code.
-	ErrorMessage             *string                                 // The top-level error message, or null if there was no error.
-	AcquisitionLockTimeoutMs int32                                   // The time in milliseconds for which the acquired records are locked.
-	Responses                *[]ShareAcknowledgeResponseResponse     // The response topics.
-	NodeEndpoints            *[]ShareAcknowledgeResponseNodeEndpoint // Endpoints for all current leaders enumerated in PartitionData with error NOT_LEADER_OR_FOLLOWER.
+	ThrottleTimeMs           int32                                   // The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota. (versions: 0+)
+	ErrorCode                int16                                   // The top level response error code. (versions: 0+)
+	ErrorMessage             *string                                 // The top-level error message, or null if there was no error. (versions: 0+, nullable: 0+)
+	AcquisitionLockTimeoutMs int32                                   // The time in milliseconds for which the acquired records are locked. (versions: 2+)
+	Responses                *[]ShareAcknowledgeResponseResponse     // The response topics. (versions: 0+)
+	NodeEndpoints            *[]ShareAcknowledgeResponseNodeEndpoint // Endpoints for all current leaders enumerated in PartitionData with error NOT_LEADER_OR_FOLLOWER. (versions: 0+)
 	rawTaggedFields          *[]protocol.TaggedField
 }
 
 type ShareAcknowledgeResponseResponse struct {
-	TopicId         uuid.UUID                                    // The unique topic ID.
-	Partitions      *[]ShareAcknowledgeResponseResponsePartition // The topic partitions.
+	TopicId         uuid.UUID                                    // The unique topic ID. (versions: 0+)
+	Partitions      *[]ShareAcknowledgeResponseResponsePartition // The topic partitions. (versions: 0+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
 type ShareAcknowledgeResponseResponsePartition struct {
-	PartitionIndex  int32                                                   // The partition index.
-	ErrorCode       int16                                                   // The error code, or 0 if there was no error.
-	ErrorMessage    *string                                                 // The error message, or null if there was no error.
-	CurrentLeader   *ShareAcknowledgeResponseResponsePartitionCurrentLeader // The current leader of the partition.
+	PartitionIndex  int32                                                   // The partition index. (versions: 0+)
+	ErrorCode       int16                                                   // The error code, or 0 if there was no error. (versions: 0+)
+	ErrorMessage    *string                                                 // The error message, or null if there was no error. (versions: 0+, nullable: 0+)
+	CurrentLeader   *ShareAcknowledgeResponseResponsePartitionCurrentLeader // The current leader of the partition. (versions: 0+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
 type ShareAcknowledgeResponseResponsePartitionCurrentLeader struct {
-	LeaderId        int32 // The ID of the current leader or -1 if the leader is unknown.
-	LeaderEpoch     int32 // The latest known leader epoch.
+	LeaderId        int32 // The ID of the current leader or -1 if the leader is unknown. (versions: 0+)
+	LeaderEpoch     int32 // The latest known leader epoch. (versions: 0+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
 type ShareAcknowledgeResponseNodeEndpoint struct {
-	NodeId          int32   // The ID of the associated node.
-	Host            *string // The node's hostname.
-	Port            int32   // The node's port.
-	Rack            *string // The rack of the node, or null if it has not been assigned to a rack.
+	NodeId          int32   // The ID of the associated node. (versions: 0+)
+	Host            *string // The node's hostname. (versions: 0+)
+	Port            int32   // The node's port. (versions: 0+)
+	Rack            *string // The rack of the node, or null if it has not been assigned to a rack. (versions: 0+, nullable: 0+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
@@ -81,6 +81,9 @@ func (res *ShareAcknowledgeResponse) Write(w io.Writer) error {
 	}
 
 	// Responses (versions: 0+)
+	if res.Responses == nil {
+		return fmt.Errorf("ShareAcknowledgeResponse.Responses must not be nil in version %d", res.ApiVersion)
+	}
 	if isResponseFlexible(res.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, res.responsesEncoder, res.Responses); err != nil {
 			return err
@@ -92,6 +95,9 @@ func (res *ShareAcknowledgeResponse) Write(w io.Writer) error {
 	}
 
 	// NodeEndpoints (versions: 0+)
+	if res.NodeEndpoints == nil {
+		return fmt.Errorf("ShareAcknowledgeResponse.NodeEndpoints must not be nil in version %d", res.ApiVersion)
+	}
 	if isResponseFlexible(res.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, res.nodeEndpointsEncoder, res.NodeEndpoints); err != nil {
 			return err
@@ -117,11 +123,13 @@ func (res *ShareAcknowledgeResponse) Write(w io.Writer) error {
 }
 
 // TODO: pass version and bytes only
-func (res *ShareAcknowledgeResponse) Read(response protocol.Response) error {
+func (res *ShareAcknowledgeResponse) Read(response *protocol.Response) error {
+	if response == nil || response.Body == nil {
+		return fmt.Errorf("ShareAcknowledgeResponse.Read: response or its body is nil")
+	}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
-
-	var err error
 
 	// ThrottleTimeMs (versions: 0+)
 	throttletimems, err := protocol.ReadInt32(r)
@@ -138,7 +146,7 @@ func (res *ShareAcknowledgeResponse) Read(response protocol.Response) error {
 	res.ErrorCode = errorcode
 
 	// ErrorMessage (versions: 0+)
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		errormessage, err := protocol.ReadNullableCompactString(r)
 		if err != nil {
 			return err
@@ -153,7 +161,7 @@ func (res *ShareAcknowledgeResponse) Read(response protocol.Response) error {
 	}
 
 	// AcquisitionLockTimeoutMs (versions: 2+)
-	if response.ApiVersion >= 2 {
+	if res.ApiVersion >= 2 {
 		acquisitionlocktimeoutms, err := protocol.ReadInt32(r)
 		if err != nil {
 			return err
@@ -162,7 +170,7 @@ func (res *ShareAcknowledgeResponse) Read(response protocol.Response) error {
 	}
 
 	// Responses (versions: 0+)
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		responses, err := protocol.ReadNullableCompactArray(r, res.responsesDecoder)
 		if err != nil {
 			return err
@@ -177,7 +185,7 @@ func (res *ShareAcknowledgeResponse) Read(response protocol.Response) error {
 	}
 
 	// NodeEndpoints (versions: 0+)
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		nodeendpoints, err := protocol.ReadNullableCompactArray(r, res.nodeEndpointsDecoder)
 		if err != nil {
 			return err
@@ -193,8 +201,7 @@ func (res *ShareAcknowledgeResponse) Read(response protocol.Response) error {
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return err
 		}
@@ -211,6 +218,9 @@ func (res *ShareAcknowledgeResponse) responsesEncoder(w io.Writer, value ShareAc
 	}
 
 	// Partitions (versions: 0+)
+	if value.Partitions == nil {
+		return fmt.Errorf("ShareAcknowledgeResponseResponse.Partitions must not be nil in version %d", res.ApiVersion)
+	}
 	if isResponseFlexible(res.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, res.partitionsEncoder, value.Partitions); err != nil {
 			return err
@@ -237,7 +247,6 @@ func (res *ShareAcknowledgeResponse) responsesEncoder(w io.Writer, value ShareAc
 
 func (res *ShareAcknowledgeResponse) responsesDecoder(r io.Reader) (ShareAcknowledgeResponseResponse, error) {
 	shareacknowledgeresponseresponse := ShareAcknowledgeResponseResponse{}
-	var err error
 
 	// TopicId (versions: 0+)
 	topicid, err := protocol.ReadUUID(r)
@@ -263,8 +272,7 @@ func (res *ShareAcknowledgeResponse) responsesDecoder(r io.Reader) (ShareAcknowl
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return shareacknowledgeresponseresponse, err
 		}
@@ -297,6 +305,9 @@ func (res *ShareAcknowledgeResponse) partitionsEncoder(w io.Writer, value ShareA
 	}
 
 	// CurrentLeader (versions: 0+)
+	if value.CurrentLeader == nil {
+		return fmt.Errorf("ShareAcknowledgeResponseResponsePartition.CurrentLeader must not be nil in version %d", res.ApiVersion)
+	}
 	if err := res.currentLeaderEncoder(w, *value.CurrentLeader); err != nil {
 		return err
 	}
@@ -317,7 +328,6 @@ func (res *ShareAcknowledgeResponse) partitionsEncoder(w io.Writer, value ShareA
 
 func (res *ShareAcknowledgeResponse) partitionsDecoder(r io.Reader) (ShareAcknowledgeResponseResponsePartition, error) {
 	shareacknowledgeresponseresponsepartition := ShareAcknowledgeResponseResponsePartition{}
-	var err error
 
 	// PartitionIndex (versions: 0+)
 	partitionindex, err := protocol.ReadInt32(r)
@@ -354,15 +364,10 @@ func (res *ShareAcknowledgeResponse) partitionsDecoder(r io.Reader) (ShareAcknow
 		return shareacknowledgeresponseresponsepartition, err
 	}
 	shareacknowledgeresponseresponsepartition.CurrentLeader = &currentleader
-	if err != nil {
-		return shareacknowledgeresponseresponsepartition, err
-	}
-	shareacknowledgeresponseresponsepartition.CurrentLeader = &currentleader
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return shareacknowledgeresponseresponsepartition, err
 		}
@@ -399,7 +404,6 @@ func (res *ShareAcknowledgeResponse) currentLeaderEncoder(w io.Writer, value Sha
 
 func (res *ShareAcknowledgeResponse) currentLeaderDecoder(r io.Reader) (ShareAcknowledgeResponseResponsePartitionCurrentLeader, error) {
 	shareacknowledgeresponseresponsepartitioncurrentleader := ShareAcknowledgeResponseResponsePartitionCurrentLeader{}
-	var err error
 
 	// LeaderId (versions: 0+)
 	leaderid, err := protocol.ReadInt32(r)
@@ -417,8 +421,7 @@ func (res *ShareAcknowledgeResponse) currentLeaderDecoder(r io.Reader) (ShareAck
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return shareacknowledgeresponseresponsepartitioncurrentleader, err
 		}
@@ -435,6 +438,9 @@ func (res *ShareAcknowledgeResponse) nodeEndpointsEncoder(w io.Writer, value Sha
 	}
 
 	// Host (versions: 0+)
+	if value.Host == nil {
+		return fmt.Errorf("ShareAcknowledgeResponseNodeEndpoint.Host must not be nil in version %d", res.ApiVersion)
+	}
 	if isResponseFlexible(res.ApiVersion) {
 		if err := protocol.WriteCompactString(w, *value.Host); err != nil {
 			return err
@@ -477,7 +483,6 @@ func (res *ShareAcknowledgeResponse) nodeEndpointsEncoder(w io.Writer, value Sha
 
 func (res *ShareAcknowledgeResponse) nodeEndpointsDecoder(r io.Reader) (ShareAcknowledgeResponseNodeEndpoint, error) {
 	shareacknowledgeresponsenodeendpoint := ShareAcknowledgeResponseNodeEndpoint{}
-	var err error
 
 	// NodeId (versions: 0+)
 	nodeid, err := protocol.ReadInt32(r)
@@ -525,8 +530,7 @@ func (res *ShareAcknowledgeResponse) nodeEndpointsDecoder(r io.Reader) (ShareAck
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return shareacknowledgeresponsenodeendpoint, err
 		}
@@ -543,12 +547,15 @@ func (res *ShareAcknowledgeResponse) PrettyPrint() string {
 	fmt.Fprintf(w, "    <- ShareAcknowledgeResponse:\n")
 	fmt.Fprintf(w, "        ThrottleTimeMs: %v\n", res.ThrottleTimeMs)
 	fmt.Fprintf(w, "        ErrorCode: %v\n", res.ErrorCode)
+
 	if res.ErrorMessage != nil {
 		fmt.Fprintf(w, "        ErrorMessage: %v\n", *res.ErrorMessage)
 	} else {
 		fmt.Fprintf(w, "        ErrorMessage: nil\n")
 	}
+
 	fmt.Fprintf(w, "        AcquisitionLockTimeoutMs: %v\n", res.AcquisitionLockTimeoutMs)
+
 	if res.Responses != nil {
 		fmt.Fprintf(w, "        Responses:\n")
 		for _, responses := range *res.Responses {
@@ -558,6 +565,7 @@ func (res *ShareAcknowledgeResponse) PrettyPrint() string {
 	} else {
 		fmt.Fprintf(w, "        Responses: nil\n")
 	}
+
 	if res.NodeEndpoints != nil {
 		fmt.Fprintf(w, "        NodeEndpoints:\n")
 		for _, nodeendpoints := range *res.NodeEndpoints {
@@ -576,6 +584,7 @@ func (value *ShareAcknowledgeResponseResponse) PrettyPrint() string {
 	w := bytes.NewBuffer([]byte{})
 
 	fmt.Fprintf(w, "            TopicId: %v\n", value.TopicId)
+
 	if value.Partitions != nil {
 		fmt.Fprintf(w, "            Partitions:\n")
 		for _, partitions := range *value.Partitions {
@@ -595,11 +604,13 @@ func (value *ShareAcknowledgeResponseResponsePartition) PrettyPrint() string {
 
 	fmt.Fprintf(w, "                PartitionIndex: %v\n", value.PartitionIndex)
 	fmt.Fprintf(w, "                ErrorCode: %v\n", value.ErrorCode)
+
 	if value.ErrorMessage != nil {
 		fmt.Fprintf(w, "                ErrorMessage: %v\n", *value.ErrorMessage)
 	} else {
 		fmt.Fprintf(w, "                ErrorMessage: nil\n")
 	}
+
 	fmt.Fprintf(w, "                CurrentLeader:\n")
 	if value.CurrentLeader != nil {
 		fmt.Fprintf(w, "%s", value.CurrentLeader.PrettyPrint())
@@ -625,12 +636,15 @@ func (value *ShareAcknowledgeResponseNodeEndpoint) PrettyPrint() string {
 	w := bytes.NewBuffer([]byte{})
 
 	fmt.Fprintf(w, "            NodeId: %v\n", value.NodeId)
+
 	if value.Host != nil {
 		fmt.Fprintf(w, "            Host: %v\n", *value.Host)
 	} else {
 		fmt.Fprintf(w, "            Host: nil\n")
 	}
+
 	fmt.Fprintf(w, "            Port: %v\n", value.Port)
+
 	if value.Rack != nil {
 		fmt.Fprintf(w, "            Rack: %v\n", *value.Rack)
 	} else {

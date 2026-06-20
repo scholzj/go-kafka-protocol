@@ -9,23 +9,23 @@ import (
 
 type FindCoordinatorResponse struct {
 	ApiVersion      int16
-	ThrottleTimeMs  int32                                 // The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.
-	ErrorCode       int16                                 // The error code, or 0 if there was no error.
-	ErrorMessage    *string                               // The error message, or null if there was no error.
-	NodeId          int32                                 // The node id.
-	Host            *string                               // The host name.
-	Port            int32                                 // The port.
-	Coordinators    *[]FindCoordinatorResponseCoordinator // Each coordinator result in the response.
+	ThrottleTimeMs  int32                                 // The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota. (versions: 1+)
+	ErrorCode       int16                                 // The error code, or 0 if there was no error. (versions: 0-3)
+	ErrorMessage    *string                               // The error message, or null if there was no error. (versions: 1-3, nullable: 1-3)
+	NodeId          int32                                 // The node id. (versions: 0-3)
+	Host            *string                               // The host name. (versions: 0-3)
+	Port            int32                                 // The port. (versions: 0-3)
+	Coordinators    *[]FindCoordinatorResponseCoordinator // Each coordinator result in the response. (versions: 4+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
 type FindCoordinatorResponseCoordinator struct {
-	Key             *string // The coordinator key.
-	NodeId          int32   // The node id.
-	Host            *string // The host name.
-	Port            int32   // The port.
-	ErrorCode       int16   // The error code, or 0 if there was no error.
-	ErrorMessage    *string // The error message, or null if there was no error.
+	Key             *string // The coordinator key. (versions: 4+)
+	NodeId          int32   // The node id. (versions: 4+)
+	Host            *string // The host name. (versions: 4+)
+	Port            int32   // The port. (versions: 4+)
+	ErrorCode       int16   // The error code, or 0 if there was no error. (versions: 4+)
+	ErrorMessage    *string // The error message, or null if there was no error. (versions: 4+, nullable: 4+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
@@ -51,11 +51,11 @@ func (res *FindCoordinatorResponse) Write(w io.Writer) error {
 	// ErrorMessage (versions: 1-3)
 	if res.ApiVersion >= 1 && res.ApiVersion <= 3 {
 		if isResponseFlexible(res.ApiVersion) {
-			if err := protocol.WriteCompactString(w, *res.ErrorMessage); err != nil {
+			if err := protocol.WriteNullableCompactString(w, res.ErrorMessage); err != nil {
 				return err
 			}
 		} else {
-			if err := protocol.WriteString(w, *res.ErrorMessage); err != nil {
+			if err := protocol.WriteNullableString(w, res.ErrorMessage); err != nil {
 				return err
 			}
 		}
@@ -70,6 +70,9 @@ func (res *FindCoordinatorResponse) Write(w io.Writer) error {
 
 	// Host (versions: 0-3)
 	if res.ApiVersion <= 3 {
+		if res.Host == nil {
+			return fmt.Errorf("FindCoordinatorResponse.Host must not be nil in version %d", res.ApiVersion)
+		}
 		if isResponseFlexible(res.ApiVersion) {
 			if err := protocol.WriteCompactString(w, *res.Host); err != nil {
 				return err
@@ -90,6 +93,9 @@ func (res *FindCoordinatorResponse) Write(w io.Writer) error {
 
 	// Coordinators (versions: 4+)
 	if res.ApiVersion >= 4 {
+		if res.Coordinators == nil {
+			return fmt.Errorf("FindCoordinatorResponse.Coordinators must not be nil in version %d", res.ApiVersion)
+		}
 		if isResponseFlexible(res.ApiVersion) {
 			if err := protocol.WriteNullableCompactArray(w, res.coordinatorsEncoder, res.Coordinators); err != nil {
 				return err
@@ -116,14 +122,16 @@ func (res *FindCoordinatorResponse) Write(w io.Writer) error {
 }
 
 // TODO: pass version and bytes only
-func (res *FindCoordinatorResponse) Read(response protocol.Response) error {
+func (res *FindCoordinatorResponse) Read(response *protocol.Response) error {
+	if response == nil || response.Body == nil {
+		return fmt.Errorf("FindCoordinatorResponse.Read: response or its body is nil")
+	}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
-	var err error
-
 	// ThrottleTimeMs (versions: 1+)
-	if response.ApiVersion >= 1 {
+	if res.ApiVersion >= 1 {
 		throttletimems, err := protocol.ReadInt32(r)
 		if err != nil {
 			return err
@@ -132,7 +140,7 @@ func (res *FindCoordinatorResponse) Read(response protocol.Response) error {
 	}
 
 	// ErrorCode (versions: 0-3)
-	if response.ApiVersion <= 3 {
+	if res.ApiVersion <= 3 {
 		errorcode, err := protocol.ReadInt16(r)
 		if err != nil {
 			return err
@@ -141,24 +149,24 @@ func (res *FindCoordinatorResponse) Read(response protocol.Response) error {
 	}
 
 	// ErrorMessage (versions: 1-3)
-	if response.ApiVersion >= 1 && response.ApiVersion <= 3 {
-		if isRequestFlexible(res.ApiVersion) {
-			errormessage, err := protocol.ReadCompactString(r)
+	if res.ApiVersion >= 1 && res.ApiVersion <= 3 {
+		if isResponseFlexible(res.ApiVersion) {
+			errormessage, err := protocol.ReadNullableCompactString(r)
 			if err != nil {
 				return err
 			}
-			res.ErrorMessage = &errormessage
+			res.ErrorMessage = errormessage
 		} else {
-			errormessage, err := protocol.ReadString(r)
+			errormessage, err := protocol.ReadNullableString(r)
 			if err != nil {
 				return err
 			}
-			res.ErrorMessage = &errormessage
+			res.ErrorMessage = errormessage
 		}
 	}
 
 	// NodeId (versions: 0-3)
-	if response.ApiVersion <= 3 {
+	if res.ApiVersion <= 3 {
 		nodeid, err := protocol.ReadInt32(r)
 		if err != nil {
 			return err
@@ -167,8 +175,8 @@ func (res *FindCoordinatorResponse) Read(response protocol.Response) error {
 	}
 
 	// Host (versions: 0-3)
-	if response.ApiVersion <= 3 {
-		if isRequestFlexible(res.ApiVersion) {
+	if res.ApiVersion <= 3 {
+		if isResponseFlexible(res.ApiVersion) {
 			host, err := protocol.ReadCompactString(r)
 			if err != nil {
 				return err
@@ -184,7 +192,7 @@ func (res *FindCoordinatorResponse) Read(response protocol.Response) error {
 	}
 
 	// Port (versions: 0-3)
-	if response.ApiVersion <= 3 {
+	if res.ApiVersion <= 3 {
 		port, err := protocol.ReadInt32(r)
 		if err != nil {
 			return err
@@ -193,8 +201,8 @@ func (res *FindCoordinatorResponse) Read(response protocol.Response) error {
 	}
 
 	// Coordinators (versions: 4+)
-	if response.ApiVersion >= 4 {
-		if isRequestFlexible(res.ApiVersion) {
+	if res.ApiVersion >= 4 {
+		if isResponseFlexible(res.ApiVersion) {
 			coordinators, err := protocol.ReadNullableCompactArray(r, res.coordinatorsDecoder)
 			if err != nil {
 				return err
@@ -211,8 +219,7 @@ func (res *FindCoordinatorResponse) Read(response protocol.Response) error {
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return err
 		}
@@ -225,6 +232,9 @@ func (res *FindCoordinatorResponse) Read(response protocol.Response) error {
 func (res *FindCoordinatorResponse) coordinatorsEncoder(w io.Writer, value FindCoordinatorResponseCoordinator) error {
 	// Key (versions: 4+)
 	if res.ApiVersion >= 4 {
+		if value.Key == nil {
+			return fmt.Errorf("FindCoordinatorResponseCoordinator.Key must not be nil in version %d", res.ApiVersion)
+		}
 		if isResponseFlexible(res.ApiVersion) {
 			if err := protocol.WriteCompactString(w, *value.Key); err != nil {
 				return err
@@ -245,6 +255,9 @@ func (res *FindCoordinatorResponse) coordinatorsEncoder(w io.Writer, value FindC
 
 	// Host (versions: 4+)
 	if res.ApiVersion >= 4 {
+		if value.Host == nil {
+			return fmt.Errorf("FindCoordinatorResponseCoordinator.Host must not be nil in version %d", res.ApiVersion)
+		}
 		if isResponseFlexible(res.ApiVersion) {
 			if err := protocol.WriteCompactString(w, *value.Host); err != nil {
 				return err
@@ -299,7 +312,6 @@ func (res *FindCoordinatorResponse) coordinatorsEncoder(w io.Writer, value FindC
 
 func (res *FindCoordinatorResponse) coordinatorsDecoder(r io.Reader) (FindCoordinatorResponseCoordinator, error) {
 	findcoordinatorresponsecoordinator := FindCoordinatorResponseCoordinator{}
-	var err error
 
 	// Key (versions: 4+)
 	if res.ApiVersion >= 4 {
@@ -381,8 +393,7 @@ func (res *FindCoordinatorResponse) coordinatorsDecoder(r io.Reader) (FindCoordi
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return findcoordinatorresponsecoordinator, err
 		}
@@ -399,18 +410,23 @@ func (res *FindCoordinatorResponse) PrettyPrint() string {
 	fmt.Fprintf(w, "    <- FindCoordinatorResponse:\n")
 	fmt.Fprintf(w, "        ThrottleTimeMs: %v\n", res.ThrottleTimeMs)
 	fmt.Fprintf(w, "        ErrorCode: %v\n", res.ErrorCode)
+
 	if res.ErrorMessage != nil {
 		fmt.Fprintf(w, "        ErrorMessage: %v\n", *res.ErrorMessage)
 	} else {
 		fmt.Fprintf(w, "        ErrorMessage: nil\n")
 	}
+
 	fmt.Fprintf(w, "        NodeId: %v\n", res.NodeId)
+
 	if res.Host != nil {
 		fmt.Fprintf(w, "        Host: %v\n", *res.Host)
 	} else {
 		fmt.Fprintf(w, "        Host: nil\n")
 	}
+
 	fmt.Fprintf(w, "        Port: %v\n", res.Port)
+
 	if res.Coordinators != nil {
 		fmt.Fprintf(w, "        Coordinators:\n")
 		for _, coordinators := range *res.Coordinators {
@@ -433,14 +449,18 @@ func (value *FindCoordinatorResponseCoordinator) PrettyPrint() string {
 	} else {
 		fmt.Fprintf(w, "            Key: nil\n")
 	}
+
 	fmt.Fprintf(w, "            NodeId: %v\n", value.NodeId)
+
 	if value.Host != nil {
 		fmt.Fprintf(w, "            Host: %v\n", *value.Host)
 	} else {
 		fmt.Fprintf(w, "            Host: nil\n")
 	}
+
 	fmt.Fprintf(w, "            Port: %v\n", value.Port)
 	fmt.Fprintf(w, "            ErrorCode: %v\n", value.ErrorCode)
+
 	if value.ErrorMessage != nil {
 		fmt.Fprintf(w, "            ErrorMessage: %v\n", *value.ErrorMessage)
 	} else {

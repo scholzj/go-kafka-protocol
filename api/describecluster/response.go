@@ -9,23 +9,23 @@ import (
 
 type DescribeClusterResponse struct {
 	ApiVersion                  int16
-	ThrottleTimeMs              int32                            // The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.
-	ErrorCode                   int16                            // The top-level error code, or 0 if there was no error.
-	ErrorMessage                *string                          // The top-level error message, or null if there was no error.
-	EndpointType                int8                             // The endpoint type that was described. 1=brokers, 2=controllers.
-	ClusterId                   *string                          // The cluster ID that responding broker belongs to.
-	ControllerId                int32                            // The ID of the controller. When handled by a controller, returns the current voter leader ID. When handled by a broker, returns a random alive broker ID as a fallback.
-	Brokers                     *[]DescribeClusterResponseBroker // Each broker in the response.
-	ClusterAuthorizedOperations int32                            // 32-bit bitfield to represent authorized operations for this cluster.
+	ThrottleTimeMs              int32                            // The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota. (versions: 0+)
+	ErrorCode                   int16                            // The top-level error code, or 0 if there was no error. (versions: 0+)
+	ErrorMessage                *string                          // The top-level error message, or null if there was no error. (versions: 0+, nullable: 0+)
+	EndpointType                int8                             // The endpoint type that was described. 1=brokers, 2=controllers. (versions: 1+)
+	ClusterId                   *string                          // The cluster ID that responding broker belongs to. (versions: 0+)
+	ControllerId                int32                            // The ID of the controller. When handled by a controller, returns the current voter leader ID. When handled by a broker, returns a random alive broker ID as a fallback. (versions: 0+)
+	Brokers                     *[]DescribeClusterResponseBroker // Each broker in the response. (versions: 0+)
+	ClusterAuthorizedOperations int32                            // 32-bit bitfield to represent authorized operations for this cluster. (versions: 0+)
 	rawTaggedFields             *[]protocol.TaggedField
 }
 
 type DescribeClusterResponseBroker struct {
-	BrokerId        int32   // The broker ID.
-	Host            *string // The broker hostname.
-	Port            int32   // The broker port.
-	Rack            *string // The rack of the broker, or null if it has not been assigned to a rack.
-	IsFenced        bool    // Whether the broker is fenced
+	BrokerId        int32   // The broker ID. (versions: 0+)
+	Host            *string // The broker hostname. (versions: 0+)
+	Port            int32   // The broker port. (versions: 0+)
+	Rack            *string // The rack of the broker, or null if it has not been assigned to a rack. (versions: 0+, nullable: 0+)
+	IsFenced        bool    // Whether the broker is fenced (versions: 2+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
@@ -63,6 +63,9 @@ func (res *DescribeClusterResponse) Write(w io.Writer) error {
 	}
 
 	// ClusterId (versions: 0+)
+	if res.ClusterId == nil {
+		return fmt.Errorf("DescribeClusterResponse.ClusterId must not be nil in version %d", res.ApiVersion)
+	}
 	if isResponseFlexible(res.ApiVersion) {
 		if err := protocol.WriteCompactString(w, *res.ClusterId); err != nil {
 			return err
@@ -79,6 +82,9 @@ func (res *DescribeClusterResponse) Write(w io.Writer) error {
 	}
 
 	// Brokers (versions: 0+)
+	if res.Brokers == nil {
+		return fmt.Errorf("DescribeClusterResponse.Brokers must not be nil in version %d", res.ApiVersion)
+	}
 	if isResponseFlexible(res.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, res.brokersEncoder, res.Brokers); err != nil {
 			return err
@@ -109,11 +115,13 @@ func (res *DescribeClusterResponse) Write(w io.Writer) error {
 }
 
 // TODO: pass version and bytes only
-func (res *DescribeClusterResponse) Read(response protocol.Response) error {
+func (res *DescribeClusterResponse) Read(response *protocol.Response) error {
+	if response == nil || response.Body == nil {
+		return fmt.Errorf("DescribeClusterResponse.Read: response or its body is nil")
+	}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
-
-	var err error
 
 	// ThrottleTimeMs (versions: 0+)
 	throttletimems, err := protocol.ReadInt32(r)
@@ -130,7 +138,7 @@ func (res *DescribeClusterResponse) Read(response protocol.Response) error {
 	res.ErrorCode = errorcode
 
 	// ErrorMessage (versions: 0+)
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		errormessage, err := protocol.ReadNullableCompactString(r)
 		if err != nil {
 			return err
@@ -145,7 +153,7 @@ func (res *DescribeClusterResponse) Read(response protocol.Response) error {
 	}
 
 	// EndpointType (versions: 1+)
-	if response.ApiVersion >= 1 {
+	if res.ApiVersion >= 1 {
 		endpointtype, err := protocol.ReadInt8(r)
 		if err != nil {
 			return err
@@ -154,7 +162,7 @@ func (res *DescribeClusterResponse) Read(response protocol.Response) error {
 	}
 
 	// ClusterId (versions: 0+)
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		clusterid, err := protocol.ReadCompactString(r)
 		if err != nil {
 			return err
@@ -176,7 +184,7 @@ func (res *DescribeClusterResponse) Read(response protocol.Response) error {
 	res.ControllerId = controllerid
 
 	// Brokers (versions: 0+)
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		brokers, err := protocol.ReadNullableCompactArray(r, res.brokersDecoder)
 		if err != nil {
 			return err
@@ -199,8 +207,7 @@ func (res *DescribeClusterResponse) Read(response protocol.Response) error {
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return err
 		}
@@ -217,6 +224,9 @@ func (res *DescribeClusterResponse) brokersEncoder(w io.Writer, value DescribeCl
 	}
 
 	// Host (versions: 0+)
+	if value.Host == nil {
+		return fmt.Errorf("DescribeClusterResponseBroker.Host must not be nil in version %d", res.ApiVersion)
+	}
 	if isResponseFlexible(res.ApiVersion) {
 		if err := protocol.WriteCompactString(w, *value.Host); err != nil {
 			return err
@@ -266,7 +276,6 @@ func (res *DescribeClusterResponse) brokersEncoder(w io.Writer, value DescribeCl
 
 func (res *DescribeClusterResponse) brokersDecoder(r io.Reader) (DescribeClusterResponseBroker, error) {
 	describeclusterresponsebroker := DescribeClusterResponseBroker{}
-	var err error
 
 	// BrokerId (versions: 0+)
 	brokerid, err := protocol.ReadInt32(r)
@@ -323,8 +332,7 @@ func (res *DescribeClusterResponse) brokersDecoder(r io.Reader) (DescribeCluster
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return describeclusterresponsebroker, err
 		}
@@ -341,18 +349,23 @@ func (res *DescribeClusterResponse) PrettyPrint() string {
 	fmt.Fprintf(w, "    <- DescribeClusterResponse:\n")
 	fmt.Fprintf(w, "        ThrottleTimeMs: %v\n", res.ThrottleTimeMs)
 	fmt.Fprintf(w, "        ErrorCode: %v\n", res.ErrorCode)
+
 	if res.ErrorMessage != nil {
 		fmt.Fprintf(w, "        ErrorMessage: %v\n", *res.ErrorMessage)
 	} else {
 		fmt.Fprintf(w, "        ErrorMessage: nil\n")
 	}
+
 	fmt.Fprintf(w, "        EndpointType: %v\n", res.EndpointType)
+
 	if res.ClusterId != nil {
 		fmt.Fprintf(w, "        ClusterId: %v\n", *res.ClusterId)
 	} else {
 		fmt.Fprintf(w, "        ClusterId: nil\n")
 	}
+
 	fmt.Fprintf(w, "        ControllerId: %v\n", res.ControllerId)
+
 	if res.Brokers != nil {
 		fmt.Fprintf(w, "        Brokers:\n")
 		for _, brokers := range *res.Brokers {
@@ -362,6 +375,7 @@ func (res *DescribeClusterResponse) PrettyPrint() string {
 	} else {
 		fmt.Fprintf(w, "        Brokers: nil\n")
 	}
+
 	fmt.Fprintf(w, "        ClusterAuthorizedOperations: %v\n", res.ClusterAuthorizedOperations)
 
 	return w.String()
@@ -372,17 +386,21 @@ func (value *DescribeClusterResponseBroker) PrettyPrint() string {
 	w := bytes.NewBuffer([]byte{})
 
 	fmt.Fprintf(w, "            BrokerId: %v\n", value.BrokerId)
+
 	if value.Host != nil {
 		fmt.Fprintf(w, "            Host: %v\n", *value.Host)
 	} else {
 		fmt.Fprintf(w, "            Host: nil\n")
 	}
+
 	fmt.Fprintf(w, "            Port: %v\n", value.Port)
+
 	if value.Rack != nil {
 		fmt.Fprintf(w, "            Rack: %v\n", *value.Rack)
 	} else {
 		fmt.Fprintf(w, "            Rack: nil\n")
 	}
+
 	fmt.Fprintf(w, "            IsFenced: %v\n", value.IsFenced)
 
 	return w.String()

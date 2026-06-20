@@ -10,51 +10,51 @@ import (
 
 type ShareFetchResponse struct {
 	ApiVersion               int16
-	ThrottleTimeMs           int32                             // The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.
-	ErrorCode                int16                             // The top-level response error code.
-	ErrorMessage             *string                           // The top-level error message, or null if there was no error.
-	AcquisitionLockTimeoutMs int32                             // The time in milliseconds for which the acquired records are locked.
-	Responses                *[]ShareFetchResponseResponse     // The response topics.
-	NodeEndpoints            *[]ShareFetchResponseNodeEndpoint // Endpoints for all current leaders enumerated in PartitionData with error NOT_LEADER_OR_FOLLOWER.
+	ThrottleTimeMs           int32                             // The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota. (versions: 0+)
+	ErrorCode                int16                             // The top-level response error code. (versions: 0+)
+	ErrorMessage             *string                           // The top-level error message, or null if there was no error. (versions: 0+, nullable: 0+)
+	AcquisitionLockTimeoutMs int32                             // The time in milliseconds for which the acquired records are locked. (versions: 1+)
+	Responses                *[]ShareFetchResponseResponse     // The response topics. (versions: 0+)
+	NodeEndpoints            *[]ShareFetchResponseNodeEndpoint // Endpoints for all current leaders enumerated in PartitionData with error NOT_LEADER_OR_FOLLOWER. (versions: 0+)
 	rawTaggedFields          *[]protocol.TaggedField
 }
 
 type ShareFetchResponseResponse struct {
-	TopicId         uuid.UUID                              // The unique topic ID.
-	Partitions      *[]ShareFetchResponseResponsePartition // The topic partitions.
+	TopicId         uuid.UUID                              // The unique topic ID. (versions: 0+)
+	Partitions      *[]ShareFetchResponseResponsePartition // The topic partitions. (versions: 0+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
 type ShareFetchResponseResponsePartition struct {
-	PartitionIndex          int32                                                // The partition index.
-	ErrorCode               int16                                                // The fetch error code, or 0 if there was no fetch error.
-	ErrorMessage            *string                                              // The fetch error message, or null if there was no fetch error.
-	AcknowledgeErrorCode    int16                                                // The acknowledge error code, or 0 if there was no acknowledge error.
-	AcknowledgeErrorMessage *string                                              // The acknowledge error message, or null if there was no acknowledge error.
-	CurrentLeader           *ShareFetchResponseResponsePartitionCurrentLeader    // The current leader of the partition.
-	Records                 *[]byte                                              // The record data.
-	AcquiredRecords         *[]ShareFetchResponseResponsePartitionAcquiredRecord // The acquired records.
+	PartitionIndex          int32                                                // The partition index. (versions: 0+)
+	ErrorCode               int16                                                // The fetch error code, or 0 if there was no fetch error. (versions: 0+)
+	ErrorMessage            *string                                              // The fetch error message, or null if there was no fetch error. (versions: 0+, nullable: 0+)
+	AcknowledgeErrorCode    int16                                                // The acknowledge error code, or 0 if there was no acknowledge error. (versions: 0+)
+	AcknowledgeErrorMessage *string                                              // The acknowledge error message, or null if there was no acknowledge error. (versions: 0+, nullable: 0+)
+	CurrentLeader           *ShareFetchResponseResponsePartitionCurrentLeader    // The current leader of the partition. (versions: 0+)
+	Records                 *[]byte                                              // The record data. (versions: 0+, nullable: 0)
+	AcquiredRecords         *[]ShareFetchResponseResponsePartitionAcquiredRecord // The acquired records. (versions: 0+)
 	rawTaggedFields         *[]protocol.TaggedField
 }
 
 type ShareFetchResponseResponsePartitionCurrentLeader struct {
-	LeaderId        int32 // The ID of the current leader or -1 if the leader is unknown.
-	LeaderEpoch     int32 // The latest known leader epoch.
+	LeaderId        int32 // The ID of the current leader or -1 if the leader is unknown. (versions: 0+)
+	LeaderEpoch     int32 // The latest known leader epoch. (versions: 0+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
 type ShareFetchResponseResponsePartitionAcquiredRecord struct {
-	FirstOffset     int64 // The earliest offset in this batch of acquired records.
-	LastOffset      int64 // The last offset of this batch of acquired records.
-	DeliveryCount   int16 // The delivery count of this batch of acquired records.
+	FirstOffset     int64 // The earliest offset in this batch of acquired records. (versions: 0+)
+	LastOffset      int64 // The last offset of this batch of acquired records. (versions: 0+)
+	DeliveryCount   int16 // The delivery count of this batch of acquired records. (versions: 0+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
 type ShareFetchResponseNodeEndpoint struct {
-	NodeId          int32   // The ID of the associated node.
-	Host            *string // The node's hostname.
-	Port            int32   // The node's port.
-	Rack            *string // The rack of the node, or null if it has not been assigned to a rack.
+	NodeId          int32   // The ID of the associated node. (versions: 0+)
+	Host            *string // The node's hostname. (versions: 0+)
+	Port            int32   // The node's port. (versions: 0+)
+	Rack            *string // The rack of the node, or null if it has not been assigned to a rack. (versions: 0+, nullable: 0+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
@@ -92,6 +92,9 @@ func (res *ShareFetchResponse) Write(w io.Writer) error {
 	}
 
 	// Responses (versions: 0+)
+	if res.Responses == nil {
+		return fmt.Errorf("ShareFetchResponse.Responses must not be nil in version %d", res.ApiVersion)
+	}
 	if isResponseFlexible(res.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, res.responsesEncoder, res.Responses); err != nil {
 			return err
@@ -103,6 +106,9 @@ func (res *ShareFetchResponse) Write(w io.Writer) error {
 	}
 
 	// NodeEndpoints (versions: 0+)
+	if res.NodeEndpoints == nil {
+		return fmt.Errorf("ShareFetchResponse.NodeEndpoints must not be nil in version %d", res.ApiVersion)
+	}
 	if isResponseFlexible(res.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, res.nodeEndpointsEncoder, res.NodeEndpoints); err != nil {
 			return err
@@ -128,11 +134,13 @@ func (res *ShareFetchResponse) Write(w io.Writer) error {
 }
 
 // TODO: pass version and bytes only
-func (res *ShareFetchResponse) Read(response protocol.Response) error {
+func (res *ShareFetchResponse) Read(response *protocol.Response) error {
+	if response == nil || response.Body == nil {
+		return fmt.Errorf("ShareFetchResponse.Read: response or its body is nil")
+	}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
-
-	var err error
 
 	// ThrottleTimeMs (versions: 0+)
 	throttletimems, err := protocol.ReadInt32(r)
@@ -149,7 +157,7 @@ func (res *ShareFetchResponse) Read(response protocol.Response) error {
 	res.ErrorCode = errorcode
 
 	// ErrorMessage (versions: 0+)
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		errormessage, err := protocol.ReadNullableCompactString(r)
 		if err != nil {
 			return err
@@ -164,7 +172,7 @@ func (res *ShareFetchResponse) Read(response protocol.Response) error {
 	}
 
 	// AcquisitionLockTimeoutMs (versions: 1+)
-	if response.ApiVersion >= 1 {
+	if res.ApiVersion >= 1 {
 		acquisitionlocktimeoutms, err := protocol.ReadInt32(r)
 		if err != nil {
 			return err
@@ -173,7 +181,7 @@ func (res *ShareFetchResponse) Read(response protocol.Response) error {
 	}
 
 	// Responses (versions: 0+)
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		responses, err := protocol.ReadNullableCompactArray(r, res.responsesDecoder)
 		if err != nil {
 			return err
@@ -188,7 +196,7 @@ func (res *ShareFetchResponse) Read(response protocol.Response) error {
 	}
 
 	// NodeEndpoints (versions: 0+)
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		nodeendpoints, err := protocol.ReadNullableCompactArray(r, res.nodeEndpointsDecoder)
 		if err != nil {
 			return err
@@ -204,8 +212,7 @@ func (res *ShareFetchResponse) Read(response protocol.Response) error {
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return err
 		}
@@ -222,6 +229,9 @@ func (res *ShareFetchResponse) responsesEncoder(w io.Writer, value ShareFetchRes
 	}
 
 	// Partitions (versions: 0+)
+	if value.Partitions == nil {
+		return fmt.Errorf("ShareFetchResponseResponse.Partitions must not be nil in version %d", res.ApiVersion)
+	}
 	if isResponseFlexible(res.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, res.partitionsEncoder, value.Partitions); err != nil {
 			return err
@@ -248,7 +258,6 @@ func (res *ShareFetchResponse) responsesEncoder(w io.Writer, value ShareFetchRes
 
 func (res *ShareFetchResponse) responsesDecoder(r io.Reader) (ShareFetchResponseResponse, error) {
 	sharefetchresponseresponse := ShareFetchResponseResponse{}
-	var err error
 
 	// TopicId (versions: 0+)
 	topicid, err := protocol.ReadUUID(r)
@@ -274,8 +283,7 @@ func (res *ShareFetchResponse) responsesDecoder(r io.Reader) (ShareFetchResponse
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return sharefetchresponseresponse, err
 		}
@@ -324,16 +332,31 @@ func (res *ShareFetchResponse) partitionsEncoder(w io.Writer, value ShareFetchRe
 	}
 
 	// CurrentLeader (versions: 0+)
+	if value.CurrentLeader == nil {
+		return fmt.Errorf("ShareFetchResponseResponsePartition.CurrentLeader must not be nil in version %d", res.ApiVersion)
+	}
 	if err := res.currentLeaderEncoder(w, *value.CurrentLeader); err != nil {
 		return err
 	}
 
 	// Records (versions: 0+)
-	if err := protocol.WriteCompactRecords(w, value.Records); err != nil {
-		return err
+	if res.ApiVersion > 0 && value.Records == nil {
+		return fmt.Errorf("ShareFetchResponseResponsePartition.Records must not be nil in version %d", res.ApiVersion)
+	}
+	if isResponseFlexible(res.ApiVersion) {
+		if err := protocol.WriteCompactRecords(w, value.Records); err != nil {
+			return err
+		}
+	} else {
+		if err := protocol.WriteRecords(w, value.Records); err != nil {
+			return err
+		}
 	}
 
 	// AcquiredRecords (versions: 0+)
+	if value.AcquiredRecords == nil {
+		return fmt.Errorf("ShareFetchResponseResponsePartition.AcquiredRecords must not be nil in version %d", res.ApiVersion)
+	}
 	if isResponseFlexible(res.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, res.acquiredRecordsEncoder, value.AcquiredRecords); err != nil {
 			return err
@@ -360,7 +383,6 @@ func (res *ShareFetchResponse) partitionsEncoder(w io.Writer, value ShareFetchRe
 
 func (res *ShareFetchResponse) partitionsDecoder(r io.Reader) (ShareFetchResponseResponsePartition, error) {
 	sharefetchresponseresponsepartition := ShareFetchResponseResponsePartition{}
-	var err error
 
 	// PartitionIndex (versions: 0+)
 	partitionindex, err := protocol.ReadInt32(r)
@@ -419,17 +441,21 @@ func (res *ShareFetchResponse) partitionsDecoder(r io.Reader) (ShareFetchRespons
 		return sharefetchresponseresponsepartition, err
 	}
 	sharefetchresponseresponsepartition.CurrentLeader = &currentleader
-	if err != nil {
-		return sharefetchresponseresponsepartition, err
-	}
-	sharefetchresponseresponsepartition.CurrentLeader = &currentleader
 
 	// Records (versions: 0+)
-	records, err := protocol.ReadCompactRecords(r)
-	if err != nil {
-		return sharefetchresponseresponsepartition, err
+	if isResponseFlexible(res.ApiVersion) {
+		records, err := protocol.ReadCompactRecords(r)
+		if err != nil {
+			return sharefetchresponseresponsepartition, err
+		}
+		sharefetchresponseresponsepartition.Records = records
+	} else {
+		records, err := protocol.ReadRecords(r)
+		if err != nil {
+			return sharefetchresponseresponsepartition, err
+		}
+		sharefetchresponseresponsepartition.Records = records
 	}
-	sharefetchresponseresponsepartition.Records = records
 
 	// AcquiredRecords (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
@@ -448,8 +474,7 @@ func (res *ShareFetchResponse) partitionsDecoder(r io.Reader) (ShareFetchRespons
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return sharefetchresponseresponsepartition, err
 		}
@@ -486,7 +511,6 @@ func (res *ShareFetchResponse) currentLeaderEncoder(w io.Writer, value ShareFetc
 
 func (res *ShareFetchResponse) currentLeaderDecoder(r io.Reader) (ShareFetchResponseResponsePartitionCurrentLeader, error) {
 	sharefetchresponseresponsepartitioncurrentleader := ShareFetchResponseResponsePartitionCurrentLeader{}
-	var err error
 
 	// LeaderId (versions: 0+)
 	leaderid, err := protocol.ReadInt32(r)
@@ -504,8 +528,7 @@ func (res *ShareFetchResponse) currentLeaderDecoder(r io.Reader) (ShareFetchResp
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return sharefetchresponseresponsepartitioncurrentleader, err
 		}
@@ -547,7 +570,6 @@ func (res *ShareFetchResponse) acquiredRecordsEncoder(w io.Writer, value ShareFe
 
 func (res *ShareFetchResponse) acquiredRecordsDecoder(r io.Reader) (ShareFetchResponseResponsePartitionAcquiredRecord, error) {
 	sharefetchresponseresponsepartitionacquiredrecord := ShareFetchResponseResponsePartitionAcquiredRecord{}
-	var err error
 
 	// FirstOffset (versions: 0+)
 	firstoffset, err := protocol.ReadInt64(r)
@@ -572,8 +594,7 @@ func (res *ShareFetchResponse) acquiredRecordsDecoder(r io.Reader) (ShareFetchRe
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return sharefetchresponseresponsepartitionacquiredrecord, err
 		}
@@ -590,6 +611,9 @@ func (res *ShareFetchResponse) nodeEndpointsEncoder(w io.Writer, value ShareFetc
 	}
 
 	// Host (versions: 0+)
+	if value.Host == nil {
+		return fmt.Errorf("ShareFetchResponseNodeEndpoint.Host must not be nil in version %d", res.ApiVersion)
+	}
 	if isResponseFlexible(res.ApiVersion) {
 		if err := protocol.WriteCompactString(w, *value.Host); err != nil {
 			return err
@@ -632,7 +656,6 @@ func (res *ShareFetchResponse) nodeEndpointsEncoder(w io.Writer, value ShareFetc
 
 func (res *ShareFetchResponse) nodeEndpointsDecoder(r io.Reader) (ShareFetchResponseNodeEndpoint, error) {
 	sharefetchresponsenodeendpoint := ShareFetchResponseNodeEndpoint{}
-	var err error
 
 	// NodeId (versions: 0+)
 	nodeid, err := protocol.ReadInt32(r)
@@ -680,8 +703,7 @@ func (res *ShareFetchResponse) nodeEndpointsDecoder(r io.Reader) (ShareFetchResp
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return sharefetchresponsenodeendpoint, err
 		}
@@ -698,12 +720,15 @@ func (res *ShareFetchResponse) PrettyPrint() string {
 	fmt.Fprintf(w, "    <- ShareFetchResponse:\n")
 	fmt.Fprintf(w, "        ThrottleTimeMs: %v\n", res.ThrottleTimeMs)
 	fmt.Fprintf(w, "        ErrorCode: %v\n", res.ErrorCode)
+
 	if res.ErrorMessage != nil {
 		fmt.Fprintf(w, "        ErrorMessage: %v\n", *res.ErrorMessage)
 	} else {
 		fmt.Fprintf(w, "        ErrorMessage: nil\n")
 	}
+
 	fmt.Fprintf(w, "        AcquisitionLockTimeoutMs: %v\n", res.AcquisitionLockTimeoutMs)
+
 	if res.Responses != nil {
 		fmt.Fprintf(w, "        Responses:\n")
 		for _, responses := range *res.Responses {
@@ -713,6 +738,7 @@ func (res *ShareFetchResponse) PrettyPrint() string {
 	} else {
 		fmt.Fprintf(w, "        Responses: nil\n")
 	}
+
 	if res.NodeEndpoints != nil {
 		fmt.Fprintf(w, "        NodeEndpoints:\n")
 		for _, nodeendpoints := range *res.NodeEndpoints {
@@ -731,6 +757,7 @@ func (value *ShareFetchResponseResponse) PrettyPrint() string {
 	w := bytes.NewBuffer([]byte{})
 
 	fmt.Fprintf(w, "            TopicId: %v\n", value.TopicId)
+
 	if value.Partitions != nil {
 		fmt.Fprintf(w, "            Partitions:\n")
 		for _, partitions := range *value.Partitions {
@@ -750,24 +777,34 @@ func (value *ShareFetchResponseResponsePartition) PrettyPrint() string {
 
 	fmt.Fprintf(w, "                PartitionIndex: %v\n", value.PartitionIndex)
 	fmt.Fprintf(w, "                ErrorCode: %v\n", value.ErrorCode)
+
 	if value.ErrorMessage != nil {
 		fmt.Fprintf(w, "                ErrorMessage: %v\n", *value.ErrorMessage)
 	} else {
 		fmt.Fprintf(w, "                ErrorMessage: nil\n")
 	}
+
 	fmt.Fprintf(w, "                AcknowledgeErrorCode: %v\n", value.AcknowledgeErrorCode)
+
 	if value.AcknowledgeErrorMessage != nil {
 		fmt.Fprintf(w, "                AcknowledgeErrorMessage: %v\n", *value.AcknowledgeErrorMessage)
 	} else {
 		fmt.Fprintf(w, "                AcknowledgeErrorMessage: nil\n")
 	}
+
 	fmt.Fprintf(w, "                CurrentLeader:\n")
 	if value.CurrentLeader != nil {
 		fmt.Fprintf(w, "%s", value.CurrentLeader.PrettyPrint())
 	} else {
 		fmt.Fprintf(w, "                    nil\n")
 	}
-	fmt.Fprintf(w, "                Records: %v\n", value.Records)
+
+	if value.Records != nil {
+		fmt.Fprintf(w, "                Records: <%d bytes>\n", len(*value.Records))
+	} else {
+		fmt.Fprintf(w, "                Records: nil\n")
+	}
+
 	if value.AcquiredRecords != nil {
 		fmt.Fprintf(w, "                AcquiredRecords:\n")
 		for _, acquiredrecords := range *value.AcquiredRecords {
@@ -807,12 +844,15 @@ func (value *ShareFetchResponseNodeEndpoint) PrettyPrint() string {
 	w := bytes.NewBuffer([]byte{})
 
 	fmt.Fprintf(w, "            NodeId: %v\n", value.NodeId)
+
 	if value.Host != nil {
 		fmt.Fprintf(w, "            Host: %v\n", *value.Host)
 	} else {
 		fmt.Fprintf(w, "            Host: nil\n")
 	}
+
 	fmt.Fprintf(w, "            Port: %v\n", value.Port)
+
 	if value.Rack != nil {
 		fmt.Fprintf(w, "            Rack: %v\n", *value.Rack)
 	} else {

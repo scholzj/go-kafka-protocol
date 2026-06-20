@@ -10,48 +10,48 @@ import (
 
 type ProduceResponse struct {
 	ApiVersion      int16
-	Responses       *[]ProduceResponseResponse     // Each produce response.
-	ThrottleTimeMs  int32                          // The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.
-	NodeEndpoints   *[]ProduceResponseNodeEndpoint // tag 0: Endpoints for all current-leaders enumerated in PartitionProduceResponses, with errors NOT_LEADER_OR_FOLLOWER.
+	Responses       *[]ProduceResponseResponse     // Each produce response. (versions: 0+)
+	ThrottleTimeMs  int32                          // The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota. (versions: 1+)
+	NodeEndpoints   *[]ProduceResponseNodeEndpoint // tag 0: Endpoints for all current-leaders enumerated in PartitionProduceResponses, with errors NOT_LEADER_OR_FOLLOWER. (versions: 10+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
 type ProduceResponseResponse struct {
-	Name               *string                                     // The topic name.
-	TopicId            uuid.UUID                                   // The unique topic ID
-	PartitionResponses *[]ProduceResponseResponsePartitionResponse // Each partition that we produced to within the topic.
+	Name               *string                                     // The topic name. (versions: 0-12)
+	TopicId            uuid.UUID                                   // The unique topic ID (versions: 13+)
+	PartitionResponses *[]ProduceResponseResponsePartitionResponse // Each partition that we produced to within the topic. (versions: 0+)
 	rawTaggedFields    *[]protocol.TaggedField
 }
 
 type ProduceResponseResponsePartitionResponse struct {
-	Index           int32                                                  // The partition index.
-	ErrorCode       int16                                                  // The error code, or 0 if there was no error.
-	BaseOffset      int64                                                  // The base offset.
-	LogAppendTimeMs int64                                                  // The timestamp returned by broker after appending the messages. If CreateTime is used for the topic, the timestamp will be -1.  If LogAppendTime is used for the topic, the timestamp will be the broker local time when the messages are appended.
-	LogStartOffset  int64                                                  // The log start offset.
-	RecordErrors    *[]ProduceResponseResponsePartitionResponseRecordError // The batch indices of records that caused the batch to be dropped.
-	ErrorMessage    *string                                                // The global error message summarizing the common root cause of the records that caused the batch to be dropped.
-	CurrentLeader   *ProduceResponseResponsePartitionResponseCurrentLeader // tag 0: The leader broker that the producer should use for future requests.
+	Index           int32                                                  // The partition index. (versions: 0+)
+	ErrorCode       int16                                                  // The error code, or 0 if there was no error. (versions: 0+)
+	BaseOffset      int64                                                  // The base offset. (versions: 0+)
+	LogAppendTimeMs int64                                                  // The timestamp returned by broker after appending the messages. If CreateTime is used for the topic, the timestamp will be -1.  If LogAppendTime is used for the topic, the timestamp will be the broker local time when the messages are appended. (versions: 2+)
+	LogStartOffset  int64                                                  // The log start offset. (versions: 5+)
+	RecordErrors    *[]ProduceResponseResponsePartitionResponseRecordError // The batch indices of records that caused the batch to be dropped. (versions: 8+)
+	ErrorMessage    *string                                                // The global error message summarizing the common root cause of the records that caused the batch to be dropped. (versions: 8+, nullable: 8+)
+	CurrentLeader   *ProduceResponseResponsePartitionResponseCurrentLeader // tag 0: The leader broker that the producer should use for future requests. (versions: 10+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
 type ProduceResponseResponsePartitionResponseRecordError struct {
-	BatchIndex             int32   // The batch index of the record that caused the batch to be dropped.
-	BatchIndexErrorMessage *string // The error message of the record that caused the batch to be dropped.
+	BatchIndex             int32   // The batch index of the record that caused the batch to be dropped. (versions: 8+)
+	BatchIndexErrorMessage *string // The error message of the record that caused the batch to be dropped. (versions: 8+, nullable: 8+)
 	rawTaggedFields        *[]protocol.TaggedField
 }
 
 type ProduceResponseResponsePartitionResponseCurrentLeader struct {
-	LeaderId        int32 // The ID of the current leader or -1 if the leader is unknown.
-	LeaderEpoch     int32 // The latest known leader epoch.
+	LeaderId        int32 // The ID of the current leader or -1 if the leader is unknown. (versions: 10+)
+	LeaderEpoch     int32 // The latest known leader epoch. (versions: 10+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
 type ProduceResponseNodeEndpoint struct {
-	NodeId          int32   // The ID of the associated node.
-	Host            *string // The node's hostname.
-	Port            int32   // The node's port.
-	Rack            *string // The rack of the node, or null if it has not been assigned to a rack.
+	NodeId          int32   // The ID of the associated node. (versions: 10+)
+	Host            *string // The node's hostname. (versions: 10+)
+	Port            int32   // The node's port. (versions: 10+)
+	Rack            *string // The rack of the node, or null if it has not been assigned to a rack. (versions: 10+, nullable: 10+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
@@ -61,6 +61,9 @@ func isResponseFlexible(apiVersion int16) bool {
 
 func (res *ProduceResponse) Write(w io.Writer) error {
 	// Responses (versions: 0+)
+	if res.Responses == nil {
+		return fmt.Errorf("ProduceResponse.Responses must not be nil in version %d", res.ApiVersion)
+	}
 	if isResponseFlexible(res.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, res.responsesEncoder, res.Responses); err != nil {
 			return err
@@ -94,14 +97,16 @@ func (res *ProduceResponse) Write(w io.Writer) error {
 }
 
 // TODO: pass version and bytes only
-func (res *ProduceResponse) Read(response protocol.Response) error {
+func (res *ProduceResponse) Read(response *protocol.Response) error {
+	if response == nil || response.Body == nil {
+		return fmt.Errorf("ProduceResponse.Read: response or its body is nil")
+	}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
-	var err error
-
 	// Responses (versions: 0+)
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		responses, err := protocol.ReadNullableCompactArray(r, res.responsesDecoder)
 		if err != nil {
 			return err
@@ -116,7 +121,7 @@ func (res *ProduceResponse) Read(response protocol.Response) error {
 	}
 
 	// ThrottleTimeMs (versions: 1+)
-	if response.ApiVersion >= 1 {
+	if res.ApiVersion >= 1 {
 		throttletimems, err := protocol.ReadInt32(r)
 		if err != nil {
 			return err
@@ -126,8 +131,7 @@ func (res *ProduceResponse) Read(response protocol.Response) error {
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		err = protocol.ReadTaggedFields(r, res.taggedFieldsDecoder)
-		if err != nil {
+		if err := protocol.ReadTaggedFields(r, res.taggedFieldsDecoder); err != nil {
 			return err
 		}
 	}
@@ -138,6 +142,9 @@ func (res *ProduceResponse) Read(response protocol.Response) error {
 func (res *ProduceResponse) responsesEncoder(w io.Writer, value ProduceResponseResponse) error {
 	// Name (versions: 0-12)
 	if res.ApiVersion <= 12 {
+		if value.Name == nil {
+			return fmt.Errorf("ProduceResponseResponse.Name must not be nil in version %d", res.ApiVersion)
+		}
 		if isResponseFlexible(res.ApiVersion) {
 			if err := protocol.WriteCompactString(w, *value.Name); err != nil {
 				return err
@@ -157,6 +164,9 @@ func (res *ProduceResponse) responsesEncoder(w io.Writer, value ProduceResponseR
 	}
 
 	// PartitionResponses (versions: 0+)
+	if value.PartitionResponses == nil {
+		return fmt.Errorf("ProduceResponseResponse.PartitionResponses must not be nil in version %d", res.ApiVersion)
+	}
 	if isResponseFlexible(res.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, res.partitionResponsesEncoder, value.PartitionResponses); err != nil {
 			return err
@@ -183,7 +193,6 @@ func (res *ProduceResponse) responsesEncoder(w io.Writer, value ProduceResponseR
 
 func (res *ProduceResponse) responsesDecoder(r io.Reader) (ProduceResponseResponse, error) {
 	produceresponseresponse := ProduceResponseResponse{}
-	var err error
 
 	// Name (versions: 0-12)
 	if res.ApiVersion <= 12 {
@@ -228,8 +237,7 @@ func (res *ProduceResponse) responsesDecoder(r io.Reader) (ProduceResponseRespon
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return produceresponseresponse, err
 		}
@@ -271,6 +279,9 @@ func (res *ProduceResponse) partitionResponsesEncoder(w io.Writer, value Produce
 
 	// RecordErrors (versions: 8+)
 	if res.ApiVersion >= 8 {
+		if value.RecordErrors == nil {
+			return fmt.Errorf("ProduceResponseResponsePartitionResponse.RecordErrors must not be nil in version %d", res.ApiVersion)
+		}
 		if isResponseFlexible(res.ApiVersion) {
 			if err := protocol.WriteNullableCompactArray(w, res.recordErrorsEncoder, value.RecordErrors); err != nil {
 				return err
@@ -298,6 +309,9 @@ func (res *ProduceResponse) partitionResponsesEncoder(w io.Writer, value Produce
 	// CurrentLeader (versions: 10+)
 	if !isResponseFlexible(res.ApiVersion) {
 		if res.ApiVersion >= 10 {
+			if value.CurrentLeader == nil {
+				return fmt.Errorf("ProduceResponseResponsePartitionResponse.CurrentLeader must not be nil in version %d", res.ApiVersion)
+			}
 			if err := res.currentLeaderEncoder(w, *value.CurrentLeader); err != nil {
 				return err
 			}
@@ -321,7 +335,6 @@ func (res *ProduceResponse) partitionResponsesEncoder(w io.Writer, value Produce
 
 func (res *ProduceResponse) partitionResponsesDecoder(r io.Reader) (ProduceResponseResponsePartitionResponse, error) {
 	produceresponseresponsepartitionresponse := ProduceResponseResponsePartitionResponse{}
-	var err error
 
 	// Index (versions: 0+)
 	index, err := protocol.ReadInt32(r)
@@ -404,20 +417,14 @@ func (res *ProduceResponse) partitionResponsesDecoder(r io.Reader) (ProduceRespo
 				return produceresponseresponsepartitionresponse, err
 			}
 			produceresponseresponsepartitionresponse.CurrentLeader = &currentleader
-			if err != nil {
-				return produceresponseresponsepartitionresponse, err
-			}
-			produceresponseresponsepartitionresponse.CurrentLeader = &currentleader
 		}
 	}
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		// Decode tagged fields
-		err = protocol.ReadTaggedFields(r, func(r io.Reader, tag uint64, tagLength uint64) error {
+		if err := protocol.ReadTaggedFields(r, func(r io.Reader, tag uint64, tagLength uint64) error {
 			return res.taggedFieldsDecoderPartitionResponses(r, tag, tagLength, &produceresponseresponsepartitionresponse)
-		})
-		if err != nil {
+		}); err != nil {
 			return produceresponseresponsepartitionresponse, err
 		}
 	}
@@ -430,7 +437,7 @@ func (res *ProduceResponse) taggedFieldsEncoderPartitionResponses(value ProduceR
 	if value.rawTaggedFields != nil {
 		rawTaggedFieldsLen = len(*value.rawTaggedFields)
 	}
-	taggedFields := make([]protocol.TaggedField, 0, 2+rawTaggedFieldsLen)
+	taggedFields := make([]protocol.TaggedField, 0, 1+rawTaggedFieldsLen)
 
 	buf := bytes.NewBuffer(make([]byte, 0))
 
@@ -464,12 +471,12 @@ func (res *ProduceResponse) taggedFieldsDecoderPartitionResponses(r io.Reader, t
 		}
 		value.CurrentLeader = &currentleaderVal
 	default:
-		// Decode as raw tags
-		taggedField, err := protocol.ReadRawTaggedField(r)
+		// Unknown tag - keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
+		field, err := io.ReadAll(r)
 		if err != nil {
 			return err
 		}
-		rawTaggedFields = append(rawTaggedFields, taggedField)
+		rawTaggedFields = append(rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
 	}
 
 	// Set the raw tagged fields
@@ -515,7 +522,6 @@ func (res *ProduceResponse) recordErrorsEncoder(w io.Writer, value ProduceRespon
 
 func (res *ProduceResponse) recordErrorsDecoder(r io.Reader) (ProduceResponseResponsePartitionResponseRecordError, error) {
 	produceresponseresponsepartitionresponserecorderror := ProduceResponseResponsePartitionResponseRecordError{}
-	var err error
 
 	// BatchIndex (versions: 8+)
 	if res.ApiVersion >= 8 {
@@ -545,8 +551,7 @@ func (res *ProduceResponse) recordErrorsDecoder(r io.Reader) (ProduceResponseRes
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return produceresponseresponsepartitionresponserecorderror, err
 		}
@@ -587,7 +592,6 @@ func (res *ProduceResponse) currentLeaderEncoder(w io.Writer, value ProduceRespo
 
 func (res *ProduceResponse) currentLeaderDecoder(r io.Reader) (ProduceResponseResponsePartitionResponseCurrentLeader, error) {
 	produceresponseresponsepartitionresponsecurrentleader := ProduceResponseResponsePartitionResponseCurrentLeader{}
-	var err error
 
 	// LeaderId (versions: 10+)
 	if res.ApiVersion >= 10 {
@@ -609,8 +613,7 @@ func (res *ProduceResponse) currentLeaderDecoder(r io.Reader) (ProduceResponseRe
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return produceresponseresponsepartitionresponsecurrentleader, err
 		}
@@ -630,6 +633,9 @@ func (res *ProduceResponse) nodeEndpointsEncoder(w io.Writer, value ProduceRespo
 
 	// Host (versions: 10+)
 	if res.ApiVersion >= 10 {
+		if value.Host == nil {
+			return fmt.Errorf("ProduceResponseNodeEndpoint.Host must not be nil in version %d", res.ApiVersion)
+		}
 		if isResponseFlexible(res.ApiVersion) {
 			if err := protocol.WriteCompactString(w, *value.Host); err != nil {
 				return err
@@ -677,7 +683,6 @@ func (res *ProduceResponse) nodeEndpointsEncoder(w io.Writer, value ProduceRespo
 
 func (res *ProduceResponse) nodeEndpointsDecoder(r io.Reader) (ProduceResponseNodeEndpoint, error) {
 	produceresponsenodeendpoint := ProduceResponseNodeEndpoint{}
-	var err error
 
 	// NodeId (versions: 10+)
 	if res.ApiVersion >= 10 {
@@ -733,8 +738,7 @@ func (res *ProduceResponse) nodeEndpointsDecoder(r io.Reader) (ProduceResponseNo
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return produceresponsenodeendpoint, err
 		}
@@ -749,7 +753,7 @@ func (res *ProduceResponse) taggedFieldsEncoder() ([]protocol.TaggedField, error
 	if res.rawTaggedFields != nil {
 		rawTaggedFieldsLen = len(*res.rawTaggedFields)
 	}
-	taggedFields := make([]protocol.TaggedField, 0, 2+rawTaggedFieldsLen)
+	taggedFields := make([]protocol.TaggedField, 0, 1+rawTaggedFieldsLen)
 
 	buf := bytes.NewBuffer(make([]byte, 0))
 
@@ -783,12 +787,12 @@ func (res *ProduceResponse) taggedFieldsDecoder(r io.Reader, tag uint64, tagLeng
 		}
 		res.NodeEndpoints = nodeendpoints
 	default:
-		// Decode as raw tags
-		taggedField, err := protocol.ReadRawTaggedField(r)
+		// Unknown tag - keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
+		field, err := io.ReadAll(r)
 		if err != nil {
 			return err
 		}
-		rawTaggedFields = append(rawTaggedFields, taggedField)
+		rawTaggedFields = append(rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
 	}
 
 	// Set the raw tagged fields
@@ -802,6 +806,7 @@ func (res *ProduceResponse) PrettyPrint() string {
 	w := bytes.NewBuffer([]byte{})
 
 	fmt.Fprintf(w, "    <- ProduceResponse:\n")
+
 	if res.Responses != nil {
 		fmt.Fprintf(w, "        Responses:\n")
 		for _, responses := range *res.Responses {
@@ -811,7 +816,9 @@ func (res *ProduceResponse) PrettyPrint() string {
 	} else {
 		fmt.Fprintf(w, "        Responses: nil\n")
 	}
+
 	fmt.Fprintf(w, "        ThrottleTimeMs: %v\n", res.ThrottleTimeMs)
+
 	if res.NodeEndpoints != nil {
 		fmt.Fprintf(w, "        NodeEndpoints:\n")
 		for _, nodeendpoints := range *res.NodeEndpoints {
@@ -834,7 +841,9 @@ func (value *ProduceResponseResponse) PrettyPrint() string {
 	} else {
 		fmt.Fprintf(w, "            Name: nil\n")
 	}
+
 	fmt.Fprintf(w, "            TopicId: %v\n", value.TopicId)
+
 	if value.PartitionResponses != nil {
 		fmt.Fprintf(w, "            PartitionResponses:\n")
 		for _, partitionresponses := range *value.PartitionResponses {
@@ -857,6 +866,7 @@ func (value *ProduceResponseResponsePartitionResponse) PrettyPrint() string {
 	fmt.Fprintf(w, "                BaseOffset: %v\n", value.BaseOffset)
 	fmt.Fprintf(w, "                LogAppendTimeMs: %v\n", value.LogAppendTimeMs)
 	fmt.Fprintf(w, "                LogStartOffset: %v\n", value.LogStartOffset)
+
 	if value.RecordErrors != nil {
 		fmt.Fprintf(w, "                RecordErrors:\n")
 		for _, recorderrors := range *value.RecordErrors {
@@ -866,11 +876,13 @@ func (value *ProduceResponseResponsePartitionResponse) PrettyPrint() string {
 	} else {
 		fmt.Fprintf(w, "                RecordErrors: nil\n")
 	}
+
 	if value.ErrorMessage != nil {
 		fmt.Fprintf(w, "                ErrorMessage: %v\n", *value.ErrorMessage)
 	} else {
 		fmt.Fprintf(w, "                ErrorMessage: nil\n")
 	}
+
 	fmt.Fprintf(w, "                CurrentLeader:\n")
 	if value.CurrentLeader != nil {
 		fmt.Fprintf(w, "%s", value.CurrentLeader.PrettyPrint())
@@ -886,6 +898,7 @@ func (value *ProduceResponseResponsePartitionResponseRecordError) PrettyPrint() 
 	w := bytes.NewBuffer([]byte{})
 
 	fmt.Fprintf(w, "                    BatchIndex: %v\n", value.BatchIndex)
+
 	if value.BatchIndexErrorMessage != nil {
 		fmt.Fprintf(w, "                    BatchIndexErrorMessage: %v\n", *value.BatchIndexErrorMessage)
 	} else {
@@ -910,12 +923,15 @@ func (value *ProduceResponseNodeEndpoint) PrettyPrint() string {
 	w := bytes.NewBuffer([]byte{})
 
 	fmt.Fprintf(w, "            NodeId: %v\n", value.NodeId)
+
 	if value.Host != nil {
 		fmt.Fprintf(w, "            Host: %v\n", *value.Host)
 	} else {
 		fmt.Fprintf(w, "            Host: nil\n")
 	}
+
 	fmt.Fprintf(w, "            Port: %v\n", value.Port)
+
 	if value.Rack != nil {
 		fmt.Fprintf(w, "            Rack: %v\n", *value.Rack)
 	} else {

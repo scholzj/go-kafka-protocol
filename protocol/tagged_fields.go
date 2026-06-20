@@ -1,6 +1,7 @@
 package protocol
 
 import (
+	"bytes"
 	"io"
 )
 
@@ -108,8 +109,15 @@ func ReadTaggedFields(r io.Reader, decoder TaggedFieldsDecoder) error {
 			return err
 		}
 
-		// Use the decoded to decode the fields
-		err = decoder(r, tag, tagLength)
+		// Read exactly tagLength bytes for this tag and decode from a reader bounded to them.
+		// This keeps any unknown trailing bytes (e.g. fields a newer peer added to a known
+		// tagged struct) confined to the field, so they cannot desync the rest of the message.
+		field := make([]byte, tagLength)
+		if _, err := io.ReadFull(r, field); err != nil {
+			return err
+		}
+
+		err = decoder(bytes.NewReader(field), tag, tagLength)
 		if err != nil {
 			return err
 		}

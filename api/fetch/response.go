@@ -10,65 +10,65 @@ import (
 
 type FetchResponse struct {
 	ApiVersion      int16
-	ThrottleTimeMs  int32                        // The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.
-	ErrorCode       int16                        // The top level response error code.
-	SessionId       int32                        // The fetch session ID, or 0 if this is not part of a fetch session.
-	Responses       *[]FetchResponseResponse     // The response topics.
-	NodeEndpoints   *[]FetchResponseNodeEndpoint // tag 0: Endpoints for all current-leaders enumerated in PartitionData, with errors NOT_LEADER_OR_FOLLOWER & FENCED_LEADER_EPOCH.
+	ThrottleTimeMs  int32                        // The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota. (versions: 1+)
+	ErrorCode       int16                        // The top level response error code. (versions: 7+)
+	SessionId       int32                        // The fetch session ID, or 0 if this is not part of a fetch session. (versions: 7+)
+	Responses       *[]FetchResponseResponse     // The response topics. (versions: 0+)
+	NodeEndpoints   *[]FetchResponseNodeEndpoint // tag 0: Endpoints for all current-leaders enumerated in PartitionData, with errors NOT_LEADER_OR_FOLLOWER & FENCED_LEADER_EPOCH. (versions: 16+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
 type FetchResponseResponse struct {
-	Topic           *string                           // The topic name.
-	TopicId         uuid.UUID                         // The unique topic ID.
-	Partitions      *[]FetchResponseResponsePartition // The topic partitions.
+	Topic           *string                           // The topic name. (versions: 0-12)
+	TopicId         uuid.UUID                         // The unique topic ID. (versions: 13+)
+	Partitions      *[]FetchResponseResponsePartition // The topic partitions. (versions: 0+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
 type FetchResponseResponsePartition struct {
-	PartitionIndex       int32                                               // The partition index.
-	ErrorCode            int16                                               // The error code, or 0 if there was no fetch error.
-	HighWatermark        int64                                               // The current high water mark.
-	LastStableOffset     int64                                               // The last stable offset (or LSO) of the partition. This is the last offset such that the state of all transactional records prior to this offset have been decided (ABORTED or COMMITTED).
-	LogStartOffset       int64                                               // The current log start offset.
-	DivergingEpoch       *FetchResponseResponsePartitionDivergingEpoch       // tag 0: In case divergence is detected based on the `LastFetchedEpoch` and `FetchOffset` in the request, this field indicates the largest epoch and its end offset such that subsequent records are known to diverge.
-	CurrentLeader        *FetchResponseResponsePartitionCurrentLeader        // tag 1: The current leader of the partition.
-	SnapshotId           *FetchResponseResponsePartitionSnapshotId           // tag 2: In the case of fetching an offset less than the LogStartOffset, this is the end offset and epoch that should be used in the FetchSnapshot request.
-	AbortedTransactions  *[]FetchResponseResponsePartitionAbortedTransaction // The aborted transactions.
-	PreferredReadReplica int32                                               // The preferred read replica for the consumer to use on its next fetch request.
-	Records              *[]byte                                             // The record data.
+	PartitionIndex       int32                                               // The partition index. (versions: 0+)
+	ErrorCode            int16                                               // The error code, or 0 if there was no fetch error. (versions: 0+)
+	HighWatermark        int64                                               // The current high water mark. (versions: 0+)
+	LastStableOffset     int64                                               // The last stable offset (or LSO) of the partition. This is the last offset such that the state of all transactional records prior to this offset have been decided (ABORTED or COMMITTED). (versions: 4+)
+	LogStartOffset       int64                                               // The current log start offset. (versions: 5+)
+	DivergingEpoch       *FetchResponseResponsePartitionDivergingEpoch       // tag 0: In case divergence is detected based on the `LastFetchedEpoch` and `FetchOffset` in the request, this field indicates the largest epoch and its end offset such that subsequent records are known to diverge. (versions: 12+)
+	CurrentLeader        *FetchResponseResponsePartitionCurrentLeader        // tag 1: The current leader of the partition. (versions: 12+)
+	SnapshotId           *FetchResponseResponsePartitionSnapshotId           // tag 2: In the case of fetching an offset less than the LogStartOffset, this is the end offset and epoch that should be used in the FetchSnapshot request. (versions: 12+)
+	AbortedTransactions  *[]FetchResponseResponsePartitionAbortedTransaction // The aborted transactions. (versions: 4+, nullable: 4+)
+	PreferredReadReplica int32                                               // The preferred read replica for the consumer to use on its next fetch request. (versions: 11+)
+	Records              *[]byte                                             // The record data. (versions: 0+, nullable: 0+)
 	rawTaggedFields      *[]protocol.TaggedField
 }
 
 type FetchResponseResponsePartitionDivergingEpoch struct {
-	Epoch           int32 // The largest epoch.
-	EndOffset       int64 // The end offset of the epoch.
+	Epoch           int32 // The largest epoch. (versions: 12+)
+	EndOffset       int64 // The end offset of the epoch. (versions: 12+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
 type FetchResponseResponsePartitionCurrentLeader struct {
-	LeaderId        int32 // The ID of the current leader or -1 if the leader is unknown.
-	LeaderEpoch     int32 // The latest known leader epoch.
+	LeaderId        int32 // The ID of the current leader or -1 if the leader is unknown. (versions: 12+)
+	LeaderEpoch     int32 // The latest known leader epoch. (versions: 12+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
 type FetchResponseResponsePartitionSnapshotId struct {
-	EndOffset       int64 // The end offset of the epoch.
-	Epoch           int32 // The largest epoch.
+	EndOffset       int64 // The end offset of the epoch. (versions: 0+)
+	Epoch           int32 // The largest epoch. (versions: 0+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
 type FetchResponseResponsePartitionAbortedTransaction struct {
-	ProducerId      int64 // The producer id associated with the aborted transaction.
-	FirstOffset     int64 // The first offset in the aborted transaction.
+	ProducerId      int64 // The producer id associated with the aborted transaction. (versions: 4+)
+	FirstOffset     int64 // The first offset in the aborted transaction. (versions: 4+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
 type FetchResponseNodeEndpoint struct {
-	NodeId          int32   // The ID of the associated node.
-	Host            *string // The node's hostname.
-	Port            int32   // The node's port.
-	Rack            *string // The rack of the node, or null if it has not been assigned to a rack.
+	NodeId          int32   // The ID of the associated node. (versions: 16+)
+	Host            *string // The node's hostname. (versions: 16+)
+	Port            int32   // The node's port. (versions: 16+)
+	Rack            *string // The rack of the node, or null if it has not been assigned to a rack. (versions: 16+, nullable: 16+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
@@ -99,6 +99,9 @@ func (res *FetchResponse) Write(w io.Writer) error {
 	}
 
 	// Responses (versions: 0+)
+	if res.Responses == nil {
+		return fmt.Errorf("FetchResponse.Responses must not be nil in version %d", res.ApiVersion)
+	}
 	if isResponseFlexible(res.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, res.responsesEncoder, res.Responses); err != nil {
 			return err
@@ -125,14 +128,16 @@ func (res *FetchResponse) Write(w io.Writer) error {
 }
 
 // TODO: pass version and bytes only
-func (res *FetchResponse) Read(response protocol.Response) error {
+func (res *FetchResponse) Read(response *protocol.Response) error {
+	if response == nil || response.Body == nil {
+		return fmt.Errorf("FetchResponse.Read: response or its body is nil")
+	}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
-	var err error
-
 	// ThrottleTimeMs (versions: 1+)
-	if response.ApiVersion >= 1 {
+	if res.ApiVersion >= 1 {
 		throttletimems, err := protocol.ReadInt32(r)
 		if err != nil {
 			return err
@@ -141,7 +146,7 @@ func (res *FetchResponse) Read(response protocol.Response) error {
 	}
 
 	// ErrorCode (versions: 7+)
-	if response.ApiVersion >= 7 {
+	if res.ApiVersion >= 7 {
 		errorcode, err := protocol.ReadInt16(r)
 		if err != nil {
 			return err
@@ -150,7 +155,7 @@ func (res *FetchResponse) Read(response protocol.Response) error {
 	}
 
 	// SessionId (versions: 7+)
-	if response.ApiVersion >= 7 {
+	if res.ApiVersion >= 7 {
 		sessionid, err := protocol.ReadInt32(r)
 		if err != nil {
 			return err
@@ -159,7 +164,7 @@ func (res *FetchResponse) Read(response protocol.Response) error {
 	}
 
 	// Responses (versions: 0+)
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		responses, err := protocol.ReadNullableCompactArray(r, res.responsesDecoder)
 		if err != nil {
 			return err
@@ -175,8 +180,7 @@ func (res *FetchResponse) Read(response protocol.Response) error {
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		err = protocol.ReadTaggedFields(r, res.taggedFieldsDecoder)
-		if err != nil {
+		if err := protocol.ReadTaggedFields(r, res.taggedFieldsDecoder); err != nil {
 			return err
 		}
 	}
@@ -187,6 +191,9 @@ func (res *FetchResponse) Read(response protocol.Response) error {
 func (res *FetchResponse) responsesEncoder(w io.Writer, value FetchResponseResponse) error {
 	// Topic (versions: 0-12)
 	if res.ApiVersion <= 12 {
+		if value.Topic == nil {
+			return fmt.Errorf("FetchResponseResponse.Topic must not be nil in version %d", res.ApiVersion)
+		}
 		if isResponseFlexible(res.ApiVersion) {
 			if err := protocol.WriteCompactString(w, *value.Topic); err != nil {
 				return err
@@ -206,6 +213,9 @@ func (res *FetchResponse) responsesEncoder(w io.Writer, value FetchResponseRespo
 	}
 
 	// Partitions (versions: 0+)
+	if value.Partitions == nil {
+		return fmt.Errorf("FetchResponseResponse.Partitions must not be nil in version %d", res.ApiVersion)
+	}
 	if isResponseFlexible(res.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, res.partitionsEncoder, value.Partitions); err != nil {
 			return err
@@ -232,7 +242,6 @@ func (res *FetchResponse) responsesEncoder(w io.Writer, value FetchResponseRespo
 
 func (res *FetchResponse) responsesDecoder(r io.Reader) (FetchResponseResponse, error) {
 	fetchresponseresponse := FetchResponseResponse{}
-	var err error
 
 	// Topic (versions: 0-12)
 	if res.ApiVersion <= 12 {
@@ -277,8 +286,7 @@ func (res *FetchResponse) responsesDecoder(r io.Reader) (FetchResponseResponse, 
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return fetchresponseresponse, err
 		}
@@ -321,6 +329,9 @@ func (res *FetchResponse) partitionsEncoder(w io.Writer, value FetchResponseResp
 	// DivergingEpoch (versions: 12+)
 	if !isResponseFlexible(res.ApiVersion) {
 		if res.ApiVersion >= 12 {
+			if value.DivergingEpoch == nil {
+				return fmt.Errorf("FetchResponseResponsePartition.DivergingEpoch must not be nil in version %d", res.ApiVersion)
+			}
 			if err := res.divergingEpochEncoder(w, *value.DivergingEpoch); err != nil {
 				return err
 			}
@@ -330,6 +341,9 @@ func (res *FetchResponse) partitionsEncoder(w io.Writer, value FetchResponseResp
 	// CurrentLeader (versions: 12+)
 	if !isResponseFlexible(res.ApiVersion) {
 		if res.ApiVersion >= 12 {
+			if value.CurrentLeader == nil {
+				return fmt.Errorf("FetchResponseResponsePartition.CurrentLeader must not be nil in version %d", res.ApiVersion)
+			}
 			if err := res.currentLeaderEncoder(w, *value.CurrentLeader); err != nil {
 				return err
 			}
@@ -339,6 +353,9 @@ func (res *FetchResponse) partitionsEncoder(w io.Writer, value FetchResponseResp
 	// SnapshotId (versions: 12+)
 	if !isResponseFlexible(res.ApiVersion) {
 		if res.ApiVersion >= 12 {
+			if value.SnapshotId == nil {
+				return fmt.Errorf("FetchResponseResponsePartition.SnapshotId must not be nil in version %d", res.ApiVersion)
+			}
 			if err := res.snapshotIdEncoder(w, *value.SnapshotId); err != nil {
 				return err
 			}
@@ -366,8 +383,14 @@ func (res *FetchResponse) partitionsEncoder(w io.Writer, value FetchResponseResp
 	}
 
 	// Records (versions: 0+)
-	if err := protocol.WriteCompactRecords(w, value.Records); err != nil {
-		return err
+	if isResponseFlexible(res.ApiVersion) {
+		if err := protocol.WriteCompactRecords(w, value.Records); err != nil {
+			return err
+		}
+	} else {
+		if err := protocol.WriteRecords(w, value.Records); err != nil {
+			return err
+		}
 	}
 
 	// Tagged fields
@@ -387,7 +410,6 @@ func (res *FetchResponse) partitionsEncoder(w io.Writer, value FetchResponseResp
 
 func (res *FetchResponse) partitionsDecoder(r io.Reader) (FetchResponseResponsePartition, error) {
 	fetchresponseresponsepartition := FetchResponseResponsePartition{}
-	var err error
 
 	// PartitionIndex (versions: 0+)
 	partitionindex, err := protocol.ReadInt32(r)
@@ -436,10 +458,6 @@ func (res *FetchResponse) partitionsDecoder(r io.Reader) (FetchResponseResponseP
 				return fetchresponseresponsepartition, err
 			}
 			fetchresponseresponsepartition.DivergingEpoch = &divergingepoch
-			if err != nil {
-				return fetchresponseresponsepartition, err
-			}
-			fetchresponseresponsepartition.DivergingEpoch = &divergingepoch
 		}
 	}
 
@@ -451,10 +469,6 @@ func (res *FetchResponse) partitionsDecoder(r io.Reader) (FetchResponseResponseP
 				return fetchresponseresponsepartition, err
 			}
 			fetchresponseresponsepartition.CurrentLeader = &currentleader
-			if err != nil {
-				return fetchresponseresponsepartition, err
-			}
-			fetchresponseresponsepartition.CurrentLeader = &currentleader
 		}
 	}
 
@@ -462,10 +476,6 @@ func (res *FetchResponse) partitionsDecoder(r io.Reader) (FetchResponseResponseP
 	if !isResponseFlexible(res.ApiVersion) {
 		if res.ApiVersion >= 12 {
 			snapshotid, err := res.snapshotIdDecoder(r)
-			if err != nil {
-				return fetchresponseresponsepartition, err
-			}
-			fetchresponseresponsepartition.SnapshotId = &snapshotid
 			if err != nil {
 				return fetchresponseresponsepartition, err
 			}
@@ -500,19 +510,25 @@ func (res *FetchResponse) partitionsDecoder(r io.Reader) (FetchResponseResponseP
 	}
 
 	// Records (versions: 0+)
-	records, err := protocol.ReadCompactRecords(r)
-	if err != nil {
-		return fetchresponseresponsepartition, err
+	if isResponseFlexible(res.ApiVersion) {
+		records, err := protocol.ReadCompactRecords(r)
+		if err != nil {
+			return fetchresponseresponsepartition, err
+		}
+		fetchresponseresponsepartition.Records = records
+	} else {
+		records, err := protocol.ReadRecords(r)
+		if err != nil {
+			return fetchresponseresponsepartition, err
+		}
+		fetchresponseresponsepartition.Records = records
 	}
-	fetchresponseresponsepartition.Records = records
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		// Decode tagged fields
-		err = protocol.ReadTaggedFields(r, func(r io.Reader, tag uint64, tagLength uint64) error {
+		if err := protocol.ReadTaggedFields(r, func(r io.Reader, tag uint64, tagLength uint64) error {
 			return res.taggedFieldsDecoderPartitions(r, tag, tagLength, &fetchresponseresponsepartition)
-		})
-		if err != nil {
+		}); err != nil {
 			return fetchresponseresponsepartition, err
 		}
 	}
@@ -525,7 +541,7 @@ func (res *FetchResponse) taggedFieldsEncoderPartitions(value FetchResponseRespo
 	if value.rawTaggedFields != nil {
 		rawTaggedFieldsLen = len(*value.rawTaggedFields)
 	}
-	taggedFields := make([]protocol.TaggedField, 0, 4+rawTaggedFieldsLen)
+	taggedFields := make([]protocol.TaggedField, 0, 3+rawTaggedFieldsLen)
 
 	buf := bytes.NewBuffer(make([]byte, 0))
 
@@ -593,12 +609,12 @@ func (res *FetchResponse) taggedFieldsDecoderPartitions(r io.Reader, tag uint64,
 		}
 		value.SnapshotId = &snapshotidVal
 	default:
-		// Decode as raw tags
-		taggedField, err := protocol.ReadRawTaggedField(r)
+		// Unknown tag - keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
+		field, err := io.ReadAll(r)
 		if err != nil {
 			return err
 		}
-		rawTaggedFields = append(rawTaggedFields, taggedField)
+		rawTaggedFields = append(rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
 	}
 
 	// Set the raw tagged fields
@@ -638,7 +654,6 @@ func (res *FetchResponse) divergingEpochEncoder(w io.Writer, value FetchResponse
 
 func (res *FetchResponse) divergingEpochDecoder(r io.Reader) (FetchResponseResponsePartitionDivergingEpoch, error) {
 	fetchresponseresponsepartitiondivergingepoch := FetchResponseResponsePartitionDivergingEpoch{}
-	var err error
 
 	// Epoch (versions: 12+)
 	if res.ApiVersion >= 12 {
@@ -660,8 +675,7 @@ func (res *FetchResponse) divergingEpochDecoder(r io.Reader) (FetchResponseRespo
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return fetchresponseresponsepartitiondivergingepoch, err
 		}
@@ -702,7 +716,6 @@ func (res *FetchResponse) currentLeaderEncoder(w io.Writer, value FetchResponseR
 
 func (res *FetchResponse) currentLeaderDecoder(r io.Reader) (FetchResponseResponsePartitionCurrentLeader, error) {
 	fetchresponseresponsepartitioncurrentleader := FetchResponseResponsePartitionCurrentLeader{}
-	var err error
 
 	// LeaderId (versions: 12+)
 	if res.ApiVersion >= 12 {
@@ -724,8 +737,7 @@ func (res *FetchResponse) currentLeaderDecoder(r io.Reader) (FetchResponseRespon
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return fetchresponseresponsepartitioncurrentleader, err
 		}
@@ -762,7 +774,6 @@ func (res *FetchResponse) snapshotIdEncoder(w io.Writer, value FetchResponseResp
 
 func (res *FetchResponse) snapshotIdDecoder(r io.Reader) (FetchResponseResponsePartitionSnapshotId, error) {
 	fetchresponseresponsepartitionsnapshotid := FetchResponseResponsePartitionSnapshotId{}
-	var err error
 
 	// EndOffset (versions: 0+)
 	endoffset, err := protocol.ReadInt64(r)
@@ -780,8 +791,7 @@ func (res *FetchResponse) snapshotIdDecoder(r io.Reader) (FetchResponseResponseP
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return fetchresponseresponsepartitionsnapshotid, err
 		}
@@ -822,7 +832,6 @@ func (res *FetchResponse) abortedTransactionsEncoder(w io.Writer, value FetchRes
 
 func (res *FetchResponse) abortedTransactionsDecoder(r io.Reader) (FetchResponseResponsePartitionAbortedTransaction, error) {
 	fetchresponseresponsepartitionabortedtransaction := FetchResponseResponsePartitionAbortedTransaction{}
-	var err error
 
 	// ProducerId (versions: 4+)
 	if res.ApiVersion >= 4 {
@@ -844,8 +853,7 @@ func (res *FetchResponse) abortedTransactionsDecoder(r io.Reader) (FetchResponse
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return fetchresponseresponsepartitionabortedtransaction, err
 		}
@@ -865,6 +873,9 @@ func (res *FetchResponse) nodeEndpointsEncoder(w io.Writer, value FetchResponseN
 
 	// Host (versions: 16+)
 	if res.ApiVersion >= 16 {
+		if value.Host == nil {
+			return fmt.Errorf("FetchResponseNodeEndpoint.Host must not be nil in version %d", res.ApiVersion)
+		}
 		if isResponseFlexible(res.ApiVersion) {
 			if err := protocol.WriteCompactString(w, *value.Host); err != nil {
 				return err
@@ -912,7 +923,6 @@ func (res *FetchResponse) nodeEndpointsEncoder(w io.Writer, value FetchResponseN
 
 func (res *FetchResponse) nodeEndpointsDecoder(r io.Reader) (FetchResponseNodeEndpoint, error) {
 	fetchresponsenodeendpoint := FetchResponseNodeEndpoint{}
-	var err error
 
 	// NodeId (versions: 16+)
 	if res.ApiVersion >= 16 {
@@ -968,8 +978,7 @@ func (res *FetchResponse) nodeEndpointsDecoder(r io.Reader) (FetchResponseNodeEn
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return fetchresponsenodeendpoint, err
 		}
@@ -984,7 +993,7 @@ func (res *FetchResponse) taggedFieldsEncoder() ([]protocol.TaggedField, error) 
 	if res.rawTaggedFields != nil {
 		rawTaggedFieldsLen = len(*res.rawTaggedFields)
 	}
-	taggedFields := make([]protocol.TaggedField, 0, 2+rawTaggedFieldsLen)
+	taggedFields := make([]protocol.TaggedField, 0, 1+rawTaggedFieldsLen)
 
 	buf := bytes.NewBuffer(make([]byte, 0))
 
@@ -1018,12 +1027,12 @@ func (res *FetchResponse) taggedFieldsDecoder(r io.Reader, tag uint64, tagLength
 		}
 		res.NodeEndpoints = nodeendpoints
 	default:
-		// Decode as raw tags
-		taggedField, err := protocol.ReadRawTaggedField(r)
+		// Unknown tag - keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
+		field, err := io.ReadAll(r)
 		if err != nil {
 			return err
 		}
-		rawTaggedFields = append(rawTaggedFields, taggedField)
+		rawTaggedFields = append(rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
 	}
 
 	// Set the raw tagged fields
@@ -1040,6 +1049,7 @@ func (res *FetchResponse) PrettyPrint() string {
 	fmt.Fprintf(w, "        ThrottleTimeMs: %v\n", res.ThrottleTimeMs)
 	fmt.Fprintf(w, "        ErrorCode: %v\n", res.ErrorCode)
 	fmt.Fprintf(w, "        SessionId: %v\n", res.SessionId)
+
 	if res.Responses != nil {
 		fmt.Fprintf(w, "        Responses:\n")
 		for _, responses := range *res.Responses {
@@ -1049,6 +1059,7 @@ func (res *FetchResponse) PrettyPrint() string {
 	} else {
 		fmt.Fprintf(w, "        Responses: nil\n")
 	}
+
 	if res.NodeEndpoints != nil {
 		fmt.Fprintf(w, "        NodeEndpoints:\n")
 		for _, nodeendpoints := range *res.NodeEndpoints {
@@ -1071,7 +1082,9 @@ func (value *FetchResponseResponse) PrettyPrint() string {
 	} else {
 		fmt.Fprintf(w, "            Topic: nil\n")
 	}
+
 	fmt.Fprintf(w, "            TopicId: %v\n", value.TopicId)
+
 	if value.Partitions != nil {
 		fmt.Fprintf(w, "            Partitions:\n")
 		for _, partitions := range *value.Partitions {
@@ -1094,24 +1107,28 @@ func (value *FetchResponseResponsePartition) PrettyPrint() string {
 	fmt.Fprintf(w, "                HighWatermark: %v\n", value.HighWatermark)
 	fmt.Fprintf(w, "                LastStableOffset: %v\n", value.LastStableOffset)
 	fmt.Fprintf(w, "                LogStartOffset: %v\n", value.LogStartOffset)
+
 	fmt.Fprintf(w, "                DivergingEpoch:\n")
 	if value.DivergingEpoch != nil {
 		fmt.Fprintf(w, "%s", value.DivergingEpoch.PrettyPrint())
 	} else {
 		fmt.Fprintf(w, "                    nil\n")
 	}
+
 	fmt.Fprintf(w, "                CurrentLeader:\n")
 	if value.CurrentLeader != nil {
 		fmt.Fprintf(w, "%s", value.CurrentLeader.PrettyPrint())
 	} else {
 		fmt.Fprintf(w, "                    nil\n")
 	}
+
 	fmt.Fprintf(w, "                SnapshotId:\n")
 	if value.SnapshotId != nil {
 		fmt.Fprintf(w, "%s", value.SnapshotId.PrettyPrint())
 	} else {
 		fmt.Fprintf(w, "                    nil\n")
 	}
+
 	if value.AbortedTransactions != nil {
 		fmt.Fprintf(w, "                AbortedTransactions:\n")
 		for _, abortedtransactions := range *value.AbortedTransactions {
@@ -1121,8 +1138,14 @@ func (value *FetchResponseResponsePartition) PrettyPrint() string {
 	} else {
 		fmt.Fprintf(w, "                AbortedTransactions: nil\n")
 	}
+
 	fmt.Fprintf(w, "                PreferredReadReplica: %v\n", value.PreferredReadReplica)
-	fmt.Fprintf(w, "                Records: %v\n", value.Records)
+
+	if value.Records != nil {
+		fmt.Fprintf(w, "                Records: <%d bytes>\n", len(*value.Records))
+	} else {
+		fmt.Fprintf(w, "                Records: nil\n")
+	}
 
 	return w.String()
 }
@@ -1172,12 +1195,15 @@ func (value *FetchResponseNodeEndpoint) PrettyPrint() string {
 	w := bytes.NewBuffer([]byte{})
 
 	fmt.Fprintf(w, "            NodeId: %v\n", value.NodeId)
+
 	if value.Host != nil {
 		fmt.Fprintf(w, "            Host: %v\n", *value.Host)
 	} else {
 		fmt.Fprintf(w, "            Host: nil\n")
 	}
+
 	fmt.Fprintf(w, "            Port: %v\n", value.Port)
+
 	if value.Rack != nil {
 		fmt.Fprintf(w, "            Rack: %v\n", *value.Rack)
 	} else {

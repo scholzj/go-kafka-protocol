@@ -153,6 +153,22 @@ func ReadUvarint(r io.Reader) (uint64, error) {
 	}
 }
 
+//func WriteVarlong(w io.Writer, value int64) error {
+//	// Zig-zag encoding: (n << 1) ^ (n >> 63)
+//	encoded := uint64((value << 1) ^ (value >> 63))
+//	return WriteUvarint(w, encoded)
+//}
+//
+//func ReadVarlong(r io.Reader) (int64, error) {
+//	encoded, err := ReadUvarint(r)
+//	if err != nil {
+//		return 0, err
+//	}
+//	// Zig-zag decoding: (n >> 1) ^ -(n & 1)
+//	value := int64((encoded >> 1) ^ uint64((int64(encoded&1)<<63)>>63))
+//	return value, nil
+//}
+
 func WriteVarlong(w io.Writer, value int64) error {
 	// Zigzag encoding: (value << 1) ^ (value >> 63)
 	encoded := uint64((value << 1) ^ (value >> 63))
@@ -208,6 +224,17 @@ func ReadUUID(r io.Reader) (uuid.UUID, error) {
 
 	return uuid.FromBytes(buf)
 }
+
+//func WriteFloat64(w io.Writer, value float64) error {
+//	bits := math.Float64bits(value)
+//	return binary.Write(w, binary.BigEndian, bits)
+//}
+//
+//func ReadFloat64(r io.Reader) (float64, error) {
+//	var bits uint64
+//	err := binary.Read(r, binary.BigEndian, &bits)
+//	return math.Float64frombits(bits), err
+//}
 
 func WriteFloat64(w io.Writer, value float64) error {
 	return binary.Write(w, binary.BigEndian, value)

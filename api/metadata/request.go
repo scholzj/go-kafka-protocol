@@ -10,16 +10,16 @@ import (
 
 type MetadataRequest struct {
 	ApiVersion                         int16
-	Topics                             *[]MetadataRequestTopic // The topics to fetch metadata for.
-	AllowAutoTopicCreation             bool                    // If this is true, the broker may auto-create topics that we requested which do not already exist, if it is configured to do so.
-	IncludeClusterAuthorizedOperations bool                    // Whether to include cluster authorized operations.
-	IncludeTopicAuthorizedOperations   bool                    // Whether to include topic authorized operations.
+	Topics                             *[]MetadataRequestTopic // The topics to fetch metadata for. (versions: 0+, nullable: 1+)
+	AllowAutoTopicCreation             bool                    // If this is true, the broker may auto-create topics that we requested which do not already exist, if it is configured to do so. (versions: 4+)
+	IncludeClusterAuthorizedOperations bool                    // Whether to include cluster authorized operations. (versions: 8-10)
+	IncludeTopicAuthorizedOperations   bool                    // Whether to include topic authorized operations. (versions: 8+)
 	rawTaggedFields                    *[]protocol.TaggedField
 }
 
 type MetadataRequestTopic struct {
-	TopicId         uuid.UUID // The topic id.
-	Name            *string   // The topic name.
+	TopicId         uuid.UUID // The topic id. (versions: 10+)
+	Name            *string   // The topic name. (versions: 0+, nullable: 10+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
@@ -29,6 +29,9 @@ func isRequestFlexible(apiVersion int16) bool {
 
 func (req *MetadataRequest) Write(w io.Writer) error {
 	// Topics (versions: 0+)
+	if req.ApiVersion < 1 && req.Topics == nil {
+		return fmt.Errorf("MetadataRequest.Topics must not be nil in version %d", req.ApiVersion)
+	}
 	if isRequestFlexible(req.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, req.topicsEncoder, req.Topics); err != nil {
 			return err
@@ -75,11 +78,13 @@ func (req *MetadataRequest) Write(w io.Writer) error {
 }
 
 // TODO: pass version and bytes only
-func (req *MetadataRequest) Read(request protocol.Request) error {
+func (req *MetadataRequest) Read(request *protocol.Request) error {
+	if request == nil || request.Body == nil {
+		return fmt.Errorf("MetadataRequest.Read: request or its body is nil")
+	}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
-
-	var err error
 
 	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
@@ -97,7 +102,7 @@ func (req *MetadataRequest) Read(request protocol.Request) error {
 	}
 
 	// AllowAutoTopicCreation (versions: 4+)
-	if request.ApiVersion >= 4 {
+	if req.ApiVersion >= 4 {
 		allowautotopiccreation, err := protocol.ReadBool(r)
 		if err != nil {
 			return err
@@ -106,7 +111,7 @@ func (req *MetadataRequest) Read(request protocol.Request) error {
 	}
 
 	// IncludeClusterAuthorizedOperations (versions: 8-10)
-	if request.ApiVersion >= 8 && request.ApiVersion <= 10 {
+	if req.ApiVersion >= 8 && req.ApiVersion <= 10 {
 		includeclusterauthorizedoperations, err := protocol.ReadBool(r)
 		if err != nil {
 			return err
@@ -115,7 +120,7 @@ func (req *MetadataRequest) Read(request protocol.Request) error {
 	}
 
 	// IncludeTopicAuthorizedOperations (versions: 8+)
-	if request.ApiVersion >= 8 {
+	if req.ApiVersion >= 8 {
 		includetopicauthorizedoperations, err := protocol.ReadBool(r)
 		if err != nil {
 			return err
@@ -125,8 +130,7 @@ func (req *MetadataRequest) Read(request protocol.Request) error {
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return err
 		}
@@ -145,6 +149,9 @@ func (req *MetadataRequest) topicsEncoder(w io.Writer, value MetadataRequestTopi
 	}
 
 	// Name (versions: 0+)
+	if req.ApiVersion < 10 && value.Name == nil {
+		return fmt.Errorf("MetadataRequestTopic.Name must not be nil in version %d", req.ApiVersion)
+	}
 	if isRequestFlexible(req.ApiVersion) {
 		if err := protocol.WriteNullableCompactString(w, value.Name); err != nil {
 			return err
@@ -171,7 +178,6 @@ func (req *MetadataRequest) topicsEncoder(w io.Writer, value MetadataRequestTopi
 
 func (req *MetadataRequest) topicsDecoder(r io.Reader) (MetadataRequestTopic, error) {
 	metadatarequesttopic := MetadataRequestTopic{}
-	var err error
 
 	// TopicId (versions: 10+)
 	if req.ApiVersion >= 10 {
@@ -199,8 +205,7 @@ func (req *MetadataRequest) topicsDecoder(r io.Reader) (MetadataRequestTopic, er
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return metadatarequesttopic, err
 		}
@@ -215,6 +220,7 @@ func (req *MetadataRequest) PrettyPrint() string {
 	w := bytes.NewBuffer([]byte{})
 
 	fmt.Fprintf(w, "    -> MetadataRequest:\n")
+
 	if req.Topics != nil {
 		fmt.Fprintf(w, "        Topics:\n")
 		for _, topics := range *req.Topics {
@@ -224,6 +230,7 @@ func (req *MetadataRequest) PrettyPrint() string {
 	} else {
 		fmt.Fprintf(w, "        Topics: nil\n")
 	}
+
 	fmt.Fprintf(w, "        AllowAutoTopicCreation: %v\n", req.AllowAutoTopicCreation)
 	fmt.Fprintf(w, "        IncludeClusterAuthorizedOperations: %v\n", req.IncludeClusterAuthorizedOperations)
 	fmt.Fprintf(w, "        IncludeTopicAuthorizedOperations: %v\n", req.IncludeTopicAuthorizedOperations)
@@ -236,6 +243,7 @@ func (value *MetadataRequestTopic) PrettyPrint() string {
 	w := bytes.NewBuffer([]byte{})
 
 	fmt.Fprintf(w, "            TopicId: %v\n", value.TopicId)
+
 	if value.Name != nil {
 		fmt.Fprintf(w, "            Name: %v\n", *value.Name)
 	} else {

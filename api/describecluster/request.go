@@ -9,9 +9,9 @@ import (
 
 type DescribeClusterRequest struct {
 	ApiVersion                         int16
-	IncludeClusterAuthorizedOperations bool // Whether to include cluster authorized operations.
-	EndpointType                       int8 // The endpoint type to describe. 1=brokers, 2=controllers.
-	IncludeFencedBrokers               bool // Whether to include fenced brokers when listing brokers.
+	IncludeClusterAuthorizedOperations bool // Whether to include cluster authorized operations. (versions: 0+)
+	EndpointType                       int8 // The endpoint type to describe. 1=brokers, 2=controllers. (versions: 1+)
+	IncludeFencedBrokers               bool // Whether to include fenced brokers when listing brokers. (versions: 2+)
 	rawTaggedFields                    *[]protocol.TaggedField
 }
 
@@ -54,11 +54,13 @@ func (req *DescribeClusterRequest) Write(w io.Writer) error {
 }
 
 // TODO: pass version and bytes only
-func (req *DescribeClusterRequest) Read(request protocol.Request) error {
+func (req *DescribeClusterRequest) Read(request *protocol.Request) error {
+	if request == nil || request.Body == nil {
+		return fmt.Errorf("DescribeClusterRequest.Read: request or its body is nil")
+	}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
-
-	var err error
 
 	// IncludeClusterAuthorizedOperations (versions: 0+)
 	includeclusterauthorizedoperations, err := protocol.ReadBool(r)
@@ -68,7 +70,7 @@ func (req *DescribeClusterRequest) Read(request protocol.Request) error {
 	req.IncludeClusterAuthorizedOperations = includeclusterauthorizedoperations
 
 	// EndpointType (versions: 1+)
-	if request.ApiVersion >= 1 {
+	if req.ApiVersion >= 1 {
 		endpointtype, err := protocol.ReadInt8(r)
 		if err != nil {
 			return err
@@ -77,7 +79,7 @@ func (req *DescribeClusterRequest) Read(request protocol.Request) error {
 	}
 
 	// IncludeFencedBrokers (versions: 2+)
-	if request.ApiVersion >= 2 {
+	if req.ApiVersion >= 2 {
 		includefencedbrokers, err := protocol.ReadBool(r)
 		if err != nil {
 			return err
@@ -87,8 +89,7 @@ func (req *DescribeClusterRequest) Read(request protocol.Request) error {
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return err
 		}

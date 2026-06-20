@@ -3,15 +3,14 @@ package apiversions
 import (
 	"bytes"
 	"fmt"
-	"io"
-
 	"github.com/scholzj/go-kafka-protocol/protocol"
+	"io"
 )
 
 type ApiVersionsRequest struct {
 	ApiVersion            int16
-	ClientSoftwareName    *string // The name of the client.
-	ClientSoftwareVersion *string // The version of the client.
+	ClientSoftwareName    *string // The name of the client. (versions: 3+)
+	ClientSoftwareVersion *string // The version of the client. (versions: 3+)
 	rawTaggedFields       *[]protocol.TaggedField
 }
 
@@ -22,6 +21,9 @@ func isRequestFlexible(apiVersion int16) bool {
 func (req *ApiVersionsRequest) Write(w io.Writer) error {
 	// ClientSoftwareName (versions: 3+)
 	if req.ApiVersion >= 3 {
+		if req.ClientSoftwareName == nil {
+			return fmt.Errorf("ApiVersionsRequest.ClientSoftwareName must not be nil in version %d", req.ApiVersion)
+		}
 		if isRequestFlexible(req.ApiVersion) {
 			if err := protocol.WriteCompactString(w, *req.ClientSoftwareName); err != nil {
 				return err
@@ -35,6 +37,9 @@ func (req *ApiVersionsRequest) Write(w io.Writer) error {
 
 	// ClientSoftwareVersion (versions: 3+)
 	if req.ApiVersion >= 3 {
+		if req.ClientSoftwareVersion == nil {
+			return fmt.Errorf("ApiVersionsRequest.ClientSoftwareVersion must not be nil in version %d", req.ApiVersion)
+		}
 		if isRequestFlexible(req.ApiVersion) {
 			if err := protocol.WriteCompactString(w, *req.ClientSoftwareVersion); err != nil {
 				return err
@@ -61,14 +66,16 @@ func (req *ApiVersionsRequest) Write(w io.Writer) error {
 }
 
 // TODO: pass version and bytes only
-func (req *ApiVersionsRequest) Read(request protocol.Request) error {
+func (req *ApiVersionsRequest) Read(request *protocol.Request) error {
+	if request == nil || request.Body == nil {
+		return fmt.Errorf("ApiVersionsRequest.Read: request or its body is nil")
+	}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
-	var err error
-
 	// ClientSoftwareName (versions: 3+)
-	if request.ApiVersion >= 3 {
+	if req.ApiVersion >= 3 {
 		if isRequestFlexible(req.ApiVersion) {
 			clientsoftwarename, err := protocol.ReadCompactString(r)
 			if err != nil {
@@ -85,7 +92,7 @@ func (req *ApiVersionsRequest) Read(request protocol.Request) error {
 	}
 
 	// ClientSoftwareVersion (versions: 3+)
-	if request.ApiVersion >= 3 {
+	if req.ApiVersion >= 3 {
 		if isRequestFlexible(req.ApiVersion) {
 			clientsoftwareversion, err := protocol.ReadCompactString(r)
 			if err != nil {
@@ -103,8 +110,7 @@ func (req *ApiVersionsRequest) Read(request protocol.Request) error {
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return err
 		}
@@ -119,11 +125,13 @@ func (req *ApiVersionsRequest) PrettyPrint() string {
 	w := bytes.NewBuffer([]byte{})
 
 	fmt.Fprintf(w, "    -> ApiVersionsRequest:\n")
+
 	if req.ClientSoftwareName != nil {
 		fmt.Fprintf(w, "        ClientSoftwareName: %v\n", *req.ClientSoftwareName)
 	} else {
 		fmt.Fprintf(w, "        ClientSoftwareName: nil\n")
 	}
+
 	if req.ClientSoftwareVersion != nil {
 		fmt.Fprintf(w, "        ClientSoftwareVersion: %v\n", *req.ClientSoftwareVersion)
 	} else {

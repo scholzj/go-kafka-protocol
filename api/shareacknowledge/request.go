@@ -10,30 +10,30 @@ import (
 
 type ShareAcknowledgeRequest struct {
 	ApiVersion        int16
-	GroupId           *string                         // The group identifier.
-	MemberId          *string                         // The member ID.
-	ShareSessionEpoch int32                           // The current share session epoch: 0 to open a share session; -1 to close it; otherwise increments for consecutive requests.
-	IsRenewAck        bool                            // Whether Renew type acknowledgements present in AcknowledgementBatches.
-	Topics            *[]ShareAcknowledgeRequestTopic // The topics containing records to acknowledge.
+	GroupId           *string                         // The group identifier. (versions: 0+, nullable: 0+)
+	MemberId          *string                         // The member ID. (versions: 0+, nullable: 0+)
+	ShareSessionEpoch int32                           // The current share session epoch: 0 to open a share session; -1 to close it; otherwise increments for consecutive requests. (versions: 0+)
+	IsRenewAck        bool                            // Whether Renew type acknowledgements present in AcknowledgementBatches. (versions: 2+)
+	Topics            *[]ShareAcknowledgeRequestTopic // The topics containing records to acknowledge. (versions: 0+)
 	rawTaggedFields   *[]protocol.TaggedField
 }
 
 type ShareAcknowledgeRequestTopic struct {
-	TopicId         uuid.UUID                                // The unique topic ID.
-	Partitions      *[]ShareAcknowledgeRequestTopicPartition // The partitions containing records to acknowledge.
+	TopicId         uuid.UUID                                // The unique topic ID. (versions: 0+)
+	Partitions      *[]ShareAcknowledgeRequestTopicPartition // The partitions containing records to acknowledge. (versions: 0+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
 type ShareAcknowledgeRequestTopicPartition struct {
-	PartitionIndex         int32                                                         // The partition index.
-	AcknowledgementBatches *[]ShareAcknowledgeRequestTopicPartitionAcknowledgementBatche // Record batches to acknowledge.
+	PartitionIndex         int32                                                         // The partition index. (versions: 0+)
+	AcknowledgementBatches *[]ShareAcknowledgeRequestTopicPartitionAcknowledgementBatche // Record batches to acknowledge. (versions: 0+)
 	rawTaggedFields        *[]protocol.TaggedField
 }
 
 type ShareAcknowledgeRequestTopicPartitionAcknowledgementBatche struct {
-	FirstOffset      int64   // First offset of batch of records to acknowledge.
-	LastOffset       int64   // Last offset (inclusive) of batch of records to acknowledge.
-	AcknowledgeTypes *[]int8 // Array of acknowledge types - 0:Gap,1:Accept,2:Release,3:Reject,4:Renew.
+	FirstOffset      int64   // First offset of batch of records to acknowledge. (versions: 0+)
+	LastOffset       int64   // Last offset (inclusive) of batch of records to acknowledge. (versions: 0+)
+	AcknowledgeTypes *[]int8 // Array of acknowledge types - 0:Gap,1:Accept,2:Release,3:Reject,4:Renew. (versions: 0+)
 	rawTaggedFields  *[]protocol.TaggedField
 }
 
@@ -77,6 +77,9 @@ func (req *ShareAcknowledgeRequest) Write(w io.Writer) error {
 	}
 
 	// Topics (versions: 0+)
+	if req.Topics == nil {
+		return fmt.Errorf("ShareAcknowledgeRequest.Topics must not be nil in version %d", req.ApiVersion)
+	}
 	if isRequestFlexible(req.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, req.topicsEncoder, req.Topics); err != nil {
 			return err
@@ -102,11 +105,13 @@ func (req *ShareAcknowledgeRequest) Write(w io.Writer) error {
 }
 
 // TODO: pass version and bytes only
-func (req *ShareAcknowledgeRequest) Read(request protocol.Request) error {
+func (req *ShareAcknowledgeRequest) Read(request *protocol.Request) error {
+	if request == nil || request.Body == nil {
+		return fmt.Errorf("ShareAcknowledgeRequest.Read: request or its body is nil")
+	}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
-
-	var err error
 
 	// GroupId (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
@@ -146,7 +151,7 @@ func (req *ShareAcknowledgeRequest) Read(request protocol.Request) error {
 	req.ShareSessionEpoch = sharesessionepoch
 
 	// IsRenewAck (versions: 2+)
-	if request.ApiVersion >= 2 {
+	if req.ApiVersion >= 2 {
 		isrenewack, err := protocol.ReadBool(r)
 		if err != nil {
 			return err
@@ -171,8 +176,7 @@ func (req *ShareAcknowledgeRequest) Read(request protocol.Request) error {
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return err
 		}
@@ -189,6 +193,9 @@ func (req *ShareAcknowledgeRequest) topicsEncoder(w io.Writer, value ShareAcknow
 	}
 
 	// Partitions (versions: 0+)
+	if value.Partitions == nil {
+		return fmt.Errorf("ShareAcknowledgeRequestTopic.Partitions must not be nil in version %d", req.ApiVersion)
+	}
 	if isRequestFlexible(req.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, req.partitionsEncoder, value.Partitions); err != nil {
 			return err
@@ -215,7 +222,6 @@ func (req *ShareAcknowledgeRequest) topicsEncoder(w io.Writer, value ShareAcknow
 
 func (req *ShareAcknowledgeRequest) topicsDecoder(r io.Reader) (ShareAcknowledgeRequestTopic, error) {
 	shareacknowledgerequesttopic := ShareAcknowledgeRequestTopic{}
-	var err error
 
 	// TopicId (versions: 0+)
 	topicid, err := protocol.ReadUUID(r)
@@ -241,8 +247,7 @@ func (req *ShareAcknowledgeRequest) topicsDecoder(r io.Reader) (ShareAcknowledge
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return shareacknowledgerequesttopic, err
 		}
@@ -259,6 +264,9 @@ func (req *ShareAcknowledgeRequest) partitionsEncoder(w io.Writer, value ShareAc
 	}
 
 	// AcknowledgementBatches (versions: 0+)
+	if value.AcknowledgementBatches == nil {
+		return fmt.Errorf("ShareAcknowledgeRequestTopicPartition.AcknowledgementBatches must not be nil in version %d", req.ApiVersion)
+	}
 	if isRequestFlexible(req.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, req.acknowledgementBatchesEncoder, value.AcknowledgementBatches); err != nil {
 			return err
@@ -285,7 +293,6 @@ func (req *ShareAcknowledgeRequest) partitionsEncoder(w io.Writer, value ShareAc
 
 func (req *ShareAcknowledgeRequest) partitionsDecoder(r io.Reader) (ShareAcknowledgeRequestTopicPartition, error) {
 	shareacknowledgerequesttopicpartition := ShareAcknowledgeRequestTopicPartition{}
-	var err error
 
 	// PartitionIndex (versions: 0+)
 	partitionindex, err := protocol.ReadInt32(r)
@@ -311,8 +318,7 @@ func (req *ShareAcknowledgeRequest) partitionsDecoder(r io.Reader) (ShareAcknowl
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return shareacknowledgerequesttopicpartition, err
 		}
@@ -334,6 +340,9 @@ func (req *ShareAcknowledgeRequest) acknowledgementBatchesEncoder(w io.Writer, v
 	}
 
 	// AcknowledgeTypes (versions: 0+)
+	if value.AcknowledgeTypes == nil {
+		return fmt.Errorf("ShareAcknowledgeRequestTopicPartitionAcknowledgementBatche.AcknowledgeTypes must not be nil in version %d", req.ApiVersion)
+	}
 	if isRequestFlexible(req.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, protocol.WriteInt8, value.AcknowledgeTypes); err != nil {
 			return err
@@ -360,7 +369,6 @@ func (req *ShareAcknowledgeRequest) acknowledgementBatchesEncoder(w io.Writer, v
 
 func (req *ShareAcknowledgeRequest) acknowledgementBatchesDecoder(r io.Reader) (ShareAcknowledgeRequestTopicPartitionAcknowledgementBatche, error) {
 	shareacknowledgerequesttopicpartitionacknowledgementbatche := ShareAcknowledgeRequestTopicPartitionAcknowledgementBatche{}
-	var err error
 
 	// FirstOffset (versions: 0+)
 	firstoffset, err := protocol.ReadInt64(r)
@@ -393,8 +401,7 @@ func (req *ShareAcknowledgeRequest) acknowledgementBatchesDecoder(r io.Reader) (
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return shareacknowledgerequesttopicpartitionacknowledgementbatche, err
 		}
@@ -409,18 +416,22 @@ func (req *ShareAcknowledgeRequest) PrettyPrint() string {
 	w := bytes.NewBuffer([]byte{})
 
 	fmt.Fprintf(w, "    -> ShareAcknowledgeRequest:\n")
+
 	if req.GroupId != nil {
 		fmt.Fprintf(w, "        GroupId: %v\n", *req.GroupId)
 	} else {
 		fmt.Fprintf(w, "        GroupId: nil\n")
 	}
+
 	if req.MemberId != nil {
 		fmt.Fprintf(w, "        MemberId: %v\n", *req.MemberId)
 	} else {
 		fmt.Fprintf(w, "        MemberId: nil\n")
 	}
+
 	fmt.Fprintf(w, "        ShareSessionEpoch: %v\n", req.ShareSessionEpoch)
 	fmt.Fprintf(w, "        IsRenewAck: %v\n", req.IsRenewAck)
+
 	if req.Topics != nil {
 		fmt.Fprintf(w, "        Topics:\n")
 		for _, topics := range *req.Topics {
@@ -439,6 +450,7 @@ func (value *ShareAcknowledgeRequestTopic) PrettyPrint() string {
 	w := bytes.NewBuffer([]byte{})
 
 	fmt.Fprintf(w, "            TopicId: %v\n", value.TopicId)
+
 	if value.Partitions != nil {
 		fmt.Fprintf(w, "            Partitions:\n")
 		for _, partitions := range *value.Partitions {
@@ -457,6 +469,7 @@ func (value *ShareAcknowledgeRequestTopicPartition) PrettyPrint() string {
 	w := bytes.NewBuffer([]byte{})
 
 	fmt.Fprintf(w, "                PartitionIndex: %v\n", value.PartitionIndex)
+
 	if value.AcknowledgementBatches != nil {
 		fmt.Fprintf(w, "                AcknowledgementBatches:\n")
 		for _, acknowledgementbatches := range *value.AcknowledgementBatches {
@@ -476,6 +489,7 @@ func (value *ShareAcknowledgeRequestTopicPartitionAcknowledgementBatche) PrettyP
 
 	fmt.Fprintf(w, "                    FirstOffset: %v\n", value.FirstOffset)
 	fmt.Fprintf(w, "                    LastOffset: %v\n", value.LastOffset)
+
 	if value.AcknowledgeTypes != nil {
 		fmt.Fprintf(w, "                    AcknowledgeTypes: %v\n", *value.AcknowledgeTypes)
 	} else {

@@ -9,34 +9,34 @@ import (
 
 type ApiVersionsResponse struct {
 	ApiVersion             int16
-	ErrorCode              int16                                  // The top-level error code.
-	ApiKeys                *[]ApiVersionsResponseApiKey           // The APIs supported by the broker.
-	ThrottleTimeMs         int32                                  // The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.
-	SupportedFeatures      *[]ApiVersionsResponseSupportedFeature // tag 0: Features supported by the broker. Note: in v0-v3, features with MinSupportedVersion = 0 are omitted.
-	FinalizedFeaturesEpoch int64                                  // tag 1: The monotonically increasing epoch for the finalized features information. Valid values are >= 0. A value of -1 is special and represents unknown epoch.
-	FinalizedFeatures      *[]ApiVersionsResponseFinalizedFeature // tag 2: List of cluster-wide finalized features. The information is valid only if FinalizedFeaturesEpoch >= 0.
-	ZkMigrationReady       bool                                   // tag 3: Set by a KRaft controller if the required configurations for ZK migration are present.
+	ErrorCode              int16                                  // The top-level error code. (versions: 0+)
+	ApiKeys                *[]ApiVersionsResponseApiKey           // The APIs supported by the broker. (versions: 0+)
+	ThrottleTimeMs         int32                                  // The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota. (versions: 1+)
+	SupportedFeatures      *[]ApiVersionsResponseSupportedFeature // tag 0: Features supported by the broker. Note: in v0-v3, features with MinSupportedVersion = 0 are omitted. (versions: 3+)
+	FinalizedFeaturesEpoch int64                                  // tag 1: The monotonically increasing epoch for the finalized features information. Valid values are >= 0. A value of -1 is special and represents unknown epoch. (versions: 3+)
+	FinalizedFeatures      *[]ApiVersionsResponseFinalizedFeature // tag 2: List of cluster-wide finalized features. The information is valid only if FinalizedFeaturesEpoch >= 0. (versions: 3+)
+	ZkMigrationReady       bool                                   // tag 3: Set by a KRaft controller if the required configurations for ZK migration are present. (versions: 3+)
 	rawTaggedFields        *[]protocol.TaggedField
 }
 
 type ApiVersionsResponseApiKey struct {
-	ApiKey          int16 // The API index.
-	MinVersion      int16 // The minimum supported version, inclusive.
-	MaxVersion      int16 // The maximum supported version, inclusive.
+	ApiKey          int16 // The API index. (versions: 0+)
+	MinVersion      int16 // The minimum supported version, inclusive. (versions: 0+)
+	MaxVersion      int16 // The maximum supported version, inclusive. (versions: 0+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
 type ApiVersionsResponseSupportedFeature struct {
-	Name            *string // The name of the feature.
-	MinVersion      int16   // The minimum supported version for the feature.
-	MaxVersion      int16   // The maximum supported version for the feature.
+	Name            *string // The name of the feature. (versions: 3+)
+	MinVersion      int16   // The minimum supported version for the feature. (versions: 3+)
+	MaxVersion      int16   // The maximum supported version for the feature. (versions: 3+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
 type ApiVersionsResponseFinalizedFeature struct {
-	Name            *string // The name of the feature.
-	MaxVersionLevel int16   // The cluster-wide finalized max version level for the feature.
-	MinVersionLevel int16   // The cluster-wide finalized min version level for the feature.
+	Name            *string // The name of the feature. (versions: 3+)
+	MaxVersionLevel int16   // The cluster-wide finalized max version level for the feature. (versions: 3+)
+	MinVersionLevel int16   // The cluster-wide finalized min version level for the feature. (versions: 3+)
 	rawTaggedFields *[]protocol.TaggedField
 }
 
@@ -51,6 +51,9 @@ func (res *ApiVersionsResponse) Write(w io.Writer) error {
 	}
 
 	// ApiKeys (versions: 0+)
+	if res.ApiKeys == nil {
+		return fmt.Errorf("ApiVersionsResponse.ApiKeys must not be nil in version %d", res.ApiVersion)
+	}
 	if isResponseFlexible(res.ApiVersion) {
 		if err := protocol.WriteNullableCompactArray(w, res.apiKeysEncoder, res.ApiKeys); err != nil {
 			return err
@@ -84,11 +87,13 @@ func (res *ApiVersionsResponse) Write(w io.Writer) error {
 }
 
 // TODO: pass version and bytes only
-func (res *ApiVersionsResponse) Read(response protocol.Response) error {
+func (res *ApiVersionsResponse) Read(response *protocol.Response) error {
+	if response == nil || response.Body == nil {
+		return fmt.Errorf("ApiVersionsResponse.Read: response or its body is nil")
+	}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
-
-	var err error
 
 	// ErrorCode (versions: 0+)
 	errorcode, err := protocol.ReadInt16(r)
@@ -98,7 +103,7 @@ func (res *ApiVersionsResponse) Read(response protocol.Response) error {
 	res.ErrorCode = errorcode
 
 	// ApiKeys (versions: 0+)
-	if isRequestFlexible(res.ApiVersion) {
+	if isResponseFlexible(res.ApiVersion) {
 		apikeys, err := protocol.ReadNullableCompactArray(r, res.apiKeysDecoder)
 		if err != nil {
 			return err
@@ -113,7 +118,7 @@ func (res *ApiVersionsResponse) Read(response protocol.Response) error {
 	}
 
 	// ThrottleTimeMs (versions: 1+)
-	if response.ApiVersion >= 1 {
+	if res.ApiVersion >= 1 {
 		throttletimems, err := protocol.ReadInt32(r)
 		if err != nil {
 			return err
@@ -123,8 +128,7 @@ func (res *ApiVersionsResponse) Read(response protocol.Response) error {
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		err = protocol.ReadTaggedFields(r, res.taggedFieldsDecoder)
-		if err != nil {
+		if err := protocol.ReadTaggedFields(r, res.taggedFieldsDecoder); err != nil {
 			return err
 		}
 	}
@@ -164,7 +168,6 @@ func (res *ApiVersionsResponse) apiKeysEncoder(w io.Writer, value ApiVersionsRes
 
 func (res *ApiVersionsResponse) apiKeysDecoder(r io.Reader) (ApiVersionsResponseApiKey, error) {
 	apiversionsresponseapikey := ApiVersionsResponseApiKey{}
-	var err error
 
 	// ApiKey (versions: 0+)
 	apikey, err := protocol.ReadInt16(r)
@@ -189,8 +192,7 @@ func (res *ApiVersionsResponse) apiKeysDecoder(r io.Reader) (ApiVersionsResponse
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return apiversionsresponseapikey, err
 		}
@@ -203,6 +205,9 @@ func (res *ApiVersionsResponse) apiKeysDecoder(r io.Reader) (ApiVersionsResponse
 func (res *ApiVersionsResponse) supportedFeaturesEncoder(w io.Writer, value ApiVersionsResponseSupportedFeature) error {
 	// Name (versions: 3+)
 	if res.ApiVersion >= 3 {
+		if value.Name == nil {
+			return fmt.Errorf("ApiVersionsResponseSupportedFeature.Name must not be nil in version %d", res.ApiVersion)
+		}
 		if isResponseFlexible(res.ApiVersion) {
 			if err := protocol.WriteCompactString(w, *value.Name); err != nil {
 				return err
@@ -244,7 +249,6 @@ func (res *ApiVersionsResponse) supportedFeaturesEncoder(w io.Writer, value ApiV
 
 func (res *ApiVersionsResponse) supportedFeaturesDecoder(r io.Reader) (ApiVersionsResponseSupportedFeature, error) {
 	apiversionsresponsesupportedfeature := ApiVersionsResponseSupportedFeature{}
-	var err error
 
 	// Name (versions: 3+)
 	if res.ApiVersion >= 3 {
@@ -283,8 +287,7 @@ func (res *ApiVersionsResponse) supportedFeaturesDecoder(r io.Reader) (ApiVersio
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return apiversionsresponsesupportedfeature, err
 		}
@@ -297,6 +300,9 @@ func (res *ApiVersionsResponse) supportedFeaturesDecoder(r io.Reader) (ApiVersio
 func (res *ApiVersionsResponse) finalizedFeaturesEncoder(w io.Writer, value ApiVersionsResponseFinalizedFeature) error {
 	// Name (versions: 3+)
 	if res.ApiVersion >= 3 {
+		if value.Name == nil {
+			return fmt.Errorf("ApiVersionsResponseFinalizedFeature.Name must not be nil in version %d", res.ApiVersion)
+		}
 		if isResponseFlexible(res.ApiVersion) {
 			if err := protocol.WriteCompactString(w, *value.Name); err != nil {
 				return err
@@ -338,7 +344,6 @@ func (res *ApiVersionsResponse) finalizedFeaturesEncoder(w io.Writer, value ApiV
 
 func (res *ApiVersionsResponse) finalizedFeaturesDecoder(r io.Reader) (ApiVersionsResponseFinalizedFeature, error) {
 	apiversionsresponsefinalizedfeature := ApiVersionsResponseFinalizedFeature{}
-	var err error
 
 	// Name (versions: 3+)
 	if res.ApiVersion >= 3 {
@@ -377,8 +382,7 @@ func (res *ApiVersionsResponse) finalizedFeaturesDecoder(r io.Reader) (ApiVersio
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
-		var rawTaggedFields []protocol.TaggedField
-		rawTaggedFields, err = protocol.ReadRawTaggedFields(r)
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
 		if err != nil {
 			return apiversionsresponsefinalizedfeature, err
 		}
@@ -393,7 +397,7 @@ func (res *ApiVersionsResponse) taggedFieldsEncoder() ([]protocol.TaggedField, e
 	if res.rawTaggedFields != nil {
 		rawTaggedFieldsLen = len(*res.rawTaggedFields)
 	}
-	taggedFields := make([]protocol.TaggedField, 0, 5+rawTaggedFieldsLen)
+	taggedFields := make([]protocol.TaggedField, 0, 4+rawTaggedFieldsLen)
 
 	buf := bytes.NewBuffer(make([]byte, 0))
 
@@ -474,12 +478,12 @@ func (res *ApiVersionsResponse) taggedFieldsDecoder(r io.Reader, tag uint64, tag
 		}
 		res.ZkMigrationReady = zkmigrationready
 	default:
-		// Decode as raw tags
-		taggedField, err := protocol.ReadRawTaggedField(r)
+		// Unknown tag - keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
+		field, err := io.ReadAll(r)
 		if err != nil {
 			return err
 		}
-		rawTaggedFields = append(rawTaggedFields, taggedField)
+		rawTaggedFields = append(rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
 	}
 
 	// Set the raw tagged fields
@@ -494,6 +498,7 @@ func (res *ApiVersionsResponse) PrettyPrint() string {
 
 	fmt.Fprintf(w, "    <- ApiVersionsResponse:\n")
 	fmt.Fprintf(w, "        ErrorCode: %v\n", res.ErrorCode)
+
 	if res.ApiKeys != nil {
 		fmt.Fprintf(w, "        ApiKeys:\n")
 		for _, apikeys := range *res.ApiKeys {
@@ -503,7 +508,9 @@ func (res *ApiVersionsResponse) PrettyPrint() string {
 	} else {
 		fmt.Fprintf(w, "        ApiKeys: nil\n")
 	}
+
 	fmt.Fprintf(w, "        ThrottleTimeMs: %v\n", res.ThrottleTimeMs)
+
 	if res.SupportedFeatures != nil {
 		fmt.Fprintf(w, "        SupportedFeatures:\n")
 		for _, supportedfeatures := range *res.SupportedFeatures {
@@ -513,7 +520,9 @@ func (res *ApiVersionsResponse) PrettyPrint() string {
 	} else {
 		fmt.Fprintf(w, "        SupportedFeatures: nil\n")
 	}
+
 	fmt.Fprintf(w, "        FinalizedFeaturesEpoch: %v\n", res.FinalizedFeaturesEpoch)
+
 	if res.FinalizedFeatures != nil {
 		fmt.Fprintf(w, "        FinalizedFeatures:\n")
 		for _, finalizedfeatures := range *res.FinalizedFeatures {
@@ -523,6 +532,7 @@ func (res *ApiVersionsResponse) PrettyPrint() string {
 	} else {
 		fmt.Fprintf(w, "        FinalizedFeatures: nil\n")
 	}
+
 	fmt.Fprintf(w, "        ZkMigrationReady: %v\n", res.ZkMigrationReady)
 
 	return w.String()
@@ -548,6 +558,7 @@ func (value *ApiVersionsResponseSupportedFeature) PrettyPrint() string {
 	} else {
 		fmt.Fprintf(w, "            Name: nil\n")
 	}
+
 	fmt.Fprintf(w, "            MinVersion: %v\n", value.MinVersion)
 	fmt.Fprintf(w, "            MaxVersion: %v\n", value.MaxVersion)
 
@@ -563,6 +574,7 @@ func (value *ApiVersionsResponseFinalizedFeature) PrettyPrint() string {
 	} else {
 		fmt.Fprintf(w, "            Name: nil\n")
 	}
+
 	fmt.Fprintf(w, "            MaxVersionLevel: %v\n", value.MaxVersionLevel)
 	fmt.Fprintf(w, "            MinVersionLevel: %v\n", value.MinVersionLevel)
 
