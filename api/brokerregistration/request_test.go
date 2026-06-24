@@ -31,10 +31,9 @@ func TestBrokerRegistrationRequestRoundTrip(t *testing.T) {
 		IsMigratingZkBroker: true,
 		LogDirs:             &[]uuid.UUID{uuid.UUID{}},
 		PreviousBrokerEpoch: 1,
-		CordonedLogDirs:     &[]uuid.UUID{uuid.UUID{}},
 	}
 
-	for v := int16(0); v <= 5; v++ {
+	for v := int16(0); v <= 3; v++ {
 		in.ApiVersion = v
 
 		var buf bytes.Buffer

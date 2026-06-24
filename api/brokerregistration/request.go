@@ -19,7 +19,6 @@ type BrokerRegistrationRequest struct {
 	IsMigratingZkBroker bool                                 // If the required configurations for ZK migration are present, this value is set to true. (versions: 1+)
 	LogDirs             *[]uuid.UUID                         // Log directories configured in this broker which are available. (versions: 2+)
 	PreviousBrokerEpoch int64                                // The epoch before a clean shutdown. (versions: 3+)
-	CordonedLogDirs     *[]uuid.UUID                         // tag 0: Log directories that are cordoned. (versions: 5+)
 	rawTaggedFields     *[]protocol.TaggedField
 }
 
@@ -138,12 +137,11 @@ func (req *BrokerRegistrationRequest) Write(w io.Writer) error {
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		taggedFields, err := req.taggedFieldsEncoder()
-		if err != nil {
-			return err
+		rawTaggedFields := []protocol.TaggedField{}
+		if req.rawTaggedFields != nil {
+			rawTaggedFields = *req.rawTaggedFields
 		}
-
-		if err := protocol.WriteRawTaggedFields(w, taggedFields); err != nil {
+		if err := protocol.WriteRawTaggedFields(w, rawTaggedFields); err != nil {
 			return err
 		}
 	}
@@ -271,9 +269,11 @@ func (req *BrokerRegistrationRequest) Read(request *protocol.Request) error {
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {
-		if err := protocol.ReadTaggedFields(r, req.taggedFieldsDecoder); err != nil {
+		rawTaggedFields, err := protocol.ReadRawTaggedFields(r)
+		if err != nil {
 			return err
 		}
+		req.rawTaggedFields = &rawTaggedFields
 	}
 
 	return nil
@@ -474,59 +474,6 @@ func (req *BrokerRegistrationRequest) featuresDecoder(r io.Reader) (BrokerRegist
 	return brokerregistrationrequestfeature, nil
 }
 
-func (req *BrokerRegistrationRequest) taggedFieldsEncoder() ([]protocol.TaggedField, error) {
-	rawTaggedFieldsLen := 0
-	if req.rawTaggedFields != nil {
-		rawTaggedFieldsLen = len(*req.rawTaggedFields)
-	}
-	taggedFields := make([]protocol.TaggedField, 0, 1+rawTaggedFieldsLen)
-
-	buf := bytes.NewBuffer(make([]byte, 0))
-
-	// Tag 0
-	if req.CordonedLogDirs != nil {
-		buf = bytes.NewBuffer(make([]byte, 0))
-		if err := protocol.WriteNullableCompactArray(buf, protocol.WriteUUID, req.CordonedLogDirs); err != nil {
-			return taggedFields, err
-		}
-
-		taggedFields = append(taggedFields, protocol.TaggedField{Tag: 0, Field: buf.Bytes()})
-	}
-
-	// We append any raw tagged fields to the end of the array
-	if req.rawTaggedFields != nil {
-		taggedFields = append(taggedFields, *req.rawTaggedFields...)
-	}
-
-	return taggedFields, nil
-}
-
-func (req *BrokerRegistrationRequest) taggedFieldsDecoder(r io.Reader, tag uint64, tagLength uint64) error {
-	rawTaggedFields := make([]protocol.TaggedField, 0)
-
-	switch tag {
-	case 0:
-		// CordonedLogDirs
-		cordonedlogdirs, err := protocol.ReadNullableCompactArray(r, protocol.ReadUUID)
-		if err != nil {
-			return err
-		}
-		req.CordonedLogDirs = cordonedlogdirs
-	default:
-		// Unknown tag - keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
-		field, err := io.ReadAll(r)
-		if err != nil {
-			return err
-		}
-		rawTaggedFields = append(rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
-	}
-
-	// Set the raw tagged fields
-	req.rawTaggedFields = &rawTaggedFields
-
-	return nil
-}
-
 //goland:noinspection GoUnhandledErrorResult
 func (req *BrokerRegistrationRequest) PrettyPrint() string {
 	w := bytes.NewBuffer([]byte{})
@@ -577,12 +524,6 @@ func (req *BrokerRegistrationRequest) PrettyPrint() string {
 	}
 
 	fmt.Fprintf(w, "        PreviousBrokerEpoch: %v\n", req.PreviousBrokerEpoch)
-
-	if req.CordonedLogDirs != nil {
-		fmt.Fprintf(w, "        CordonedLogDirs: %v\n", *req.CordonedLogDirs)
-	} else {
-		fmt.Fprintf(w, "        CordonedLogDirs: nil\n")
-	}
 
 	return w.String()
 }

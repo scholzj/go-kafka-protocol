@@ -871,7 +871,7 @@ func VersionRange(apiKey int16) (minVersion int16, maxVersion int16, ok bool) {
 	case 61:
 		return 0, 0, true
 	case 62:
-		return 0, 5, true
+		return 0, 4, true
 	case 63:
 		return 0, 2, true
 	case 64:

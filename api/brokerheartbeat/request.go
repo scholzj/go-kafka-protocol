@@ -16,7 +16,7 @@ type BrokerHeartbeatRequest struct {
 	WantFence             bool         // True if the broker wants to be fenced, false otherwise. (versions: 0+)
 	WantShutDown          bool         // True if the broker wants to be shut down, false otherwise. (versions: 0+)
 	OfflineLogDirs        *[]uuid.UUID // tag 0: Log directories that failed and went offline. (versions: 1+)
-	CordonedLogDirs       *[]uuid.UUID // tag 1: Log directories that are cordoned. (versions: 2+)
+	CordonedLogDirs       *[]uuid.UUID // tag 1: List of log directories that are cordoned. This is null before the broker reaches the RECOVERY state. (versions: 2+, nullable: 2+)
 	rawTaggedFields       *[]protocol.TaggedField
 }
 
