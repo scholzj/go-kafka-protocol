@@ -90,6 +90,8 @@ func (res *ListPartitionReassignmentsResponse) Read(response *protocol.Response)
 		return fmt.Errorf("ListPartitionReassignmentsResponse.Read: response or its body is nil")
 	}
 
+	*res = ListPartitionReassignmentsResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -124,11 +126,11 @@ func (res *ListPartitionReassignmentsResponse) Read(response *protocol.Response)
 
 	// Topics (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, res.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, res.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		res.Topics = topics
+		res.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, res.topicsDecoder)
 		if err != nil {
@@ -212,11 +214,11 @@ func (res *ListPartitionReassignmentsResponse) topicsDecoder(r io.Reader) (ListP
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, res.partitionsDecoder)
 		if err != nil {
 			return listpartitionreassignmentsresponsetopic, err
 		}
-		listpartitionreassignmentsresponsetopic.Partitions = partitions
+		listpartitionreassignmentsresponsetopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, res.partitionsDecoder)
 		if err != nil {
@@ -311,11 +313,11 @@ func (res *ListPartitionReassignmentsResponse) partitionsDecoder(r io.Reader) (L
 
 	// Replicas (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		replicas, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		replicas, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return listpartitionreassignmentsresponsetopicpartition, err
 		}
-		listpartitionreassignmentsresponsetopicpartition.Replicas = replicas
+		listpartitionreassignmentsresponsetopicpartition.Replicas = &replicas
 	} else {
 		replicas, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {
@@ -326,11 +328,11 @@ func (res *ListPartitionReassignmentsResponse) partitionsDecoder(r io.Reader) (L
 
 	// AddingReplicas (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		addingreplicas, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		addingreplicas, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return listpartitionreassignmentsresponsetopicpartition, err
 		}
-		listpartitionreassignmentsresponsetopicpartition.AddingReplicas = addingreplicas
+		listpartitionreassignmentsresponsetopicpartition.AddingReplicas = &addingreplicas
 	} else {
 		addingreplicas, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {
@@ -341,11 +343,11 @@ func (res *ListPartitionReassignmentsResponse) partitionsDecoder(r io.Reader) (L
 
 	// RemovingReplicas (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		removingreplicas, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		removingreplicas, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return listpartitionreassignmentsresponsetopicpartition, err
 		}
-		listpartitionreassignmentsresponsetopicpartition.RemovingReplicas = removingreplicas
+		listpartitionreassignmentsresponsetopicpartition.RemovingReplicas = &removingreplicas
 	} else {
 		removingreplicas, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {

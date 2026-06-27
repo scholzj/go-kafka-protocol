@@ -110,6 +110,8 @@ func (req *ShareAcknowledgeRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("ShareAcknowledgeRequest.Read: request or its body is nil")
 	}
 
+	*req = ShareAcknowledgeRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
@@ -161,11 +163,11 @@ func (req *ShareAcknowledgeRequest) Read(request *protocol.Request) error {
 
 	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Topics = topics
+		req.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, req.topicsDecoder)
 		if err != nil {
@@ -232,11 +234,11 @@ func (req *ShareAcknowledgeRequest) topicsDecoder(r io.Reader) (ShareAcknowledge
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, req.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, req.partitionsDecoder)
 		if err != nil {
 			return shareacknowledgerequesttopic, err
 		}
-		shareacknowledgerequesttopic.Partitions = partitions
+		shareacknowledgerequesttopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, req.partitionsDecoder)
 		if err != nil {
@@ -303,11 +305,11 @@ func (req *ShareAcknowledgeRequest) partitionsDecoder(r io.Reader) (ShareAcknowl
 
 	// AcknowledgementBatches (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		acknowledgementbatches, err := protocol.ReadNullableCompactArray(r, req.acknowledgementBatchesDecoder)
+		acknowledgementbatches, err := protocol.ReadCompactArray(r, req.acknowledgementBatchesDecoder)
 		if err != nil {
 			return shareacknowledgerequesttopicpartition, err
 		}
-		shareacknowledgerequesttopicpartition.AcknowledgementBatches = acknowledgementbatches
+		shareacknowledgerequesttopicpartition.AcknowledgementBatches = &acknowledgementbatches
 	} else {
 		acknowledgementbatches, err := protocol.ReadArray(r, req.acknowledgementBatchesDecoder)
 		if err != nil {
@@ -386,11 +388,11 @@ func (req *ShareAcknowledgeRequest) acknowledgementBatchesDecoder(r io.Reader) (
 
 	// AcknowledgeTypes (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		acknowledgetypes, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt8)
+		acknowledgetypes, err := protocol.ReadCompactArray(r, protocol.ReadInt8)
 		if err != nil {
 			return shareacknowledgerequesttopicpartitionacknowledgementbatche, err
 		}
-		shareacknowledgerequesttopicpartitionacknowledgementbatche.AcknowledgeTypes = acknowledgetypes
+		shareacknowledgerequesttopicpartitionacknowledgementbatche.AcknowledgeTypes = &acknowledgetypes
 	} else {
 		acknowledgetypes, err := protocol.ReadArray(r, protocol.ReadInt8)
 		if err != nil {

@@ -160,8 +160,13 @@ func (req *ConsumerGroupHeartbeatRequest) Read(request *protocol.Request) error 
 		return fmt.Errorf("ConsumerGroupHeartbeatRequest.Read: request or its body is nil")
 	}
 
+	*req = ConsumerGroupHeartbeatRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	req.RebalanceTimeoutMs = -1
 
 	// GroupId (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
@@ -357,11 +362,11 @@ func (req *ConsumerGroupHeartbeatRequest) topicPartitionsDecoder(r io.Reader) (C
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return consumergroupheartbeatrequesttopicpartition, err
 		}
-		consumergroupheartbeatrequesttopicpartition.Partitions = partitions
+		consumergroupheartbeatrequesttopicpartition.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {

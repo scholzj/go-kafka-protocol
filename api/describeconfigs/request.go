@@ -75,16 +75,18 @@ func (req *DescribeConfigsRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("DescribeConfigsRequest.Read: request or its body is nil")
 	}
 
+	*req = DescribeConfigsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
 	// Resources (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		resources, err := protocol.ReadNullableCompactArray(r, req.resourcesDecoder)
+		resources, err := protocol.ReadCompactArray(r, req.resourcesDecoder)
 		if err != nil {
 			return err
 		}
-		req.Resources = resources
+		req.Resources = &resources
 	} else {
 		resources, err := protocol.ReadArray(r, req.resourcesDecoder)
 		if err != nil {

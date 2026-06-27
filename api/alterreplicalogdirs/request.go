@@ -64,16 +64,18 @@ func (req *AlterReplicaLogDirsRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("AlterReplicaLogDirsRequest.Read: request or its body is nil")
 	}
 
+	*req = AlterReplicaLogDirsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
 	// Dirs (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		dirs, err := protocol.ReadNullableCompactArray(r, req.dirsDecoder)
+		dirs, err := protocol.ReadCompactArray(r, req.dirsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Dirs = dirs
+		req.Dirs = &dirs
 	} else {
 		dirs, err := protocol.ReadArray(r, req.dirsDecoder)
 		if err != nil {
@@ -157,11 +159,11 @@ func (req *AlterReplicaLogDirsRequest) dirsDecoder(r io.Reader) (AlterReplicaLog
 
 	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
 		if err != nil {
 			return alterreplicalogdirsrequestdir, err
 		}
-		alterreplicalogdirsrequestdir.Topics = topics
+		alterreplicalogdirsrequestdir.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, req.topicsDecoder)
 		if err != nil {
@@ -245,11 +247,11 @@ func (req *AlterReplicaLogDirsRequest) topicsDecoder(r io.Reader) (AlterReplicaL
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return alterreplicalogdirsrequestdirtopic, err
 		}
-		alterreplicalogdirsrequestdirtopic.Partitions = partitions
+		alterreplicalogdirsrequestdirtopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {

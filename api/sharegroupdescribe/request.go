@@ -58,16 +58,18 @@ func (req *ShareGroupDescribeRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("ShareGroupDescribeRequest.Read: request or its body is nil")
 	}
 
+	*req = ShareGroupDescribeRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
 	// GroupIds (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		groupids, err := protocol.ReadNullableCompactArray(r, protocol.ReadCompactString)
+		groupids, err := protocol.ReadCompactArray(r, protocol.ReadCompactString)
 		if err != nil {
 			return err
 		}
-		req.GroupIds = groupids
+		req.GroupIds = &groupids
 	} else {
 		groupids, err := protocol.ReadArray(r, protocol.ReadString)
 		if err != nil {

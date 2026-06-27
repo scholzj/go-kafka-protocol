@@ -91,6 +91,8 @@ func (res *AlterShareGroupOffsetsResponse) Read(response *protocol.Response) err
 		return fmt.Errorf("AlterShareGroupOffsetsResponse.Read: response or its body is nil")
 	}
 
+	*res = AlterShareGroupOffsetsResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -125,11 +127,11 @@ func (res *AlterShareGroupOffsetsResponse) Read(response *protocol.Response) err
 
 	// Responses (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		responses, err := protocol.ReadNullableCompactArray(r, res.responsesDecoder)
+		responses, err := protocol.ReadCompactArray(r, res.responsesDecoder)
 		if err != nil {
 			return err
 		}
-		res.Responses = responses
+		res.Responses = &responses
 	} else {
 		responses, err := protocol.ReadArray(r, res.responsesDecoder)
 		if err != nil {
@@ -225,11 +227,11 @@ func (res *AlterShareGroupOffsetsResponse) responsesDecoder(r io.Reader) (AlterS
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, res.partitionsDecoder)
 		if err != nil {
 			return altersharegroupoffsetsresponseresponse, err
 		}
-		altersharegroupoffsetsresponseresponse.Partitions = partitions
+		altersharegroupoffsetsresponseresponse.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, res.partitionsDecoder)
 		if err != nil {

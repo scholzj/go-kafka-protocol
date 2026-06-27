@@ -80,6 +80,8 @@ func (req *ReadShareGroupStateSummaryRequest) Read(request *protocol.Request) er
 		return fmt.Errorf("ReadShareGroupStateSummaryRequest.Read: request or its body is nil")
 	}
 
+	*req = ReadShareGroupStateSummaryRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
@@ -100,11 +102,11 @@ func (req *ReadShareGroupStateSummaryRequest) Read(request *protocol.Request) er
 
 	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Topics = topics
+		req.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, req.topicsDecoder)
 		if err != nil {
@@ -171,11 +173,11 @@ func (req *ReadShareGroupStateSummaryRequest) topicsDecoder(r io.Reader) (ReadSh
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, req.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, req.partitionsDecoder)
 		if err != nil {
 			return readsharegroupstatesummaryrequesttopic, err
 		}
-		readsharegroupstatesummaryrequesttopic.Partitions = partitions
+		readsharegroupstatesummaryrequesttopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, req.partitionsDecoder)
 		if err != nil {

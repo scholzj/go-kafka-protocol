@@ -68,16 +68,18 @@ func (req *WriteTxnMarkersRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("WriteTxnMarkersRequest.Read: request or its body is nil")
 	}
 
+	*req = WriteTxnMarkersRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
 	// Markers (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		markers, err := protocol.ReadNullableCompactArray(r, req.markersDecoder)
+		markers, err := protocol.ReadCompactArray(r, req.markersDecoder)
 		if err != nil {
 			return err
 		}
-		req.Markers = markers
+		req.Markers = &markers
 	} else {
 		markers, err := protocol.ReadArray(r, req.markersDecoder)
 		if err != nil {
@@ -180,11 +182,11 @@ func (req *WriteTxnMarkersRequest) markersDecoder(r io.Reader) (WriteTxnMarkersR
 
 	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
 		if err != nil {
 			return writetxnmarkersrequestmarker, err
 		}
-		writetxnmarkersrequestmarker.Topics = topics
+		writetxnmarkersrequestmarker.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, req.topicsDecoder)
 		if err != nil {
@@ -284,11 +286,11 @@ func (req *WriteTxnMarkersRequest) topicsDecoder(r io.Reader) (WriteTxnMarkersRe
 
 	// PartitionIndexes (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitionindexes, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitionindexes, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return writetxnmarkersrequestmarkertopic, err
 		}
-		writetxnmarkersrequestmarkertopic.PartitionIndexes = partitionindexes
+		writetxnmarkersrequestmarkertopic.PartitionIndexes = &partitionindexes
 	} else {
 		partitionindexes, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {

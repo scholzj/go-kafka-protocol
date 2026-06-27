@@ -155,8 +155,13 @@ func (req *BrokerRegistrationRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("BrokerRegistrationRequest.Read: request or its body is nil")
 	}
 
+	*req = BrokerRegistrationRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	req.PreviousBrokerEpoch = -1
 
 	// BrokerId (versions: 0+)
 	brokerid, err := protocol.ReadInt32(r)
@@ -189,11 +194,11 @@ func (req *BrokerRegistrationRequest) Read(request *protocol.Request) error {
 
 	// Listeners (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		listeners, err := protocol.ReadNullableCompactArray(r, req.listenersDecoder)
+		listeners, err := protocol.ReadCompactArray(r, req.listenersDecoder)
 		if err != nil {
 			return err
 		}
-		req.Listeners = listeners
+		req.Listeners = &listeners
 	} else {
 		listeners, err := protocol.ReadArray(r, req.listenersDecoder)
 		if err != nil {
@@ -204,11 +209,11 @@ func (req *BrokerRegistrationRequest) Read(request *protocol.Request) error {
 
 	// Features (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		features, err := protocol.ReadNullableCompactArray(r, req.featuresDecoder)
+		features, err := protocol.ReadCompactArray(r, req.featuresDecoder)
 		if err != nil {
 			return err
 		}
-		req.Features = features
+		req.Features = &features
 	} else {
 		features, err := protocol.ReadArray(r, req.featuresDecoder)
 		if err != nil {
@@ -244,11 +249,11 @@ func (req *BrokerRegistrationRequest) Read(request *protocol.Request) error {
 	// LogDirs (versions: 2+)
 	if req.ApiVersion >= 2 {
 		if isRequestFlexible(req.ApiVersion) {
-			logdirs, err := protocol.ReadNullableCompactArray(r, protocol.ReadUUID)
+			logdirs, err := protocol.ReadCompactArray(r, protocol.ReadUUID)
 			if err != nil {
 				return err
 			}
-			req.LogDirs = logdirs
+			req.LogDirs = &logdirs
 		} else {
 			logdirs, err := protocol.ReadArray(r, protocol.ReadUUID)
 			if err != nil {

@@ -18,8 +18,20 @@ import (
 // than the data available simply makes the underlying read fail with an unexpected-EOF error.
 const maxPrealloc = 4096
 
+// maxStringLen is the largest length Kafka permits for a STRING / COMPACT_STRING field. It matches
+// Short.MAX_VALUE: a non-compact string is length-prefixed with an int16, so anything longer would
+// overflow the prefix (the int16 cast wraps to a negative length) and produce invalid wire data.
+const maxStringLen = 32767
+
+// maxBytesLen is the largest length Kafka permits for a BYTES / COMPACT_BYTES field, whose
+// non-compact form is length-prefixed with an int32.
+const maxBytesLen = 2147483647
+
 // preallocLen returns a safe initial capacity for a field whose declared length is length.
 func preallocLen(length int) int {
+	if length < 0 {
+		return 0 // a wire length that overflowed int is never a safe capacity
+	}
 	if length < maxPrealloc {
 		return length
 	}
@@ -280,6 +292,10 @@ func ReadFloat64(r io.Reader) (float64, error) {
 }
 
 func WriteString(w io.Writer, value string) error {
+	if len(value) > maxStringLen {
+		return fmt.Errorf("string length %d exceeds maximum %d", len(value), maxStringLen)
+	}
+
 	err := WriteInt16(w, int16(len(value)))
 	if err != nil {
 		return err
@@ -317,6 +333,10 @@ func WriteNullableString(w io.Writer, value *string) error {
 	if value == nil {
 		return WriteInt16(w, -1)
 	} else {
+		if len(*value) > maxStringLen {
+			return fmt.Errorf("string length %d exceeds maximum %d", len(*value), maxStringLen)
+		}
+
 		err := WriteInt16(w, int16(len(*value)))
 		if err != nil {
 			return err
@@ -354,6 +374,10 @@ func ReadNullableString(r io.Reader) (*string, error) {
 }
 
 func WriteCompactString(w io.Writer, value string) error {
+	if len(value) > maxStringLen {
+		return fmt.Errorf("string length %d exceeds maximum %d", len(value), maxStringLen)
+	}
+
 	if value == "" {
 		return WriteUvarint(w, 1)
 	} else {
@@ -383,6 +407,9 @@ func ReadCompactString(r io.Reader) (string, error) {
 		return "", nil
 	} else {
 		length-- // subtract 1 for the length byte based on the Kafka protocol spec
+		if length > maxStringLen {
+			return "", fmt.Errorf("compact string length %d exceeds maximum %d", length, maxStringLen)
+		}
 		b, err := readBytesLimited(r, int(length))
 		if err != nil {
 			return "", err
@@ -393,6 +420,10 @@ func ReadCompactString(r io.Reader) (string, error) {
 }
 
 func WriteNullableCompactString(w io.Writer, value *string) error {
+	if value != nil && len(*value) > maxStringLen {
+		return fmt.Errorf("string length %d exceeds maximum %d", len(*value), maxStringLen)
+	}
+
 	if value == nil {
 		return WriteUvarint(w, 0)
 	} else if *value == "" {
@@ -425,6 +456,9 @@ func ReadNullableCompactString(r io.Reader) (*string, error) {
 		return &str, nil
 	} else {
 		length-- // subtract 1 for the length byte based on the Kafka protocol spec
+		if length > maxStringLen {
+			return nil, fmt.Errorf("compact string length %d exceeds maximum %d", length, maxStringLen)
+		}
 		b, err := readBytesLimited(r, int(length))
 		if err != nil {
 			return nil, err
@@ -436,6 +470,10 @@ func ReadNullableCompactString(r io.Reader) (*string, error) {
 }
 
 func WriteBytes(w io.Writer, value []byte) error {
+	if len(value) > maxBytesLen {
+		return fmt.Errorf("bytes length %d exceeds maximum %d", len(value), maxBytesLen)
+	}
+
 	err := WriteInt32(w, int32(len(value)))
 	if err != nil {
 		return err
@@ -467,6 +505,10 @@ func ReadBytes(r io.Reader) ([]byte, error) {
 }
 
 func WriteCompactBytes(w io.Writer, value []byte) error {
+	if len(value) > maxBytesLen {
+		return fmt.Errorf("bytes length %d exceeds maximum %d", len(value), maxBytesLen)
+	}
+
 	if len(value) == 0 {
 		return WriteUvarint(w, 1)
 	} else {
@@ -496,6 +538,9 @@ func ReadCompactBytes(r io.Reader) ([]byte, error) {
 		return make([]byte, 0), nil
 	} else {
 		length-- // subtract 1 for the length byte based on the Kafka protocol spec
+		if length > maxBytesLen {
+			return nil, fmt.Errorf("compact bytes length %d exceeds maximum %d", length, maxBytesLen)
+		}
 		return readBytesLimited(r, int(length))
 	}
 }
@@ -504,6 +549,10 @@ func WriteNullableBytes(w io.Writer, value *[]byte) error {
 	if value == nil {
 		return WriteInt32(w, -1)
 	} else {
+		if len(*value) > maxBytesLen {
+			return fmt.Errorf("bytes length %d exceeds maximum %d", len(*value), maxBytesLen)
+		}
+
 		err := WriteInt32(w, int32(len(*value)))
 		if err != nil {
 			return err
@@ -542,6 +591,10 @@ func ReadNullableBytes(r io.Reader) (*[]byte, error) {
 }
 
 func WriteNullableCompactBytes(w io.Writer, value *[]byte) error {
+	if value != nil && len(*value) > maxBytesLen {
+		return fmt.Errorf("bytes length %d exceeds maximum %d", len(*value), maxBytesLen)
+	}
+
 	if value == nil {
 		return WriteUvarint(w, 0)
 	} else if len(*value) == 0 {
@@ -574,6 +627,9 @@ func ReadNullableCompactBytes(r io.Reader) (*[]byte, error) {
 		return &emptyBytes, nil
 	} else {
 		length-- // subtract 1 for the length byte based on the Kafka protocol spec
+		if length > maxBytesLen {
+			return nil, fmt.Errorf("compact bytes length %d exceeds maximum %d", length, maxBytesLen)
+		}
 		b, err := readBytesLimited(r, int(length))
 		if err != nil {
 			return nil, err
@@ -597,6 +653,17 @@ func WriteCompactRecords(w io.Writer, value *[]byte) error {
 
 func ReadCompactRecords(r io.Reader) (*[]byte, error) {
 	return ReadNullableCompactBytes(r)
+}
+
+// ReadRecordsStrict / ReadCompactRecordsStrict read a non-nullable records field, rejecting a wire
+// null (a negative or zero length) instead of decoding it to nil. ReadRecords / ReadCompactRecords
+// are the nullable variants.
+func ReadRecordsStrict(r io.Reader) ([]byte, error) {
+	return ReadBytes(r)
+}
+
+func ReadCompactRecordsStrict(r io.Reader) ([]byte, error) {
+	return ReadCompactBytes(r)
 }
 
 type ArrayReaderDecoder[T interface{}] func(io.Reader) (T, error)
@@ -624,7 +691,11 @@ func ReadArray[T interface{}](r io.Reader, decoder ArrayReaderDecoder[T]) ([]T, 
 		return nil, err
 	}
 
-	if length <= 0 {
+	if length < 0 {
+		// A negative (null) length is only valid for a nullable array; this is the non-nullable
+		// reader, so reject it rather than silently treating it as empty.
+		return nil, fmt.Errorf("invalid array length %d", length)
+	} else if length == 0 {
 		return make([]T, 0), nil
 	} else {
 		array := make([]T, 0, preallocLen(int(length)))
@@ -731,4 +802,34 @@ func ReadNullableCompactArray[T interface{}](r io.Reader, decoder ArrayReaderDec
 
 		return &array, nil
 	}
+}
+
+// ReadCompactArray reads a non-nullable compact (flexible) array. A wire null (length 0) is invalid
+// for a non-nullable field and is rejected rather than silently decoded as an empty array.
+func ReadCompactArray[T interface{}](r io.Reader, decoder ArrayReaderDecoder[T]) ([]T, error) {
+	length, err := ReadUvarint(r)
+	if err != nil {
+		return nil, err
+	}
+
+	if length == 0 {
+		return nil, fmt.Errorf("invalid compact array length 0 for non-nullable array")
+	}
+
+	length-- // the wire length is the element count plus one (0 is reserved for null)
+
+	n := int(length)
+	if n < 0 {
+		return nil, fmt.Errorf("invalid compact array length %d", length)
+	}
+	array := make([]T, 0, preallocLen(n))
+	for i := 0; i < n; i++ {
+		v, err := decoder(r)
+		if err != nil {
+			return nil, err
+		}
+		array = append(array, v)
+	}
+
+	return array, nil
 }

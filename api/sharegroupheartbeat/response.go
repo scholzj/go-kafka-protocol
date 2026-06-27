@@ -79,8 +79,17 @@ func (res *ShareGroupHeartbeatResponse) Write(w io.Writer) error {
 	}
 
 	// Assignment (versions: 0+)
-	if err := res.assignmentEncoder(w, *res.Assignment); err != nil {
-		return err
+	if res.Assignment == nil {
+		if err := protocol.WriteInt8(w, -1); err != nil {
+			return err
+		}
+	} else {
+		if err := protocol.WriteInt8(w, 1); err != nil {
+			return err
+		}
+		if err := res.assignmentEncoder(w, *res.Assignment); err != nil {
+			return err
+		}
 	}
 
 	// Tagged fields
@@ -102,6 +111,8 @@ func (res *ShareGroupHeartbeatResponse) Read(response *protocol.Response) error 
 	if response == nil || response.Body == nil {
 		return fmt.Errorf("ShareGroupHeartbeatResponse.Read: response or its body is nil")
 	}
+
+	*res = ShareGroupHeartbeatResponse{}
 
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
@@ -165,11 +176,19 @@ func (res *ShareGroupHeartbeatResponse) Read(response *protocol.Response) error 
 	res.HeartbeatIntervalMs = heartbeatintervalms
 
 	// Assignment (versions: 0+)
-	assignment, err := res.assignmentDecoder(r)
+	assignmentFlag, err := protocol.ReadInt8(r)
 	if err != nil {
 		return err
 	}
-	res.Assignment = &assignment
+	if assignmentFlag >= 0 {
+		assignment, err := res.assignmentDecoder(r)
+		if err != nil {
+			return err
+		}
+		res.Assignment = &assignment
+	} else {
+		res.Assignment = nil
+	}
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
@@ -217,11 +236,11 @@ func (res *ShareGroupHeartbeatResponse) assignmentDecoder(r io.Reader) (ShareGro
 
 	// TopicPartitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		topicpartitions, err := protocol.ReadNullableCompactArray(r, res.topicPartitionsDecoder)
+		topicpartitions, err := protocol.ReadCompactArray(r, res.topicPartitionsDecoder)
 		if err != nil {
 			return sharegroupheartbeatresponseassignment, err
 		}
-		sharegroupheartbeatresponseassignment.TopicPartitions = topicpartitions
+		sharegroupheartbeatresponseassignment.TopicPartitions = &topicpartitions
 	} else {
 		topicpartitions, err := protocol.ReadArray(r, res.topicPartitionsDecoder)
 		if err != nil {
@@ -288,11 +307,11 @@ func (res *ShareGroupHeartbeatResponse) topicPartitionsDecoder(r io.Reader) (Sha
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return sharegroupheartbeatresponseassignmenttopicpartition, err
 		}
-		sharegroupheartbeatresponseassignmenttopicpartition.Partitions = partitions
+		sharegroupheartbeatresponseassignmenttopicpartition.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {

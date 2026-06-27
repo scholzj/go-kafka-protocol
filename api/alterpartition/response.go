@@ -82,6 +82,8 @@ func (res *AlterPartitionResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("AlterPartitionResponse.Read: response or its body is nil")
 	}
 
+	*res = AlterPartitionResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -101,11 +103,11 @@ func (res *AlterPartitionResponse) Read(response *protocol.Response) error {
 
 	// Topics (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, res.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, res.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		res.Topics = topics
+		res.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, res.topicsDecoder)
 		if err != nil {
@@ -176,11 +178,11 @@ func (res *AlterPartitionResponse) topicsDecoder(r io.Reader) (AlterPartitionRes
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, res.partitionsDecoder)
 		if err != nil {
 			return alterpartitionresponsetopic, err
 		}
-		alterpartitionresponsetopic.Partitions = partitions
+		alterpartitionresponsetopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, res.partitionsDecoder)
 		if err != nil {
@@ -295,11 +297,11 @@ func (res *AlterPartitionResponse) partitionsDecoder(r io.Reader) (AlterPartitio
 
 	// Isr (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		isr, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		isr, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return alterpartitionresponsetopicpartition, err
 		}
-		alterpartitionresponsetopicpartition.Isr = isr
+		alterpartitionresponsetopicpartition.Isr = &isr
 	} else {
 		isr, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {

@@ -70,6 +70,8 @@ func (req *EndTxnRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("EndTxnRequest.Read: request or its body is nil")
 	}
 
+	*req = EndTxnRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 

@@ -79,6 +79,8 @@ func (req *AlterShareGroupOffsetsRequest) Read(request *protocol.Request) error 
 		return fmt.Errorf("AlterShareGroupOffsetsRequest.Read: request or its body is nil")
 	}
 
+	*req = AlterShareGroupOffsetsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
@@ -99,11 +101,11 @@ func (req *AlterShareGroupOffsetsRequest) Read(request *protocol.Request) error 
 
 	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Topics = topics
+		req.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, req.topicsDecoder)
 		if err != nil {
@@ -187,11 +189,11 @@ func (req *AlterShareGroupOffsetsRequest) topicsDecoder(r io.Reader) (AlterShare
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, req.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, req.partitionsDecoder)
 		if err != nil {
 			return altersharegroupoffsetsrequesttopic, err
 		}
-		altersharegroupoffsetsrequesttopic.Partitions = partitions
+		altersharegroupoffsetsrequesttopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, req.partitionsDecoder)
 		if err != nil {

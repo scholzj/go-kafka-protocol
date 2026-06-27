@@ -174,8 +174,13 @@ func (req *ShareFetchRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("ShareFetchRequest.Read: request or its body is nil")
 	}
 
+	*req = ShareFetchRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	req.MaxBytes = 0x7fffffff
 
 	// GroupId (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
@@ -273,11 +278,11 @@ func (req *ShareFetchRequest) Read(request *protocol.Request) error {
 
 	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Topics = topics
+		req.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, req.topicsDecoder)
 		if err != nil {
@@ -288,11 +293,11 @@ func (req *ShareFetchRequest) Read(request *protocol.Request) error {
 
 	// ForgottenTopicsData (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		forgottentopicsdata, err := protocol.ReadNullableCompactArray(r, req.forgottenTopicsDataDecoder)
+		forgottentopicsdata, err := protocol.ReadCompactArray(r, req.forgottenTopicsDataDecoder)
 		if err != nil {
 			return err
 		}
-		req.ForgottenTopicsData = forgottentopicsdata
+		req.ForgottenTopicsData = &forgottentopicsdata
 	} else {
 		forgottentopicsdata, err := protocol.ReadArray(r, req.forgottenTopicsDataDecoder)
 		if err != nil {
@@ -359,11 +364,11 @@ func (req *ShareFetchRequest) topicsDecoder(r io.Reader) (ShareFetchRequestTopic
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, req.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, req.partitionsDecoder)
 		if err != nil {
 			return sharefetchrequesttopic, err
 		}
-		sharefetchrequesttopic.Partitions = partitions
+		sharefetchrequesttopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, req.partitionsDecoder)
 		if err != nil {
@@ -446,11 +451,11 @@ func (req *ShareFetchRequest) partitionsDecoder(r io.Reader) (ShareFetchRequestT
 
 	// AcknowledgementBatches (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		acknowledgementbatches, err := protocol.ReadNullableCompactArray(r, req.acknowledgementBatchesDecoder)
+		acknowledgementbatches, err := protocol.ReadCompactArray(r, req.acknowledgementBatchesDecoder)
 		if err != nil {
 			return sharefetchrequesttopicpartition, err
 		}
-		sharefetchrequesttopicpartition.AcknowledgementBatches = acknowledgementbatches
+		sharefetchrequesttopicpartition.AcknowledgementBatches = &acknowledgementbatches
 	} else {
 		acknowledgementbatches, err := protocol.ReadArray(r, req.acknowledgementBatchesDecoder)
 		if err != nil {
@@ -529,11 +534,11 @@ func (req *ShareFetchRequest) acknowledgementBatchesDecoder(r io.Reader) (ShareF
 
 	// AcknowledgeTypes (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		acknowledgetypes, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt8)
+		acknowledgetypes, err := protocol.ReadCompactArray(r, protocol.ReadInt8)
 		if err != nil {
 			return sharefetchrequesttopicpartitionacknowledgementbatche, err
 		}
-		sharefetchrequesttopicpartitionacknowledgementbatche.AcknowledgeTypes = acknowledgetypes
+		sharefetchrequesttopicpartitionacknowledgementbatche.AcknowledgeTypes = &acknowledgetypes
 	} else {
 		acknowledgetypes, err := protocol.ReadArray(r, protocol.ReadInt8)
 		if err != nil {
@@ -600,11 +605,11 @@ func (req *ShareFetchRequest) forgottenTopicsDataDecoder(r io.Reader) (ShareFetc
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return sharefetchrequestforgottentopicsdata, err
 		}
-		sharefetchrequestforgottentopicsdata.Partitions = partitions
+		sharefetchrequestforgottentopicsdata.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {

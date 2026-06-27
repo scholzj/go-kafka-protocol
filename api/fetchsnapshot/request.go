@@ -88,8 +88,14 @@ func (req *FetchSnapshotRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("FetchSnapshotRequest.Read: request or its body is nil")
 	}
 
+	*req = FetchSnapshotRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	req.ReplicaId = -1
+	req.MaxBytes = 0x7fffffff
 
 	// ReplicaId (versions: 0+)
 	replicaid, err := protocol.ReadInt32(r)
@@ -107,11 +113,11 @@ func (req *FetchSnapshotRequest) Read(request *protocol.Request) error {
 
 	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Topics = topics
+		req.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, req.topicsDecoder)
 		if err != nil {
@@ -193,11 +199,11 @@ func (req *FetchSnapshotRequest) topicsDecoder(r io.Reader) (FetchSnapshotReques
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, req.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, req.partitionsDecoder)
 		if err != nil {
 			return fetchsnapshotrequesttopic, err
 		}
-		fetchsnapshotrequesttopic.Partitions = partitions
+		fetchsnapshotrequesttopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, req.partitionsDecoder)
 		if err != nil {
@@ -330,12 +336,14 @@ func (req *FetchSnapshotRequest) taggedFieldsEncoderPartitions(value FetchSnapsh
 	buf := bytes.NewBuffer(make([]byte, 0))
 
 	// Tag 0
-	buf = bytes.NewBuffer(make([]byte, 0))
-	if err := protocol.WriteUUID(buf, value.ReplicaDirectoryId); err != nil {
-		return taggedFields, err
-	}
+	if req.ApiVersion >= 1 && value.ReplicaDirectoryId != (uuid.UUID{}) {
+		buf = bytes.NewBuffer(make([]byte, 0))
+		if err := protocol.WriteUUID(buf, value.ReplicaDirectoryId); err != nil {
+			return taggedFields, err
+		}
 
-	taggedFields = append(taggedFields, protocol.TaggedField{Tag: 0, Field: buf.Bytes()})
+		taggedFields = append(taggedFields, protocol.TaggedField{Tag: 0, Field: buf.Bytes()})
+	}
 
 	// We append any raw tagged fields to the end of the array
 	if value.rawTaggedFields != nil {
@@ -346,27 +354,33 @@ func (req *FetchSnapshotRequest) taggedFieldsEncoderPartitions(value FetchSnapsh
 }
 
 func (req *FetchSnapshotRequest) taggedFieldsDecoderPartitions(r io.Reader, tag uint64, tagLength uint64, value *FetchSnapshotRequestTopicPartition) error {
-	rawTaggedFields := make([]protocol.TaggedField, 0)
+	known := false
 
 	switch tag {
 	case 0:
 		// ReplicaDirectoryId
-		replicadirectoryid, err := protocol.ReadUUID(r)
-		if err != nil {
-			return err
+		if req.ApiVersion >= 1 {
+			known = true
+			replicadirectoryid, err := protocol.ReadUUID(r)
+			if err != nil {
+				return err
+			}
+			value.ReplicaDirectoryId = replicadirectoryid
 		}
-		value.ReplicaDirectoryId = replicadirectoryid
-	default:
-		// Unknown tag - keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
+	}
+
+	if !known {
+		// Keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
 		field, err := io.ReadAll(r)
 		if err != nil {
 			return err
 		}
-		rawTaggedFields = append(rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
+		if value.rawTaggedFields == nil {
+			rawTaggedFields := make([]protocol.TaggedField, 0)
+			value.rawTaggedFields = &rawTaggedFields
+		}
+		*value.rawTaggedFields = append(*value.rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
 	}
-
-	// Set the raw tagged fields
-	value.rawTaggedFields = &rawTaggedFields
 
 	return nil
 }
@@ -453,27 +467,31 @@ func (req *FetchSnapshotRequest) taggedFieldsEncoder() ([]protocol.TaggedField, 
 }
 
 func (req *FetchSnapshotRequest) taggedFieldsDecoder(r io.Reader, tag uint64, tagLength uint64) error {
-	rawTaggedFields := make([]protocol.TaggedField, 0)
+	known := false
 
 	switch tag {
 	case 0:
 		// ClusterId
+		known = true
 		clusterid, err := protocol.ReadNullableCompactString(r)
 		if err != nil {
 			return err
 		}
 		req.ClusterId = clusterid
-	default:
-		// Unknown tag - keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
+	}
+
+	if !known {
+		// Keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
 		field, err := io.ReadAll(r)
 		if err != nil {
 			return err
 		}
-		rawTaggedFields = append(rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
+		if req.rawTaggedFields == nil {
+			rawTaggedFields := make([]protocol.TaggedField, 0)
+			req.rawTaggedFields = &rawTaggedFields
+		}
+		*req.rawTaggedFields = append(*req.rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
 	}
-
-	// Set the raw tagged fields
-	req.rawTaggedFields = &rawTaggedFields
 
 	return nil
 }

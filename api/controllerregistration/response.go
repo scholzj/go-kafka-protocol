@@ -61,6 +61,8 @@ func (res *ControllerRegistrationResponse) Read(response *protocol.Response) err
 		return fmt.Errorf("ControllerRegistrationResponse.Read: response or its body is nil")
 	}
 
+	*res = ControllerRegistrationResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 

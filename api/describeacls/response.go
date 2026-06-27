@@ -92,6 +92,8 @@ func (res *DescribeAclsResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("DescribeAclsResponse.Read: response or its body is nil")
 	}
 
+	*res = DescribeAclsResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -126,11 +128,11 @@ func (res *DescribeAclsResponse) Read(response *protocol.Response) error {
 
 	// Resources (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		resources, err := protocol.ReadNullableCompactArray(r, res.resourcesDecoder)
+		resources, err := protocol.ReadCompactArray(r, res.resourcesDecoder)
 		if err != nil {
 			return err
 		}
-		res.Resources = resources
+		res.Resources = &resources
 	} else {
 		resources, err := protocol.ReadArray(r, res.resourcesDecoder)
 		if err != nil {
@@ -209,6 +211,9 @@ func (res *DescribeAclsResponse) resourcesEncoder(w io.Writer, value DescribeAcl
 func (res *DescribeAclsResponse) resourcesDecoder(r io.Reader) (DescribeAclsResponseResource, error) {
 	describeaclsresponseresource := DescribeAclsResponseResource{}
 
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	describeaclsresponseresource.PatternType = 3
+
 	// ResourceType (versions: 0+)
 	resourcetype, err := protocol.ReadInt8(r)
 	if err != nil {
@@ -242,11 +247,11 @@ func (res *DescribeAclsResponse) resourcesDecoder(r io.Reader) (DescribeAclsResp
 
 	// Acls (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		acls, err := protocol.ReadNullableCompactArray(r, res.aclsDecoder)
+		acls, err := protocol.ReadCompactArray(r, res.aclsDecoder)
 		if err != nil {
 			return describeaclsresponseresource, err
 		}
-		describeaclsresponseresource.Acls = acls
+		describeaclsresponseresource.Acls = &acls
 	} else {
 		acls, err := protocol.ReadArray(r, res.aclsDecoder)
 		if err != nil {

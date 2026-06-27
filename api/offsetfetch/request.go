@@ -118,6 +118,8 @@ func (req *OffsetFetchRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("OffsetFetchRequest.Read: request or its body is nil")
 	}
 
+	*req = OffsetFetchRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
@@ -141,28 +143,44 @@ func (req *OffsetFetchRequest) Read(request *protocol.Request) error {
 	// Topics (versions: 0-7)
 	if req.ApiVersion <= 7 {
 		if isRequestFlexible(req.ApiVersion) {
-			topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
-			if err != nil {
-				return err
+			if req.ApiVersion >= 2 {
+				topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+				if err != nil {
+					return err
+				}
+				req.Topics = topics
+			} else {
+				topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
+				if err != nil {
+					return err
+				}
+				req.Topics = &topics
 			}
-			req.Topics = topics
 		} else {
-			topics, err := protocol.ReadNullableArray(r, req.topicsDecoder)
-			if err != nil {
-				return err
+			if req.ApiVersion >= 2 {
+				topics, err := protocol.ReadNullableArray(r, req.topicsDecoder)
+				if err != nil {
+					return err
+				}
+				req.Topics = topics
+			} else {
+				topics, err := protocol.ReadArray(r, req.topicsDecoder)
+				if err != nil {
+					return err
+				}
+				req.Topics = &topics
 			}
-			req.Topics = topics
 		}
 	}
 
 	// Groups (versions: 8+)
 	if req.ApiVersion >= 8 {
 		if isRequestFlexible(req.ApiVersion) {
-			groups, err := protocol.ReadNullableCompactArray(r, req.groupsDecoder)
+			groups, err := protocol.ReadCompactArray(r, req.groupsDecoder)
 			if err != nil {
 				return err
 			}
-			req.Groups = groups
+			req.Groups = &groups
 		} else {
 			groups, err := protocol.ReadArray(r, req.groupsDecoder)
 			if err != nil {
@@ -263,11 +281,11 @@ func (req *OffsetFetchRequest) topicsDecoder(r io.Reader) (OffsetFetchRequestTop
 	// PartitionIndexes (versions: 0-7)
 	if req.ApiVersion <= 7 {
 		if isRequestFlexible(req.ApiVersion) {
-			partitionindexes, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+			partitionindexes, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 			if err != nil {
 				return offsetfetchrequesttopic, err
 			}
-			offsetfetchrequesttopic.PartitionIndexes = partitionindexes
+			offsetfetchrequesttopic.PartitionIndexes = &partitionindexes
 		} else {
 			partitionindexes, err := protocol.ReadArray(r, protocol.ReadInt32)
 			if err != nil {
@@ -355,6 +373,9 @@ func (req *OffsetFetchRequest) groupsEncoder(w io.Writer, value OffsetFetchReque
 
 func (req *OffsetFetchRequest) groupsDecoder(r io.Reader) (OffsetFetchRequestGroup, error) {
 	offsetfetchrequestgroup := OffsetFetchRequestGroup{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	offsetfetchrequestgroup.MemberEpoch = -1
 
 	// GroupId (versions: 8+)
 	if req.ApiVersion >= 8 {
@@ -514,11 +535,11 @@ func (req *OffsetFetchRequest) offsetFetchRequestGroupTopicDecoder(r io.Reader) 
 	// PartitionIndexes (versions: 8+)
 	if req.ApiVersion >= 8 {
 		if isRequestFlexible(req.ApiVersion) {
-			partitionindexes, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+			partitionindexes, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 			if err != nil {
 				return offsetfetchrequestgrouptopic, err
 			}
-			offsetfetchrequestgrouptopic.PartitionIndexes = partitionindexes
+			offsetfetchrequestgrouptopic.PartitionIndexes = &partitionindexes
 		} else {
 			partitionindexes, err := protocol.ReadArray(r, protocol.ReadInt32)
 			if err != nil {

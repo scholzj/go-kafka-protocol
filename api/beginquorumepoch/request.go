@@ -111,8 +111,13 @@ func (req *BeginQuorumEpochRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("BeginQuorumEpochRequest.Read: request or its body is nil")
 	}
 
+	*req = BeginQuorumEpochRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	req.VoterId = -1
 
 	// ClusterId (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
@@ -140,11 +145,11 @@ func (req *BeginQuorumEpochRequest) Read(request *protocol.Request) error {
 
 	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Topics = topics
+		req.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, req.topicsDecoder)
 		if err != nil {
@@ -156,11 +161,11 @@ func (req *BeginQuorumEpochRequest) Read(request *protocol.Request) error {
 	// LeaderEndpoints (versions: 1+)
 	if req.ApiVersion >= 1 {
 		if isRequestFlexible(req.ApiVersion) {
-			leaderendpoints, err := protocol.ReadNullableCompactArray(r, req.leaderEndpointsDecoder)
+			leaderendpoints, err := protocol.ReadCompactArray(r, req.leaderEndpointsDecoder)
 			if err != nil {
 				return err
 			}
-			req.LeaderEndpoints = leaderendpoints
+			req.LeaderEndpoints = &leaderendpoints
 		} else {
 			leaderendpoints, err := protocol.ReadArray(r, req.leaderEndpointsDecoder)
 			if err != nil {
@@ -245,11 +250,11 @@ func (req *BeginQuorumEpochRequest) topicsDecoder(r io.Reader) (BeginQuorumEpoch
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, req.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, req.partitionsDecoder)
 		if err != nil {
 			return beginquorumepochrequesttopic, err
 		}
-		beginquorumepochrequesttopic.Partitions = partitions
+		beginquorumepochrequesttopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, req.partitionsDecoder)
 		if err != nil {

@@ -82,6 +82,8 @@ func (res *DescribeProducersResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("DescribeProducersResponse.Read: response or its body is nil")
 	}
 
+	*res = DescribeProducersResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -94,11 +96,11 @@ func (res *DescribeProducersResponse) Read(response *protocol.Response) error {
 
 	// Topics (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, res.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, res.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		res.Topics = topics
+		res.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, res.topicsDecoder)
 		if err != nil {
@@ -182,11 +184,11 @@ func (res *DescribeProducersResponse) topicsDecoder(r io.Reader) (DescribeProduc
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, res.partitionsDecoder)
 		if err != nil {
 			return describeproducersresponsetopic, err
 		}
-		describeproducersresponsetopic.Partitions = partitions
+		describeproducersresponsetopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, res.partitionsDecoder)
 		if err != nil {
@@ -291,11 +293,11 @@ func (res *DescribeProducersResponse) partitionsDecoder(r io.Reader) (DescribePr
 
 	// ActiveProducers (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		activeproducers, err := protocol.ReadNullableCompactArray(r, res.activeProducersDecoder)
+		activeproducers, err := protocol.ReadCompactArray(r, res.activeProducersDecoder)
 		if err != nil {
 			return describeproducersresponsetopicpartition, err
 		}
-		describeproducersresponsetopicpartition.ActiveProducers = activeproducers
+		describeproducersresponsetopicpartition.ActiveProducers = &activeproducers
 	} else {
 		activeproducers, err := protocol.ReadArray(r, res.activeProducersDecoder)
 		if err != nil {
@@ -363,6 +365,11 @@ func (res *DescribeProducersResponse) activeProducersEncoder(w io.Writer, value 
 
 func (res *DescribeProducersResponse) activeProducersDecoder(r io.Reader) (DescribeProducersResponseTopicPartitionActiveProducer, error) {
 	describeproducersresponsetopicpartitionactiveproducer := DescribeProducersResponseTopicPartitionActiveProducer{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	describeproducersresponsetopicpartitionactiveproducer.LastSequence = -1
+	describeproducersresponsetopicpartitionactiveproducer.LastTimestamp = -1
+	describeproducersresponsetopicpartitionactiveproducer.CurrentTxnStartOffset = -1
 
 	// ProducerId (versions: 0+)
 	producerid, err := protocol.ReadInt64(r)

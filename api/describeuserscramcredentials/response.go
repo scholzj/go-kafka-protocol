@@ -90,6 +90,8 @@ func (res *DescribeUserScramCredentialsResponse) Read(response *protocol.Respons
 		return fmt.Errorf("DescribeUserScramCredentialsResponse.Read: response or its body is nil")
 	}
 
+	*res = DescribeUserScramCredentialsResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -124,11 +126,11 @@ func (res *DescribeUserScramCredentialsResponse) Read(response *protocol.Respons
 
 	// Results (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		results, err := protocol.ReadNullableCompactArray(r, res.resultsDecoder)
+		results, err := protocol.ReadCompactArray(r, res.resultsDecoder)
 		if err != nil {
 			return err
 		}
-		res.Results = results
+		res.Results = &results
 	} else {
 		results, err := protocol.ReadArray(r, res.resultsDecoder)
 		if err != nil {
@@ -250,11 +252,11 @@ func (res *DescribeUserScramCredentialsResponse) resultsDecoder(r io.Reader) (De
 
 	// CredentialInfos (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		credentialinfos, err := protocol.ReadNullableCompactArray(r, res.credentialInfosDecoder)
+		credentialinfos, err := protocol.ReadCompactArray(r, res.credentialInfosDecoder)
 		if err != nil {
 			return describeuserscramcredentialsresponseresult, err
 		}
-		describeuserscramcredentialsresponseresult.CredentialInfos = credentialinfos
+		describeuserscramcredentialsresponseresult.CredentialInfos = &credentialinfos
 	} else {
 		credentialinfos, err := protocol.ReadArray(r, res.credentialInfosDecoder)
 		if err != nil {

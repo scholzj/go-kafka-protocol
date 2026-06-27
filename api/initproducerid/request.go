@@ -87,8 +87,14 @@ func (req *InitProducerIdRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("InitProducerIdRequest.Read: request or its body is nil")
 	}
 
+	*req = InitProducerIdRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	req.ProducerId = -1
+	req.ProducerEpoch = -1
 
 	// TransactionalId (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {

@@ -71,6 +71,8 @@ func (res *AlterClientQuotasResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("AlterClientQuotasResponse.Read: response or its body is nil")
 	}
 
+	*res = AlterClientQuotasResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -83,11 +85,11 @@ func (res *AlterClientQuotasResponse) Read(response *protocol.Response) error {
 
 	// Entries (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		entries, err := protocol.ReadNullableCompactArray(r, res.entriesDecoder)
+		entries, err := protocol.ReadCompactArray(r, res.entriesDecoder)
 		if err != nil {
 			return err
 		}
-		res.Entries = entries
+		res.Entries = &entries
 	} else {
 		entries, err := protocol.ReadArray(r, res.entriesDecoder)
 		if err != nil {
@@ -180,11 +182,11 @@ func (res *AlterClientQuotasResponse) entriesDecoder(r io.Reader) (AlterClientQu
 
 	// Entity (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		entity, err := protocol.ReadNullableCompactArray(r, res.entityDecoder)
+		entity, err := protocol.ReadCompactArray(r, res.entityDecoder)
 		if err != nil {
 			return alterclientquotasresponseentrie, err
 		}
-		alterclientquotasresponseentrie.Entity = entity
+		alterclientquotasresponseentrie.Entity = &entity
 	} else {
 		entity, err := protocol.ReadArray(r, res.entityDecoder)
 		if err != nil {

@@ -51,8 +51,17 @@ func (req *DescribeTopicPartitionsRequest) Write(w io.Writer) error {
 	}
 
 	// Cursor (versions: 0+)
-	if err := req.cursorEncoder(w, *req.Cursor); err != nil {
-		return err
+	if req.Cursor == nil {
+		if err := protocol.WriteInt8(w, -1); err != nil {
+			return err
+		}
+	} else {
+		if err := protocol.WriteInt8(w, 1); err != nil {
+			return err
+		}
+		if err := req.cursorEncoder(w, *req.Cursor); err != nil {
+			return err
+		}
 	}
 
 	// Tagged fields
@@ -75,16 +84,21 @@ func (req *DescribeTopicPartitionsRequest) Read(request *protocol.Request) error
 		return fmt.Errorf("DescribeTopicPartitionsRequest.Read: request or its body is nil")
 	}
 
+	*req = DescribeTopicPartitionsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	req.ResponsePartitionLimit = 2000
+
 	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Topics = topics
+		req.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, req.topicsDecoder)
 		if err != nil {
@@ -101,11 +115,19 @@ func (req *DescribeTopicPartitionsRequest) Read(request *protocol.Request) error
 	req.ResponsePartitionLimit = responsepartitionlimit
 
 	// Cursor (versions: 0+)
-	cursor, err := req.cursorDecoder(r)
+	cursorFlag, err := protocol.ReadInt8(r)
 	if err != nil {
 		return err
 	}
-	req.Cursor = &cursor
+	if cursorFlag >= 0 {
+		cursor, err := req.cursorDecoder(r)
+		if err != nil {
+			return err
+		}
+		req.Cursor = &cursor
+	} else {
+		req.Cursor = nil
+	}
 
 	// Tagged fields
 	if isRequestFlexible(req.ApiVersion) {

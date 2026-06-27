@@ -82,6 +82,8 @@ func (res *DescribeGroupsResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("DescribeGroupsResponse.Read: response or its body is nil")
 	}
 
+	*res = DescribeGroupsResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -96,11 +98,11 @@ func (res *DescribeGroupsResponse) Read(response *protocol.Response) error {
 
 	// Groups (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		groups, err := protocol.ReadNullableCompactArray(r, res.groupsDecoder)
+		groups, err := protocol.ReadCompactArray(r, res.groupsDecoder)
 		if err != nil {
 			return err
 		}
-		res.Groups = groups
+		res.Groups = &groups
 	} else {
 		groups, err := protocol.ReadArray(r, res.groupsDecoder)
 		if err != nil {
@@ -234,6 +236,9 @@ func (res *DescribeGroupsResponse) groupsEncoder(w io.Writer, value DescribeGrou
 func (res *DescribeGroupsResponse) groupsDecoder(r io.Reader) (DescribeGroupsResponseGroup, error) {
 	describegroupsresponsegroup := DescribeGroupsResponseGroup{}
 
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	describegroupsresponsegroup.AuthorizedOperations = -2147483648
+
 	// ErrorCode (versions: 0+)
 	errorcode, err := protocol.ReadInt16(r)
 	if err != nil {
@@ -320,11 +325,11 @@ func (res *DescribeGroupsResponse) groupsDecoder(r io.Reader) (DescribeGroupsRes
 
 	// Members (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		members, err := protocol.ReadNullableCompactArray(r, res.membersDecoder)
+		members, err := protocol.ReadCompactArray(r, res.membersDecoder)
 		if err != nil {
 			return describegroupsresponsegroup, err
 		}
-		describegroupsresponsegroup.Members = members
+		describegroupsresponsegroup.Members = &members
 	} else {
 		members, err := protocol.ReadArray(r, res.membersDecoder)
 		if err != nil {

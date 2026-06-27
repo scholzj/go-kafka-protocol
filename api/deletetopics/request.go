@@ -84,17 +84,19 @@ func (req *DeleteTopicsRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("DeleteTopicsRequest.Read: request or its body is nil")
 	}
 
+	*req = DeleteTopicsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
 	// Topics (versions: 6+)
 	if req.ApiVersion >= 6 {
 		if isRequestFlexible(req.ApiVersion) {
-			topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+			topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
 			if err != nil {
 				return err
 			}
-			req.Topics = topics
+			req.Topics = &topics
 		} else {
 			topics, err := protocol.ReadArray(r, req.topicsDecoder)
 			if err != nil {
@@ -107,11 +109,11 @@ func (req *DeleteTopicsRequest) Read(request *protocol.Request) error {
 	// TopicNames (versions: 0-5)
 	if req.ApiVersion <= 5 {
 		if isRequestFlexible(req.ApiVersion) {
-			topicnames, err := protocol.ReadNullableCompactArray(r, protocol.ReadCompactString)
+			topicnames, err := protocol.ReadCompactArray(r, protocol.ReadCompactString)
 			if err != nil {
 				return err
 			}
-			req.TopicNames = topicnames
+			req.TopicNames = &topicnames
 		} else {
 			topicnames, err := protocol.ReadArray(r, protocol.ReadString)
 			if err != nil {

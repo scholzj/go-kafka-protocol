@@ -89,16 +89,21 @@ func (req *ListTransactionsRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("ListTransactionsRequest.Read: request or its body is nil")
 	}
 
+	*req = ListTransactionsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	req.DurationFilter = -1
+
 	// StateFilters (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		statefilters, err := protocol.ReadNullableCompactArray(r, protocol.ReadCompactString)
+		statefilters, err := protocol.ReadCompactArray(r, protocol.ReadCompactString)
 		if err != nil {
 			return err
 		}
-		req.StateFilters = statefilters
+		req.StateFilters = &statefilters
 	} else {
 		statefilters, err := protocol.ReadArray(r, protocol.ReadString)
 		if err != nil {
@@ -109,11 +114,11 @@ func (req *ListTransactionsRequest) Read(request *protocol.Request) error {
 
 	// ProducerIdFilters (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		produceridfilters, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt64)
+		produceridfilters, err := protocol.ReadCompactArray(r, protocol.ReadInt64)
 		if err != nil {
 			return err
 		}
-		req.ProducerIdFilters = produceridfilters
+		req.ProducerIdFilters = &produceridfilters
 	} else {
 		produceridfilters, err := protocol.ReadArray(r, protocol.ReadInt64)
 		if err != nil {

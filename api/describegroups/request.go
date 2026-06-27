@@ -60,16 +60,18 @@ func (req *DescribeGroupsRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("DescribeGroupsRequest.Read: request or its body is nil")
 	}
 
+	*req = DescribeGroupsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
 	// Groups (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		groups, err := protocol.ReadNullableCompactArray(r, protocol.ReadCompactString)
+		groups, err := protocol.ReadCompactArray(r, protocol.ReadCompactString)
 		if err != nil {
 			return err
 		}
-		req.Groups = groups
+		req.Groups = &groups
 	} else {
 		groups, err := protocol.ReadArray(r, protocol.ReadString)
 		if err != nil {

@@ -54,6 +54,8 @@ func (req *DescribeUserScramCredentialsRequest) Read(request *protocol.Request) 
 		return fmt.Errorf("DescribeUserScramCredentialsRequest.Read: request or its body is nil")
 	}
 
+	*req = DescribeUserScramCredentialsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 

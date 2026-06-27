@@ -136,6 +136,8 @@ func (req *SyncGroupRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("SyncGroupRequest.Read: request or its body is nil")
 	}
 
+	*req = SyncGroupRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
@@ -229,11 +231,11 @@ func (req *SyncGroupRequest) Read(request *protocol.Request) error {
 
 	// Assignments (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		assignments, err := protocol.ReadNullableCompactArray(r, req.assignmentsDecoder)
+		assignments, err := protocol.ReadCompactArray(r, req.assignmentsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Assignments = assignments
+		req.Assignments = &assignments
 	} else {
 		assignments, err := protocol.ReadArray(r, req.assignmentsDecoder)
 		if err != nil {

@@ -101,6 +101,8 @@ func (req *ControllerRegistrationRequest) Read(request *protocol.Request) error 
 		return fmt.Errorf("ControllerRegistrationRequest.Read: request or its body is nil")
 	}
 
+	*req = ControllerRegistrationRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
@@ -127,11 +129,11 @@ func (req *ControllerRegistrationRequest) Read(request *protocol.Request) error 
 
 	// Listeners (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		listeners, err := protocol.ReadNullableCompactArray(r, req.listenersDecoder)
+		listeners, err := protocol.ReadCompactArray(r, req.listenersDecoder)
 		if err != nil {
 			return err
 		}
-		req.Listeners = listeners
+		req.Listeners = &listeners
 	} else {
 		listeners, err := protocol.ReadArray(r, req.listenersDecoder)
 		if err != nil {
@@ -142,11 +144,11 @@ func (req *ControllerRegistrationRequest) Read(request *protocol.Request) error 
 
 	// Features (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		features, err := protocol.ReadNullableCompactArray(r, req.featuresDecoder)
+		features, err := protocol.ReadCompactArray(r, req.featuresDecoder)
 		if err != nil {
 			return err
 		}
-		req.Features = features
+		req.Features = &features
 	} else {
 		features, err := protocol.ReadArray(r, req.featuresDecoder)
 		if err != nil {

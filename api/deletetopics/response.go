@@ -69,6 +69,8 @@ func (res *DeleteTopicsResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("DeleteTopicsResponse.Read: response or its body is nil")
 	}
 
+	*res = DeleteTopicsResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -83,11 +85,11 @@ func (res *DeleteTopicsResponse) Read(response *protocol.Response) error {
 
 	// Responses (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		responses, err := protocol.ReadNullableCompactArray(r, res.responsesDecoder)
+		responses, err := protocol.ReadCompactArray(r, res.responsesDecoder)
 		if err != nil {
 			return err
 		}
-		res.Responses = responses
+		res.Responses = &responses
 	} else {
 		responses, err := protocol.ReadArray(r, res.responsesDecoder)
 		if err != nil {
@@ -167,17 +169,33 @@ func (res *DeleteTopicsResponse) responsesDecoder(r io.Reader) (DeleteTopicsResp
 
 	// Name (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		name, err := protocol.ReadNullableCompactString(r)
-		if err != nil {
-			return deletetopicsresponseresponse, err
+		if res.ApiVersion >= 6 {
+			name, err := protocol.ReadNullableCompactString(r)
+			if err != nil {
+				return deletetopicsresponseresponse, err
+			}
+			deletetopicsresponseresponse.Name = name
+		} else {
+			name, err := protocol.ReadCompactString(r)
+			if err != nil {
+				return deletetopicsresponseresponse, err
+			}
+			deletetopicsresponseresponse.Name = &name
 		}
-		deletetopicsresponseresponse.Name = name
 	} else {
-		name, err := protocol.ReadNullableString(r)
-		if err != nil {
-			return deletetopicsresponseresponse, err
+		if res.ApiVersion >= 6 {
+			name, err := protocol.ReadNullableString(r)
+			if err != nil {
+				return deletetopicsresponseresponse, err
+			}
+			deletetopicsresponseresponse.Name = name
+		} else {
+			name, err := protocol.ReadString(r)
+			if err != nil {
+				return deletetopicsresponseresponse, err
+			}
+			deletetopicsresponseresponse.Name = &name
 		}
-		deletetopicsresponseresponse.Name = name
 	}
 
 	// TopicId (versions: 6+)

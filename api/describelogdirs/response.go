@@ -90,6 +90,8 @@ func (res *DescribeLogDirsResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("DescribeLogDirsResponse.Read: response or its body is nil")
 	}
 
+	*res = DescribeLogDirsResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -111,11 +113,11 @@ func (res *DescribeLogDirsResponse) Read(response *protocol.Response) error {
 
 	// Results (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		results, err := protocol.ReadNullableCompactArray(r, res.resultsDecoder)
+		results, err := protocol.ReadCompactArray(r, res.resultsDecoder)
 		if err != nil {
 			return err
 		}
-		res.Results = results
+		res.Results = &results
 	} else {
 		results, err := protocol.ReadArray(r, res.resultsDecoder)
 		if err != nil {
@@ -208,6 +210,10 @@ func (res *DescribeLogDirsResponse) resultsEncoder(w io.Writer, value DescribeLo
 func (res *DescribeLogDirsResponse) resultsDecoder(r io.Reader) (DescribeLogDirsResponseResult, error) {
 	describelogdirsresponseresult := DescribeLogDirsResponseResult{}
 
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	describelogdirsresponseresult.TotalBytes = -1
+	describelogdirsresponseresult.UsableBytes = -1
+
 	// ErrorCode (versions: 0+)
 	errorcode, err := protocol.ReadInt16(r)
 	if err != nil {
@@ -232,11 +238,11 @@ func (res *DescribeLogDirsResponse) resultsDecoder(r io.Reader) (DescribeLogDirs
 
 	// Topics (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, res.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, res.topicsDecoder)
 		if err != nil {
 			return describelogdirsresponseresult, err
 		}
-		describelogdirsresponseresult.Topics = topics
+		describelogdirsresponseresult.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, res.topicsDecoder)
 		if err != nil {
@@ -347,11 +353,11 @@ func (res *DescribeLogDirsResponse) topicsDecoder(r io.Reader) (DescribeLogDirsR
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, res.partitionsDecoder)
 		if err != nil {
 			return describelogdirsresponseresulttopic, err
 		}
-		describelogdirsresponseresulttopic.Partitions = partitions
+		describelogdirsresponseresulttopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, res.partitionsDecoder)
 		if err != nil {

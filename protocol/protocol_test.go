@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"io"
 	"testing"
+
+	"github.com/scholzj/go-kafka-protocol/apis"
 )
 
 func TestRequestWrite(t *testing.T) {
@@ -399,5 +401,80 @@ func TestRequestResponseRoundtrip(t *testing.T) {
 
 	if readResponse.ApiVersion != readRequest.ApiVersion {
 		t.Errorf("ApiVersion mismatch: request %d, response %d", readRequest.ApiVersion, readResponse.ApiVersion)
+	}
+}
+
+// #7: Request.Write must not drain its Body, so writing the same request twice yields the same bytes.
+func TestRequestWriteIsIdempotent(t *testing.T) {
+	clientId := "x"
+	req := Request{}
+	req.ApiKey = 3 // Metadata
+	req.ApiVersion = 12
+	req.CorrelationId = 1
+	req.ClientId = &clientId
+	req.Body = bytes.NewBuffer([]byte{9, 8, 7})
+
+	var a, b bytes.Buffer
+	if err := req.Write(&a); err != nil {
+		t.Fatalf("first write: %v", err)
+	}
+	if err := req.Write(&b); err != nil {
+		t.Fatalf("second write: %v", err)
+	}
+	if a.Len() == 0 {
+		t.Fatal("first write produced no bytes")
+	}
+	if !bytes.Equal(a.Bytes(), b.Bytes()) {
+		t.Fatalf("Request.Write not idempotent:\n first:  %x\n second: %x", a.Bytes(), b.Bytes())
+	}
+}
+
+// #6: header tagged fields must survive a write/read round-trip rather than being dropped.
+func TestRequestHeaderTaggedFieldsPreserved(t *testing.T) {
+	apiKey, apiVersion := int16(3), int16(12) // Metadata, flexible header (v2)
+	if apis.RequestHeaderVersion(apiKey, apiVersion) < 2 {
+		t.Skipf("Metadata v%d header is not flexible", apiVersion)
+	}
+
+	clientId := "c"
+	req := Request{}
+	req.ApiKey = apiKey
+	req.ApiVersion = apiVersion
+	req.CorrelationId = 7
+	req.ClientId = &clientId
+	req.RawTaggedFields = []TaggedField{{Tag: 5, Field: []byte{0xaa, 0xbb}}}
+	req.Body = bytes.NewBuffer([]byte{1, 2, 3})
+
+	var buf bytes.Buffer
+	if err := req.Write(&buf); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	got, err := ReadRequest(&buf)
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	if len(got.RawTaggedFields) != 1 || got.RawTaggedFields[0].Tag != 5 ||
+		!bytes.Equal(got.RawTaggedFields[0].Field, []byte{0xaa, 0xbb}) {
+		t.Fatalf("header tagged fields not preserved: %+v", got.RawTaggedFields)
+	}
+	if !bytes.Equal(got.Body.Bytes(), []byte{1, 2, 3}) {
+		t.Fatalf("body mismatch: %x", got.Body.Bytes())
+	}
+}
+
+// #5: Response.Write must tolerate a nil body (mirrors Request.Write).
+func TestResponseWriteNilBody(t *testing.T) {
+	res := Response{}
+	res.ApiKey = 3 // Metadata
+	res.ApiVersion = 12
+	res.CorrelationId = 1
+	res.Body = nil
+
+	var buf bytes.Buffer
+	if err := res.Write(&buf); err != nil {
+		t.Fatalf("Response.Write with nil body: %v", err)
+	}
+	if buf.Len() == 0 {
+		t.Fatal("Response.Write produced no bytes")
 	}
 }

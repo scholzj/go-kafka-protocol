@@ -37,6 +37,8 @@ func (res *SaslHandshakeResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("SaslHandshakeResponse.Read: response or its body is nil")
 	}
 
+	*res = SaslHandshakeResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 

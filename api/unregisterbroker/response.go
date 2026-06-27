@@ -61,6 +61,8 @@ func (res *UnregisterBrokerResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("UnregisterBrokerResponse.Read: response or its body is nil")
 	}
 
+	*res = UnregisterBrokerResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 

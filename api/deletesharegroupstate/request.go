@@ -79,6 +79,8 @@ func (req *DeleteShareGroupStateRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("DeleteShareGroupStateRequest.Read: request or its body is nil")
 	}
 
+	*req = DeleteShareGroupStateRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
@@ -99,11 +101,11 @@ func (req *DeleteShareGroupStateRequest) Read(request *protocol.Request) error {
 
 	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Topics = topics
+		req.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, req.topicsDecoder)
 		if err != nil {
@@ -170,11 +172,11 @@ func (req *DeleteShareGroupStateRequest) topicsDecoder(r io.Reader) (DeleteShare
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, req.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, req.partitionsDecoder)
 		if err != nil {
 			return deletesharegroupstaterequesttopic, err
 		}
-		deletesharegroupstaterequesttopic.Partitions = partitions
+		deletesharegroupstaterequesttopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, req.partitionsDecoder)
 		if err != nil {

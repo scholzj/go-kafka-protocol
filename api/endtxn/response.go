@@ -65,8 +65,14 @@ func (res *EndTxnResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("EndTxnResponse.Read: response or its body is nil")
 	}
 
+	*res = EndTxnResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	res.ProducerId = -1
+	res.ProducerEpoch = -1
 
 	// ThrottleTimeMs (versions: 0+)
 	throttletimems, err := protocol.ReadInt32(r)

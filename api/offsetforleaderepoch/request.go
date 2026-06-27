@@ -73,8 +73,13 @@ func (req *OffsetForLeaderEpochRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("OffsetForLeaderEpochRequest.Read: request or its body is nil")
 	}
 
+	*req = OffsetForLeaderEpochRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	req.ReplicaId = -2
 
 	// ReplicaId (versions: 3+)
 	if req.ApiVersion >= 3 {
@@ -87,11 +92,11 @@ func (req *OffsetForLeaderEpochRequest) Read(request *protocol.Request) error {
 
 	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Topics = topics
+		req.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, req.topicsDecoder)
 		if err != nil {
@@ -175,11 +180,11 @@ func (req *OffsetForLeaderEpochRequest) topicsDecoder(r io.Reader) (OffsetForLea
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, req.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, req.partitionsDecoder)
 		if err != nil {
 			return offsetforleaderepochrequesttopic, err
 		}
-		offsetforleaderepochrequesttopic.Partitions = partitions
+		offsetforleaderepochrequesttopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, req.partitionsDecoder)
 		if err != nil {
@@ -234,6 +239,9 @@ func (req *OffsetForLeaderEpochRequest) partitionsEncoder(w io.Writer, value Off
 
 func (req *OffsetForLeaderEpochRequest) partitionsDecoder(r io.Reader) (OffsetForLeaderEpochRequestTopicPartition, error) {
 	offsetforleaderepochrequesttopicpartition := OffsetForLeaderEpochRequestTopicPartition{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	offsetforleaderepochrequesttopicpartition.CurrentLeaderEpoch = -1
 
 	// Partition (versions: 0+)
 	partition, err := protocol.ReadInt32(r)

@@ -146,8 +146,13 @@ func (res *JoinGroupResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("JoinGroupResponse.Read: response or its body is nil")
 	}
 
+	*res = JoinGroupResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	res.GenerationId = -1
 
 	// ThrottleTimeMs (versions: 2+)
 	if res.ApiVersion >= 2 {
@@ -191,17 +196,33 @@ func (res *JoinGroupResponse) Read(response *protocol.Response) error {
 
 	// ProtocolName (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		protocolname, err := protocol.ReadNullableCompactString(r)
-		if err != nil {
-			return err
+		if res.ApiVersion >= 7 {
+			protocolname, err := protocol.ReadNullableCompactString(r)
+			if err != nil {
+				return err
+			}
+			res.ProtocolName = protocolname
+		} else {
+			protocolname, err := protocol.ReadCompactString(r)
+			if err != nil {
+				return err
+			}
+			res.ProtocolName = &protocolname
 		}
-		res.ProtocolName = protocolname
 	} else {
-		protocolname, err := protocol.ReadNullableString(r)
-		if err != nil {
-			return err
+		if res.ApiVersion >= 7 {
+			protocolname, err := protocol.ReadNullableString(r)
+			if err != nil {
+				return err
+			}
+			res.ProtocolName = protocolname
+		} else {
+			protocolname, err := protocol.ReadString(r)
+			if err != nil {
+				return err
+			}
+			res.ProtocolName = &protocolname
 		}
-		res.ProtocolName = protocolname
 	}
 
 	// Leader (versions: 0+)
@@ -245,11 +266,11 @@ func (res *JoinGroupResponse) Read(response *protocol.Response) error {
 
 	// Members (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		members, err := protocol.ReadNullableCompactArray(r, res.membersDecoder)
+		members, err := protocol.ReadCompactArray(r, res.membersDecoder)
 		if err != nil {
 			return err
 		}
-		res.Members = members
+		res.Members = &members
 	} else {
 		members, err := protocol.ReadArray(r, res.membersDecoder)
 		if err != nil {

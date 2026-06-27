@@ -70,6 +70,8 @@ func (res *AlterReplicaLogDirsResponse) Read(response *protocol.Response) error 
 		return fmt.Errorf("AlterReplicaLogDirsResponse.Read: response or its body is nil")
 	}
 
+	*res = AlterReplicaLogDirsResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -82,11 +84,11 @@ func (res *AlterReplicaLogDirsResponse) Read(response *protocol.Response) error 
 
 	// Results (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		results, err := protocol.ReadNullableCompactArray(r, res.resultsDecoder)
+		results, err := protocol.ReadCompactArray(r, res.resultsDecoder)
 		if err != nil {
 			return err
 		}
-		res.Results = results
+		res.Results = &results
 	} else {
 		results, err := protocol.ReadArray(r, res.resultsDecoder)
 		if err != nil {
@@ -170,11 +172,11 @@ func (res *AlterReplicaLogDirsResponse) resultsDecoder(r io.Reader) (AlterReplic
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, res.partitionsDecoder)
 		if err != nil {
 			return alterreplicalogdirsresponseresult, err
 		}
-		alterreplicalogdirsresponseresult.Partitions = partitions
+		alterreplicalogdirsresponseresult.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, res.partitionsDecoder)
 		if err != nil {

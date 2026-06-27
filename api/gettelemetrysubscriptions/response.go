@@ -110,6 +110,8 @@ func (res *GetTelemetrySubscriptionsResponse) Read(response *protocol.Response) 
 		return fmt.Errorf("GetTelemetrySubscriptionsResponse.Read: response or its body is nil")
 	}
 
+	*res = GetTelemetrySubscriptionsResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -143,11 +145,11 @@ func (res *GetTelemetrySubscriptionsResponse) Read(response *protocol.Response) 
 
 	// AcceptedCompressionTypes (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		acceptedcompressiontypes, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt8)
+		acceptedcompressiontypes, err := protocol.ReadCompactArray(r, protocol.ReadInt8)
 		if err != nil {
 			return err
 		}
-		res.AcceptedCompressionTypes = acceptedcompressiontypes
+		res.AcceptedCompressionTypes = &acceptedcompressiontypes
 	} else {
 		acceptedcompressiontypes, err := protocol.ReadArray(r, protocol.ReadInt8)
 		if err != nil {
@@ -179,11 +181,11 @@ func (res *GetTelemetrySubscriptionsResponse) Read(response *protocol.Response) 
 
 	// RequestedMetrics (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		requestedmetrics, err := protocol.ReadNullableCompactArray(r, protocol.ReadCompactString)
+		requestedmetrics, err := protocol.ReadCompactArray(r, protocol.ReadCompactString)
 		if err != nil {
 			return err
 		}
-		res.RequestedMetrics = requestedmetrics
+		res.RequestedMetrics = &requestedmetrics
 	} else {
 		requestedmetrics, err := protocol.ReadArray(r, protocol.ReadString)
 		if err != nil {

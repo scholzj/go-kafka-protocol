@@ -71,6 +71,8 @@ func (res *DeleteRecordsResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("DeleteRecordsResponse.Read: response or its body is nil")
 	}
 
+	*res = DeleteRecordsResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -83,11 +85,11 @@ func (res *DeleteRecordsResponse) Read(response *protocol.Response) error {
 
 	// Topics (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, res.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, res.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		res.Topics = topics
+		res.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, res.topicsDecoder)
 		if err != nil {
@@ -171,11 +173,11 @@ func (res *DeleteRecordsResponse) topicsDecoder(r io.Reader) (DeleteRecordsRespo
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, res.partitionsDecoder)
 		if err != nil {
 			return deleterecordsresponsetopic, err
 		}
-		deleterecordsresponsetopic.Partitions = partitions
+		deleterecordsresponsetopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, res.partitionsDecoder)
 		if err != nil {

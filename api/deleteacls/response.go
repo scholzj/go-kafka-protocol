@@ -78,6 +78,8 @@ func (res *DeleteAclsResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("DeleteAclsResponse.Read: response or its body is nil")
 	}
 
+	*res = DeleteAclsResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -90,11 +92,11 @@ func (res *DeleteAclsResponse) Read(response *protocol.Response) error {
 
 	// FilterResults (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		filterresults, err := protocol.ReadNullableCompactArray(r, res.filterResultsDecoder)
+		filterresults, err := protocol.ReadCompactArray(r, res.filterResultsDecoder)
 		if err != nil {
 			return err
 		}
-		res.FilterResults = filterresults
+		res.FilterResults = &filterresults
 	} else {
 		filterresults, err := protocol.ReadArray(r, res.filterResultsDecoder)
 		if err != nil {
@@ -187,11 +189,11 @@ func (res *DeleteAclsResponse) filterResultsDecoder(r io.Reader) (DeleteAclsResp
 
 	// MatchingAcls (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		matchingacls, err := protocol.ReadNullableCompactArray(r, res.matchingAclsDecoder)
+		matchingacls, err := protocol.ReadCompactArray(r, res.matchingAclsDecoder)
 		if err != nil {
 			return deleteaclsresponsefilterresult, err
 		}
-		deleteaclsresponsefilterresult.MatchingAcls = matchingacls
+		deleteaclsresponsefilterresult.MatchingAcls = &matchingacls
 	} else {
 		matchingacls, err := protocol.ReadArray(r, res.matchingAclsDecoder)
 		if err != nil {
@@ -309,6 +311,9 @@ func (res *DeleteAclsResponse) matchingAclsEncoder(w io.Writer, value DeleteAcls
 
 func (res *DeleteAclsResponse) matchingAclsDecoder(r io.Reader) (DeleteAclsResponseFilterResultMatchingAcl, error) {
 	deleteaclsresponsefilterresultmatchingacl := DeleteAclsResponseFilterResultMatchingAcl{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	deleteaclsresponsefilterresultmatchingacl.PatternType = 3
 
 	// ErrorCode (versions: 0+)
 	errorcode, err := protocol.ReadInt16(r)

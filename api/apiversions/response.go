@@ -92,8 +92,15 @@ func (res *ApiVersionsResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("ApiVersionsResponse.Read: response or its body is nil")
 	}
 
+	*res = ApiVersionsResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	res.SupportedFeatures = &[]ApiVersionsResponseSupportedFeature{}
+	res.FinalizedFeaturesEpoch = -1
+	res.FinalizedFeatures = &[]ApiVersionsResponseFinalizedFeature{}
 
 	// ErrorCode (versions: 0+)
 	errorcode, err := protocol.ReadInt16(r)
@@ -104,11 +111,11 @@ func (res *ApiVersionsResponse) Read(response *protocol.Response) error {
 
 	// ApiKeys (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		apikeys, err := protocol.ReadNullableCompactArray(r, res.apiKeysDecoder)
+		apikeys, err := protocol.ReadCompactArray(r, res.apiKeysDecoder)
 		if err != nil {
 			return err
 		}
-		res.ApiKeys = apikeys
+		res.ApiKeys = &apikeys
 	} else {
 		apikeys, err := protocol.ReadArray(r, res.apiKeysDecoder)
 		if err != nil {
@@ -402,7 +409,7 @@ func (res *ApiVersionsResponse) taggedFieldsEncoder() ([]protocol.TaggedField, e
 	buf := bytes.NewBuffer(make([]byte, 0))
 
 	// Tag 0
-	if res.SupportedFeatures != nil {
+	if res.ApiVersion >= 3 && res.SupportedFeatures != nil && len(*res.SupportedFeatures) > 0 {
 		buf = bytes.NewBuffer(make([]byte, 0))
 		if err := protocol.WriteNullableCompactArray(buf, res.supportedFeaturesEncoder, res.SupportedFeatures); err != nil {
 			return taggedFields, err
@@ -412,15 +419,17 @@ func (res *ApiVersionsResponse) taggedFieldsEncoder() ([]protocol.TaggedField, e
 	}
 
 	// Tag 1
-	buf = bytes.NewBuffer(make([]byte, 0))
-	if err := protocol.WriteInt64(buf, res.FinalizedFeaturesEpoch); err != nil {
-		return taggedFields, err
+	if res.ApiVersion >= 3 && res.FinalizedFeaturesEpoch != -1 {
+		buf = bytes.NewBuffer(make([]byte, 0))
+		if err := protocol.WriteInt64(buf, res.FinalizedFeaturesEpoch); err != nil {
+			return taggedFields, err
+		}
+
+		taggedFields = append(taggedFields, protocol.TaggedField{Tag: 1, Field: buf.Bytes()})
 	}
 
-	taggedFields = append(taggedFields, protocol.TaggedField{Tag: 1, Field: buf.Bytes()})
-
 	// Tag 2
-	if res.FinalizedFeatures != nil {
+	if res.ApiVersion >= 3 && res.FinalizedFeatures != nil && len(*res.FinalizedFeatures) > 0 {
 		buf = bytes.NewBuffer(make([]byte, 0))
 		if err := protocol.WriteNullableCompactArray(buf, res.finalizedFeaturesEncoder, res.FinalizedFeatures); err != nil {
 			return taggedFields, err
@@ -430,12 +439,14 @@ func (res *ApiVersionsResponse) taggedFieldsEncoder() ([]protocol.TaggedField, e
 	}
 
 	// Tag 3
-	buf = bytes.NewBuffer(make([]byte, 0))
-	if err := protocol.WriteBool(buf, res.ZkMigrationReady); err != nil {
-		return taggedFields, err
-	}
+	if res.ApiVersion >= 3 && res.ZkMigrationReady {
+		buf = bytes.NewBuffer(make([]byte, 0))
+		if err := protocol.WriteBool(buf, res.ZkMigrationReady); err != nil {
+			return taggedFields, err
+		}
 
-	taggedFields = append(taggedFields, protocol.TaggedField{Tag: 3, Field: buf.Bytes()})
+		taggedFields = append(taggedFields, protocol.TaggedField{Tag: 3, Field: buf.Bytes()})
+	}
 
 	// We append any raw tagged fields to the end of the array
 	if res.rawTaggedFields != nil {
@@ -446,48 +457,63 @@ func (res *ApiVersionsResponse) taggedFieldsEncoder() ([]protocol.TaggedField, e
 }
 
 func (res *ApiVersionsResponse) taggedFieldsDecoder(r io.Reader, tag uint64, tagLength uint64) error {
-	rawTaggedFields := make([]protocol.TaggedField, 0)
+	known := false
 
 	switch tag {
 	case 0:
 		// SupportedFeatures
-		supportedfeatures, err := protocol.ReadNullableCompactArray(r, res.supportedFeaturesDecoder)
-		if err != nil {
-			return err
+		if res.ApiVersion >= 3 {
+			known = true
+			supportedfeatures, err := protocol.ReadCompactArray(r, res.supportedFeaturesDecoder)
+			if err != nil {
+				return err
+			}
+			res.SupportedFeatures = &supportedfeatures
 		}
-		res.SupportedFeatures = supportedfeatures
 	case 1:
 		// FinalizedFeaturesEpoch
-		finalizedfeaturesepoch, err := protocol.ReadInt64(r)
-		if err != nil {
-			return err
+		if res.ApiVersion >= 3 {
+			known = true
+			finalizedfeaturesepoch, err := protocol.ReadInt64(r)
+			if err != nil {
+				return err
+			}
+			res.FinalizedFeaturesEpoch = finalizedfeaturesepoch
 		}
-		res.FinalizedFeaturesEpoch = finalizedfeaturesepoch
 	case 2:
 		// FinalizedFeatures
-		finalizedfeatures, err := protocol.ReadNullableCompactArray(r, res.finalizedFeaturesDecoder)
-		if err != nil {
-			return err
+		if res.ApiVersion >= 3 {
+			known = true
+			finalizedfeatures, err := protocol.ReadCompactArray(r, res.finalizedFeaturesDecoder)
+			if err != nil {
+				return err
+			}
+			res.FinalizedFeatures = &finalizedfeatures
 		}
-		res.FinalizedFeatures = finalizedfeatures
 	case 3:
 		// ZkMigrationReady
-		zkmigrationready, err := protocol.ReadBool(r)
-		if err != nil {
-			return err
+		if res.ApiVersion >= 3 {
+			known = true
+			zkmigrationready, err := protocol.ReadBool(r)
+			if err != nil {
+				return err
+			}
+			res.ZkMigrationReady = zkmigrationready
 		}
-		res.ZkMigrationReady = zkmigrationready
-	default:
-		// Unknown tag - keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
+	}
+
+	if !known {
+		// Keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
 		field, err := io.ReadAll(r)
 		if err != nil {
 			return err
 		}
-		rawTaggedFields = append(rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
+		if res.rawTaggedFields == nil {
+			rawTaggedFields := make([]protocol.TaggedField, 0)
+			res.rawTaggedFields = &rawTaggedFields
+		}
+		*res.rawTaggedFields = append(*res.rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
 	}
-
-	// Set the raw tagged fields
-	res.rawTaggedFields = &rawTaggedFields
 
 	return nil
 }

@@ -215,6 +215,8 @@ func (res *StreamsGroupHeartbeatResponse) Read(response *protocol.Response) erro
 		return fmt.Errorf("StreamsGroupHeartbeatResponse.Read: response or its body is nil")
 	}
 
+	*res = StreamsGroupHeartbeatResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -518,11 +520,11 @@ func (res *StreamsGroupHeartbeatResponse) activeTasksDecoder(r io.Reader) (Strea
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return streamsgroupheartbeatresponseactivetask, err
 		}
-		streamsgroupheartbeatresponseactivetask.Partitions = partitions
+		streamsgroupheartbeatresponseactivetask.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {
@@ -606,11 +608,11 @@ func (res *StreamsGroupHeartbeatResponse) standbyTasksDecoder(r io.Reader) (Stre
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return streamsgroupheartbeatresponsestandbytask, err
 		}
-		streamsgroupheartbeatresponsestandbytask.Partitions = partitions
+		streamsgroupheartbeatresponsestandbytask.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {
@@ -694,11 +696,11 @@ func (res *StreamsGroupHeartbeatResponse) warmupTasksDecoder(r io.Reader) (Strea
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return streamsgroupheartbeatresponsewarmuptask, err
 		}
-		streamsgroupheartbeatresponsewarmuptask.Partitions = partitions
+		streamsgroupheartbeatresponsewarmuptask.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {
@@ -782,11 +784,11 @@ func (res *StreamsGroupHeartbeatResponse) partitionsByUserEndpointDecoder(r io.R
 
 	// ActivePartitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		activepartitions, err := protocol.ReadNullableCompactArray(r, res.activePartitionsDecoder)
+		activepartitions, err := protocol.ReadCompactArray(r, res.activePartitionsDecoder)
 		if err != nil {
 			return streamsgroupheartbeatresponsepartitionsbyuserendpoint, err
 		}
-		streamsgroupheartbeatresponsepartitionsbyuserendpoint.ActivePartitions = activepartitions
+		streamsgroupheartbeatresponsepartitionsbyuserendpoint.ActivePartitions = &activepartitions
 	} else {
 		activepartitions, err := protocol.ReadArray(r, res.activePartitionsDecoder)
 		if err != nil {
@@ -797,11 +799,11 @@ func (res *StreamsGroupHeartbeatResponse) partitionsByUserEndpointDecoder(r io.R
 
 	// StandbyPartitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		standbypartitions, err := protocol.ReadNullableCompactArray(r, res.standbyPartitionsDecoder)
+		standbypartitions, err := protocol.ReadCompactArray(r, res.standbyPartitionsDecoder)
 		if err != nil {
 			return streamsgroupheartbeatresponsepartitionsbyuserendpoint, err
 		}
-		streamsgroupheartbeatresponsepartitionsbyuserendpoint.StandbyPartitions = standbypartitions
+		streamsgroupheartbeatresponsepartitionsbyuserendpoint.StandbyPartitions = &standbypartitions
 	} else {
 		standbypartitions, err := protocol.ReadArray(r, res.standbyPartitionsDecoder)
 		if err != nil {
@@ -956,11 +958,11 @@ func (res *StreamsGroupHeartbeatResponse) activePartitionsDecoder(r io.Reader) (
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return streamsgroupheartbeatresponsepartitionsbyuserendpointactivepartition, err
 		}
-		streamsgroupheartbeatresponsepartitionsbyuserendpointactivepartition.Partitions = partitions
+		streamsgroupheartbeatresponsepartitionsbyuserendpointactivepartition.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {
@@ -1044,11 +1046,11 @@ func (res *StreamsGroupHeartbeatResponse) standbyPartitionsDecoder(r io.Reader) 
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return streamsgroupheartbeatresponsepartitionsbyuserendpointstandbypartition, err
 		}
-		streamsgroupheartbeatresponsepartitionsbyuserendpointstandbypartition.Partitions = partitions
+		streamsgroupheartbeatresponsepartitionsbyuserendpointstandbypartition.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {

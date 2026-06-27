@@ -66,6 +66,8 @@ func (res *IncrementalAlterConfigsResponse) Read(response *protocol.Response) er
 		return fmt.Errorf("IncrementalAlterConfigsResponse.Read: response or its body is nil")
 	}
 
+	*res = IncrementalAlterConfigsResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -78,11 +80,11 @@ func (res *IncrementalAlterConfigsResponse) Read(response *protocol.Response) er
 
 	// Responses (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		responses, err := protocol.ReadNullableCompactArray(r, res.responsesDecoder)
+		responses, err := protocol.ReadCompactArray(r, res.responsesDecoder)
 		if err != nil {
 			return err
 		}
-		res.Responses = responses
+		res.Responses = &responses
 	} else {
 		responses, err := protocol.ReadArray(r, res.responsesDecoder)
 		if err != nil {

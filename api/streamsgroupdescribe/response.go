@@ -209,6 +209,8 @@ func (res *StreamsGroupDescribeResponse) Read(response *protocol.Response) error
 		return fmt.Errorf("StreamsGroupDescribeResponse.Read: response or its body is nil")
 	}
 
+	*res = StreamsGroupDescribeResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -221,11 +223,11 @@ func (res *StreamsGroupDescribeResponse) Read(response *protocol.Response) error
 
 	// Groups (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		groups, err := protocol.ReadNullableCompactArray(r, res.groupsDecoder)
+		groups, err := protocol.ReadCompactArray(r, res.groupsDecoder)
 		if err != nil {
 			return err
 		}
-		res.Groups = groups
+		res.Groups = &groups
 	} else {
 		groups, err := protocol.ReadArray(r, res.groupsDecoder)
 		if err != nil {
@@ -302,8 +304,17 @@ func (res *StreamsGroupDescribeResponse) groupsEncoder(w io.Writer, value Stream
 	}
 
 	// Topology (versions: 0+)
-	if err := res.topologyEncoder(w, *value.Topology); err != nil {
-		return err
+	if value.Topology == nil {
+		if err := protocol.WriteInt8(w, -1); err != nil {
+			return err
+		}
+	} else {
+		if err := protocol.WriteInt8(w, 1); err != nil {
+			return err
+		}
+		if err := res.topologyEncoder(w, *value.Topology); err != nil {
+			return err
+		}
 	}
 
 	// Members (versions: 0+)
@@ -341,6 +352,9 @@ func (res *StreamsGroupDescribeResponse) groupsEncoder(w io.Writer, value Stream
 
 func (res *StreamsGroupDescribeResponse) groupsDecoder(r io.Reader) (StreamsGroupDescribeResponseGroup, error) {
 	streamsgroupdescriberesponsegroup := StreamsGroupDescribeResponseGroup{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	streamsgroupdescriberesponsegroup.AuthorizedOperations = -2147483648
 
 	// ErrorCode (versions: 0+)
 	errorcode, err := protocol.ReadInt16(r)
@@ -409,19 +423,27 @@ func (res *StreamsGroupDescribeResponse) groupsDecoder(r io.Reader) (StreamsGrou
 	streamsgroupdescriberesponsegroup.AssignmentEpoch = assignmentepoch
 
 	// Topology (versions: 0+)
-	topology, err := res.topologyDecoder(r)
+	topologyFlag, err := protocol.ReadInt8(r)
 	if err != nil {
 		return streamsgroupdescriberesponsegroup, err
 	}
-	streamsgroupdescriberesponsegroup.Topology = &topology
-
-	// Members (versions: 0+)
-	if isResponseFlexible(res.ApiVersion) {
-		members, err := protocol.ReadNullableCompactArray(r, res.membersDecoder)
+	if topologyFlag >= 0 {
+		topology, err := res.topologyDecoder(r)
 		if err != nil {
 			return streamsgroupdescriberesponsegroup, err
 		}
-		streamsgroupdescriberesponsegroup.Members = members
+		streamsgroupdescriberesponsegroup.Topology = &topology
+	} else {
+		streamsgroupdescriberesponsegroup.Topology = nil
+	}
+
+	// Members (versions: 0+)
+	if isResponseFlexible(res.ApiVersion) {
+		members, err := protocol.ReadCompactArray(r, res.membersDecoder)
+		if err != nil {
+			return streamsgroupdescriberesponsegroup, err
+		}
+		streamsgroupdescriberesponsegroup.Members = &members
 	} else {
 		members, err := protocol.ReadArray(r, res.membersDecoder)
 		if err != nil {
@@ -622,11 +644,11 @@ func (res *StreamsGroupDescribeResponse) subtopologiesDecoder(r io.Reader) (Stre
 
 	// SourceTopics (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		sourcetopics, err := protocol.ReadNullableCompactArray(r, protocol.ReadCompactString)
+		sourcetopics, err := protocol.ReadCompactArray(r, protocol.ReadCompactString)
 		if err != nil {
 			return streamsgroupdescriberesponsegrouptopologysubtopologie, err
 		}
-		streamsgroupdescriberesponsegrouptopologysubtopologie.SourceTopics = sourcetopics
+		streamsgroupdescriberesponsegrouptopologysubtopologie.SourceTopics = &sourcetopics
 	} else {
 		sourcetopics, err := protocol.ReadArray(r, protocol.ReadString)
 		if err != nil {
@@ -637,11 +659,11 @@ func (res *StreamsGroupDescribeResponse) subtopologiesDecoder(r io.Reader) (Stre
 
 	// RepartitionSinkTopics (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		repartitionsinktopics, err := protocol.ReadNullableCompactArray(r, protocol.ReadCompactString)
+		repartitionsinktopics, err := protocol.ReadCompactArray(r, protocol.ReadCompactString)
 		if err != nil {
 			return streamsgroupdescriberesponsegrouptopologysubtopologie, err
 		}
-		streamsgroupdescriberesponsegrouptopologysubtopologie.RepartitionSinkTopics = repartitionsinktopics
+		streamsgroupdescriberesponsegrouptopologysubtopologie.RepartitionSinkTopics = &repartitionsinktopics
 	} else {
 		repartitionsinktopics, err := protocol.ReadArray(r, protocol.ReadString)
 		if err != nil {
@@ -652,11 +674,11 @@ func (res *StreamsGroupDescribeResponse) subtopologiesDecoder(r io.Reader) (Stre
 
 	// StateChangelogTopics (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		statechangelogtopics, err := protocol.ReadNullableCompactArray(r, res.stateChangelogTopicsDecoder)
+		statechangelogtopics, err := protocol.ReadCompactArray(r, res.stateChangelogTopicsDecoder)
 		if err != nil {
 			return streamsgroupdescriberesponsegrouptopologysubtopologie, err
 		}
-		streamsgroupdescriberesponsegrouptopologysubtopologie.StateChangelogTopics = statechangelogtopics
+		streamsgroupdescriberesponsegrouptopologysubtopologie.StateChangelogTopics = &statechangelogtopics
 	} else {
 		statechangelogtopics, err := protocol.ReadArray(r, res.stateChangelogTopicsDecoder)
 		if err != nil {
@@ -667,11 +689,11 @@ func (res *StreamsGroupDescribeResponse) subtopologiesDecoder(r io.Reader) (Stre
 
 	// RepartitionSourceTopics (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		repartitionsourcetopics, err := protocol.ReadNullableCompactArray(r, res.repartitionSourceTopicsDecoder)
+		repartitionsourcetopics, err := protocol.ReadCompactArray(r, res.repartitionSourceTopicsDecoder)
 		if err != nil {
 			return streamsgroupdescriberesponsegrouptopologysubtopologie, err
 		}
-		streamsgroupdescriberesponsegrouptopologysubtopologie.RepartitionSourceTopics = repartitionsourcetopics
+		streamsgroupdescriberesponsegrouptopologysubtopologie.RepartitionSourceTopics = &repartitionsourcetopics
 	} else {
 		repartitionsourcetopics, err := protocol.ReadArray(r, res.repartitionSourceTopicsDecoder)
 		if err != nil {
@@ -779,11 +801,11 @@ func (res *StreamsGroupDescribeResponse) stateChangelogTopicsDecoder(r io.Reader
 
 	// TopicConfigs (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		topicconfigs, err := protocol.ReadNullableCompactArray(r, res.topicConfigsDecoder)
+		topicconfigs, err := protocol.ReadCompactArray(r, res.topicConfigsDecoder)
 		if err != nil {
 			return streamsgroupdescriberesponsegrouptopologysubtopologiestatechangelogtopic, err
 		}
-		streamsgroupdescriberesponsegrouptopologysubtopologiestatechangelogtopic.TopicConfigs = topicconfigs
+		streamsgroupdescriberesponsegrouptopologysubtopologiestatechangelogtopic.TopicConfigs = &topicconfigs
 	} else {
 		topicconfigs, err := protocol.ReadArray(r, res.topicConfigsDecoder)
 		if err != nil {
@@ -979,11 +1001,11 @@ func (res *StreamsGroupDescribeResponse) repartitionSourceTopicsDecoder(r io.Rea
 
 	// TopicConfigs (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		topicconfigs, err := protocol.ReadNullableCompactArray(r, res.streamsGroupDescribeResponseGroupTopologySubtopologieRepartitionSourceTopicTopicConfigDecoder)
+		topicconfigs, err := protocol.ReadCompactArray(r, res.streamsGroupDescribeResponseGroupTopologySubtopologieRepartitionSourceTopicTopicConfigDecoder)
 		if err != nil {
 			return streamsgroupdescriberesponsegrouptopologysubtopologierepartitionsourcetopic, err
 		}
-		streamsgroupdescriberesponsegrouptopologysubtopologierepartitionsourcetopic.TopicConfigs = topicconfigs
+		streamsgroupdescriberesponsegrouptopologysubtopologierepartitionsourcetopic.TopicConfigs = &topicconfigs
 	} else {
 		topicconfigs, err := protocol.ReadArray(r, res.streamsGroupDescribeResponseGroupTopologySubtopologieRepartitionSourceTopicTopicConfigDecoder)
 		if err != nil {
@@ -1182,8 +1204,17 @@ func (res *StreamsGroupDescribeResponse) membersEncoder(w io.Writer, value Strea
 	}
 
 	// UserEndpoint (versions: 0+)
-	if err := res.userEndpointEncoder(w, *value.UserEndpoint); err != nil {
-		return err
+	if value.UserEndpoint == nil {
+		if err := protocol.WriteInt8(w, -1); err != nil {
+			return err
+		}
+	} else {
+		if err := protocol.WriteInt8(w, 1); err != nil {
+			return err
+		}
+		if err := res.userEndpointEncoder(w, *value.UserEndpoint); err != nil {
+			return err
+		}
 	}
 
 	// ClientTags (versions: 0+)
@@ -1371,19 +1402,27 @@ func (res *StreamsGroupDescribeResponse) membersDecoder(r io.Reader) (StreamsGro
 	}
 
 	// UserEndpoint (versions: 0+)
-	userendpoint, err := res.userEndpointDecoder(r)
+	userendpointFlag, err := protocol.ReadInt8(r)
 	if err != nil {
 		return streamsgroupdescriberesponsegroupmember, err
 	}
-	streamsgroupdescriberesponsegroupmember.UserEndpoint = &userendpoint
-
-	// ClientTags (versions: 0+)
-	if isResponseFlexible(res.ApiVersion) {
-		clienttags, err := protocol.ReadNullableCompactArray(r, res.clientTagsDecoder)
+	if userendpointFlag >= 0 {
+		userendpoint, err := res.userEndpointDecoder(r)
 		if err != nil {
 			return streamsgroupdescriberesponsegroupmember, err
 		}
-		streamsgroupdescriberesponsegroupmember.ClientTags = clienttags
+		streamsgroupdescriberesponsegroupmember.UserEndpoint = &userendpoint
+	} else {
+		streamsgroupdescriberesponsegroupmember.UserEndpoint = nil
+	}
+
+	// ClientTags (versions: 0+)
+	if isResponseFlexible(res.ApiVersion) {
+		clienttags, err := protocol.ReadCompactArray(r, res.clientTagsDecoder)
+		if err != nil {
+			return streamsgroupdescriberesponsegroupmember, err
+		}
+		streamsgroupdescriberesponsegroupmember.ClientTags = &clienttags
 	} else {
 		clienttags, err := protocol.ReadArray(r, res.clientTagsDecoder)
 		if err != nil {
@@ -1394,11 +1433,11 @@ func (res *StreamsGroupDescribeResponse) membersDecoder(r io.Reader) (StreamsGro
 
 	// TaskOffsets (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		taskoffsets, err := protocol.ReadNullableCompactArray(r, res.taskOffsetsDecoder)
+		taskoffsets, err := protocol.ReadCompactArray(r, res.taskOffsetsDecoder)
 		if err != nil {
 			return streamsgroupdescriberesponsegroupmember, err
 		}
-		streamsgroupdescriberesponsegroupmember.TaskOffsets = taskoffsets
+		streamsgroupdescriberesponsegroupmember.TaskOffsets = &taskoffsets
 	} else {
 		taskoffsets, err := protocol.ReadArray(r, res.taskOffsetsDecoder)
 		if err != nil {
@@ -1409,11 +1448,11 @@ func (res *StreamsGroupDescribeResponse) membersDecoder(r io.Reader) (StreamsGro
 
 	// TaskEndOffsets (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		taskendoffsets, err := protocol.ReadNullableCompactArray(r, res.taskEndOffsetsDecoder)
+		taskendoffsets, err := protocol.ReadCompactArray(r, res.taskEndOffsetsDecoder)
 		if err != nil {
 			return streamsgroupdescriberesponsegroupmember, err
 		}
-		streamsgroupdescriberesponsegroupmember.TaskEndOffsets = taskendoffsets
+		streamsgroupdescriberesponsegroupmember.TaskEndOffsets = &taskendoffsets
 	} else {
 		taskendoffsets, err := protocol.ReadArray(r, res.taskEndOffsetsDecoder)
 		if err != nil {
@@ -1842,11 +1881,11 @@ func (res *StreamsGroupDescribeResponse) assignmentDecoder(r io.Reader) (Streams
 
 	// ActiveTasks (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		activetasks, err := protocol.ReadNullableCompactArray(r, res.activeTasksDecoder)
+		activetasks, err := protocol.ReadCompactArray(r, res.activeTasksDecoder)
 		if err != nil {
 			return streamsgroupdescriberesponsegroupmemberassignment, err
 		}
-		streamsgroupdescriberesponsegroupmemberassignment.ActiveTasks = activetasks
+		streamsgroupdescriberesponsegroupmemberassignment.ActiveTasks = &activetasks
 	} else {
 		activetasks, err := protocol.ReadArray(r, res.activeTasksDecoder)
 		if err != nil {
@@ -1857,11 +1896,11 @@ func (res *StreamsGroupDescribeResponse) assignmentDecoder(r io.Reader) (Streams
 
 	// StandbyTasks (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		standbytasks, err := protocol.ReadNullableCompactArray(r, res.standbyTasksDecoder)
+		standbytasks, err := protocol.ReadCompactArray(r, res.standbyTasksDecoder)
 		if err != nil {
 			return streamsgroupdescriberesponsegroupmemberassignment, err
 		}
-		streamsgroupdescriberesponsegroupmemberassignment.StandbyTasks = standbytasks
+		streamsgroupdescriberesponsegroupmemberassignment.StandbyTasks = &standbytasks
 	} else {
 		standbytasks, err := protocol.ReadArray(r, res.standbyTasksDecoder)
 		if err != nil {
@@ -1872,11 +1911,11 @@ func (res *StreamsGroupDescribeResponse) assignmentDecoder(r io.Reader) (Streams
 
 	// WarmupTasks (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		warmuptasks, err := protocol.ReadNullableCompactArray(r, res.warmupTasksDecoder)
+		warmuptasks, err := protocol.ReadCompactArray(r, res.warmupTasksDecoder)
 		if err != nil {
 			return streamsgroupdescriberesponsegroupmemberassignment, err
 		}
-		streamsgroupdescriberesponsegroupmemberassignment.WarmupTasks = warmuptasks
+		streamsgroupdescriberesponsegroupmemberassignment.WarmupTasks = &warmuptasks
 	} else {
 		warmuptasks, err := protocol.ReadArray(r, res.warmupTasksDecoder)
 		if err != nil {
@@ -1960,11 +1999,11 @@ func (res *StreamsGroupDescribeResponse) activeTasksDecoder(r io.Reader) (Stream
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return streamsgroupdescriberesponsegroupmemberassignmentactivetask, err
 		}
-		streamsgroupdescriberesponsegroupmemberassignmentactivetask.Partitions = partitions
+		streamsgroupdescriberesponsegroupmemberassignmentactivetask.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {
@@ -2048,11 +2087,11 @@ func (res *StreamsGroupDescribeResponse) standbyTasksDecoder(r io.Reader) (Strea
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return streamsgroupdescriberesponsegroupmemberassignmentstandbytask, err
 		}
-		streamsgroupdescriberesponsegroupmemberassignmentstandbytask.Partitions = partitions
+		streamsgroupdescriberesponsegroupmemberassignmentstandbytask.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {
@@ -2136,11 +2175,11 @@ func (res *StreamsGroupDescribeResponse) warmupTasksDecoder(r io.Reader) (Stream
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return streamsgroupdescriberesponsegroupmemberassignmentwarmuptask, err
 		}
-		streamsgroupdescriberesponsegroupmemberassignmentwarmuptask.Partitions = partitions
+		streamsgroupdescriberesponsegroupmemberassignmentwarmuptask.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {
@@ -2223,11 +2262,11 @@ func (res *StreamsGroupDescribeResponse) targetAssignmentDecoder(r io.Reader) (S
 
 	// ActiveTasks (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		activetasks, err := protocol.ReadNullableCompactArray(r, res.streamsGroupDescribeResponseGroupMemberTargetAssignmentActiveTaskDecoder)
+		activetasks, err := protocol.ReadCompactArray(r, res.streamsGroupDescribeResponseGroupMemberTargetAssignmentActiveTaskDecoder)
 		if err != nil {
 			return streamsgroupdescriberesponsegroupmembertargetassignment, err
 		}
-		streamsgroupdescriberesponsegroupmembertargetassignment.ActiveTasks = activetasks
+		streamsgroupdescriberesponsegroupmembertargetassignment.ActiveTasks = &activetasks
 	} else {
 		activetasks, err := protocol.ReadArray(r, res.streamsGroupDescribeResponseGroupMemberTargetAssignmentActiveTaskDecoder)
 		if err != nil {
@@ -2238,11 +2277,11 @@ func (res *StreamsGroupDescribeResponse) targetAssignmentDecoder(r io.Reader) (S
 
 	// StandbyTasks (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		standbytasks, err := protocol.ReadNullableCompactArray(r, res.streamsGroupDescribeResponseGroupMemberTargetAssignmentStandbyTaskDecoder)
+		standbytasks, err := protocol.ReadCompactArray(r, res.streamsGroupDescribeResponseGroupMemberTargetAssignmentStandbyTaskDecoder)
 		if err != nil {
 			return streamsgroupdescriberesponsegroupmembertargetassignment, err
 		}
-		streamsgroupdescriberesponsegroupmembertargetassignment.StandbyTasks = standbytasks
+		streamsgroupdescriberesponsegroupmembertargetassignment.StandbyTasks = &standbytasks
 	} else {
 		standbytasks, err := protocol.ReadArray(r, res.streamsGroupDescribeResponseGroupMemberTargetAssignmentStandbyTaskDecoder)
 		if err != nil {
@@ -2253,11 +2292,11 @@ func (res *StreamsGroupDescribeResponse) targetAssignmentDecoder(r io.Reader) (S
 
 	// WarmupTasks (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		warmuptasks, err := protocol.ReadNullableCompactArray(r, res.streamsGroupDescribeResponseGroupMemberTargetAssignmentWarmupTaskDecoder)
+		warmuptasks, err := protocol.ReadCompactArray(r, res.streamsGroupDescribeResponseGroupMemberTargetAssignmentWarmupTaskDecoder)
 		if err != nil {
 			return streamsgroupdescriberesponsegroupmembertargetassignment, err
 		}
-		streamsgroupdescriberesponsegroupmembertargetassignment.WarmupTasks = warmuptasks
+		streamsgroupdescriberesponsegroupmembertargetassignment.WarmupTasks = &warmuptasks
 	} else {
 		warmuptasks, err := protocol.ReadArray(r, res.streamsGroupDescribeResponseGroupMemberTargetAssignmentWarmupTaskDecoder)
 		if err != nil {
@@ -2341,11 +2380,11 @@ func (res *StreamsGroupDescribeResponse) streamsGroupDescribeResponseGroupMember
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return streamsgroupdescriberesponsegroupmembertargetassignmentactivetask, err
 		}
-		streamsgroupdescriberesponsegroupmembertargetassignmentactivetask.Partitions = partitions
+		streamsgroupdescriberesponsegroupmembertargetassignmentactivetask.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {
@@ -2429,11 +2468,11 @@ func (res *StreamsGroupDescribeResponse) streamsGroupDescribeResponseGroupMember
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return streamsgroupdescriberesponsegroupmembertargetassignmentstandbytask, err
 		}
-		streamsgroupdescriberesponsegroupmembertargetassignmentstandbytask.Partitions = partitions
+		streamsgroupdescriberesponsegroupmembertargetassignmentstandbytask.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {
@@ -2517,11 +2556,11 @@ func (res *StreamsGroupDescribeResponse) streamsGroupDescribeResponseGroupMember
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return streamsgroupdescriberesponsegroupmembertargetassignmentwarmuptask, err
 		}
-		streamsgroupdescriberesponsegroupmembertargetassignmentwarmuptask.Partitions = partitions
+		streamsgroupdescriberesponsegroupmembertargetassignmentwarmuptask.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {

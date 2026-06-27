@@ -66,16 +66,18 @@ func (res *InitializeShareGroupStateResponse) Read(response *protocol.Response) 
 		return fmt.Errorf("InitializeShareGroupStateResponse.Read: response or its body is nil")
 	}
 
+	*res = InitializeShareGroupStateResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
 	// Results (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		results, err := protocol.ReadNullableCompactArray(r, res.resultsDecoder)
+		results, err := protocol.ReadCompactArray(r, res.resultsDecoder)
 		if err != nil {
 			return err
 		}
-		res.Results = results
+		res.Results = &results
 	} else {
 		results, err := protocol.ReadArray(r, res.resultsDecoder)
 		if err != nil {
@@ -142,11 +144,11 @@ func (res *InitializeShareGroupStateResponse) resultsDecoder(r io.Reader) (Initi
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, res.partitionsDecoder)
 		if err != nil {
 			return initializesharegroupstateresponseresult, err
 		}
-		initializesharegroupstateresponseresult.Partitions = partitions
+		initializesharegroupstateresponseresult.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, res.partitionsDecoder)
 		if err != nil {

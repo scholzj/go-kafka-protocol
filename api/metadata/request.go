@@ -83,22 +83,43 @@ func (req *MetadataRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("MetadataRequest.Read: request or its body is nil")
 	}
 
+	*req = MetadataRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	req.AllowAutoTopicCreation = true
+
 	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
-		if err != nil {
-			return err
+		if req.ApiVersion >= 1 {
+			topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+			if err != nil {
+				return err
+			}
+			req.Topics = topics
+		} else {
+			topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
+			if err != nil {
+				return err
+			}
+			req.Topics = &topics
 		}
-		req.Topics = topics
 	} else {
-		topics, err := protocol.ReadNullableArray(r, req.topicsDecoder)
-		if err != nil {
-			return err
+		if req.ApiVersion >= 1 {
+			topics, err := protocol.ReadNullableArray(r, req.topicsDecoder)
+			if err != nil {
+				return err
+			}
+			req.Topics = topics
+		} else {
+			topics, err := protocol.ReadArray(r, req.topicsDecoder)
+			if err != nil {
+				return err
+			}
+			req.Topics = &topics
 		}
-		req.Topics = topics
 	}
 
 	// AllowAutoTopicCreation (versions: 4+)
@@ -190,17 +211,33 @@ func (req *MetadataRequest) topicsDecoder(r io.Reader) (MetadataRequestTopic, er
 
 	// Name (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		name, err := protocol.ReadNullableCompactString(r)
-		if err != nil {
-			return metadatarequesttopic, err
+		if req.ApiVersion >= 10 {
+			name, err := protocol.ReadNullableCompactString(r)
+			if err != nil {
+				return metadatarequesttopic, err
+			}
+			metadatarequesttopic.Name = name
+		} else {
+			name, err := protocol.ReadCompactString(r)
+			if err != nil {
+				return metadatarequesttopic, err
+			}
+			metadatarequesttopic.Name = &name
 		}
-		metadatarequesttopic.Name = name
 	} else {
-		name, err := protocol.ReadNullableString(r)
-		if err != nil {
-			return metadatarequesttopic, err
+		if req.ApiVersion >= 10 {
+			name, err := protocol.ReadNullableString(r)
+			if err != nil {
+				return metadatarequesttopic, err
+			}
+			metadatarequesttopic.Name = name
+		} else {
+			name, err := protocol.ReadString(r)
+			if err != nil {
+				return metadatarequesttopic, err
+			}
+			metadatarequesttopic.Name = &name
 		}
-		metadatarequesttopic.Name = name
 	}
 
 	// Tagged fields

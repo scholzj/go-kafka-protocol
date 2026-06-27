@@ -63,16 +63,18 @@ func (req *DeleteAclsRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("DeleteAclsRequest.Read: request or its body is nil")
 	}
 
+	*req = DeleteAclsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
 	// Filters (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		filters, err := protocol.ReadNullableCompactArray(r, req.filtersDecoder)
+		filters, err := protocol.ReadCompactArray(r, req.filtersDecoder)
 		if err != nil {
 			return err
 		}
-		req.Filters = filters
+		req.Filters = &filters
 	} else {
 		filters, err := protocol.ReadArray(r, req.filtersDecoder)
 		if err != nil {
@@ -165,6 +167,9 @@ func (req *DeleteAclsRequest) filtersEncoder(w io.Writer, value DeleteAclsReques
 
 func (req *DeleteAclsRequest) filtersDecoder(r io.Reader) (DeleteAclsRequestFilter, error) {
 	deleteaclsrequestfilter := DeleteAclsRequestFilter{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	deleteaclsrequestfilter.PatternTypeFilter = 3
 
 	// ResourceTypeFilter (versions: 0+)
 	resourcetypefilter, err := protocol.ReadInt8(r)

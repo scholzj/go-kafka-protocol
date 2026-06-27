@@ -79,6 +79,8 @@ func (req *EnvelopeRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("EnvelopeRequest.Read: request or its body is nil")
 	}
 
+	*req = EnvelopeRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 

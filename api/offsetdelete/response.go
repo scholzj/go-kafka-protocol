@@ -55,6 +55,8 @@ func (res *OffsetDeleteResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("OffsetDeleteResponse.Read: response or its body is nil")
 	}
 
+	*res = OffsetDeleteResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 

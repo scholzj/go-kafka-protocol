@@ -85,6 +85,8 @@ func (res *UpdateFeaturesResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("UpdateFeaturesResponse.Read: response or its body is nil")
 	}
 
+	*res = UpdateFeaturesResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -120,11 +122,11 @@ func (res *UpdateFeaturesResponse) Read(response *protocol.Response) error {
 	// Results (versions: 0-1)
 	if res.ApiVersion <= 1 {
 		if isResponseFlexible(res.ApiVersion) {
-			results, err := protocol.ReadNullableCompactArray(r, res.resultsDecoder)
+			results, err := protocol.ReadCompactArray(r, res.resultsDecoder)
 			if err != nil {
 				return err
 			}
-			res.Results = results
+			res.Results = &results
 		} else {
 			results, err := protocol.ReadArray(r, res.resultsDecoder)
 			if err != nil {

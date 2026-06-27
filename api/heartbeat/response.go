@@ -51,6 +51,8 @@ func (res *HeartbeatResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("HeartbeatResponse.Read: response or its body is nil")
 	}
 
+	*res = HeartbeatResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 

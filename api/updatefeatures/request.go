@@ -74,8 +74,13 @@ func (req *UpdateFeaturesRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("UpdateFeaturesRequest.Read: request or its body is nil")
 	}
 
+	*req = UpdateFeaturesRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	req.TimeoutMs = 60000
 
 	// TimeoutMs (versions: 0+)
 	timeoutms, err := protocol.ReadInt32(r)
@@ -86,11 +91,11 @@ func (req *UpdateFeaturesRequest) Read(request *protocol.Request) error {
 
 	// FeatureUpdates (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		featureupdates, err := protocol.ReadNullableCompactArray(r, req.featureUpdatesDecoder)
+		featureupdates, err := protocol.ReadCompactArray(r, req.featureUpdatesDecoder)
 		if err != nil {
 			return err
 		}
-		req.FeatureUpdates = featureupdates
+		req.FeatureUpdates = &featureupdates
 	} else {
 		featureupdates, err := protocol.ReadArray(r, req.featureUpdatesDecoder)
 		if err != nil {
@@ -170,6 +175,9 @@ func (req *UpdateFeaturesRequest) featureUpdatesEncoder(w io.Writer, value Updat
 
 func (req *UpdateFeaturesRequest) featureUpdatesDecoder(r io.Reader) (UpdateFeaturesRequestFeatureUpdate, error) {
 	updatefeaturesrequestfeatureupdate := UpdateFeaturesRequestFeatureUpdate{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	updatefeaturesrequestfeatureupdate.UpgradeType = 1
 
 	// Feature (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {

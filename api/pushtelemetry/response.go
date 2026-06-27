@@ -49,6 +49,8 @@ func (res *PushTelemetryResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("PushTelemetryResponse.Read: response or its body is nil")
 	}
 
+	*res = PushTelemetryResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 

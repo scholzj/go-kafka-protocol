@@ -79,6 +79,8 @@ func (req *FindCoordinatorRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("FindCoordinatorRequest.Read: request or its body is nil")
 	}
 
+	*req = FindCoordinatorRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
@@ -111,11 +113,11 @@ func (req *FindCoordinatorRequest) Read(request *protocol.Request) error {
 	// CoordinatorKeys (versions: 4+)
 	if req.ApiVersion >= 4 {
 		if isRequestFlexible(req.ApiVersion) {
-			coordinatorkeys, err := protocol.ReadNullableCompactArray(r, protocol.ReadCompactString)
+			coordinatorkeys, err := protocol.ReadCompactArray(r, protocol.ReadCompactString)
 			if err != nil {
 				return err
 			}
-			req.CoordinatorKeys = coordinatorkeys
+			req.CoordinatorKeys = &coordinatorkeys
 		} else {
 			coordinatorkeys, err := protocol.ReadArray(r, protocol.ReadString)
 			if err != nil {

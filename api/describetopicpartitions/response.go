@@ -70,8 +70,17 @@ func (res *DescribeTopicPartitionsResponse) Write(w io.Writer) error {
 	}
 
 	// NextCursor (versions: 0+)
-	if err := res.nextCursorEncoder(w, *res.NextCursor); err != nil {
-		return err
+	if res.NextCursor == nil {
+		if err := protocol.WriteInt8(w, -1); err != nil {
+			return err
+		}
+	} else {
+		if err := protocol.WriteInt8(w, 1); err != nil {
+			return err
+		}
+		if err := res.nextCursorEncoder(w, *res.NextCursor); err != nil {
+			return err
+		}
 	}
 
 	// Tagged fields
@@ -94,6 +103,8 @@ func (res *DescribeTopicPartitionsResponse) Read(response *protocol.Response) er
 		return fmt.Errorf("DescribeTopicPartitionsResponse.Read: response or its body is nil")
 	}
 
+	*res = DescribeTopicPartitionsResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -106,11 +117,11 @@ func (res *DescribeTopicPartitionsResponse) Read(response *protocol.Response) er
 
 	// Topics (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, res.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, res.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		res.Topics = topics
+		res.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, res.topicsDecoder)
 		if err != nil {
@@ -120,11 +131,19 @@ func (res *DescribeTopicPartitionsResponse) Read(response *protocol.Response) er
 	}
 
 	// NextCursor (versions: 0+)
-	nextcursor, err := res.nextCursorDecoder(r)
+	nextcursorFlag, err := protocol.ReadInt8(r)
 	if err != nil {
 		return err
 	}
-	res.NextCursor = &nextcursor
+	if nextcursorFlag >= 0 {
+		nextcursor, err := res.nextCursorDecoder(r)
+		if err != nil {
+			return err
+		}
+		res.NextCursor = &nextcursor
+	} else {
+		res.NextCursor = nil
+	}
 
 	// Tagged fields
 	if isResponseFlexible(res.ApiVersion) {
@@ -201,6 +220,9 @@ func (res *DescribeTopicPartitionsResponse) topicsEncoder(w io.Writer, value Des
 func (res *DescribeTopicPartitionsResponse) topicsDecoder(r io.Reader) (DescribeTopicPartitionsResponseTopic, error) {
 	describetopicpartitionsresponsetopic := DescribeTopicPartitionsResponseTopic{}
 
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	describetopicpartitionsresponsetopic.TopicAuthorizedOperations = -2147483648
+
 	// ErrorCode (versions: 0+)
 	errorcode, err := protocol.ReadInt16(r)
 	if err != nil {
@@ -239,11 +261,11 @@ func (res *DescribeTopicPartitionsResponse) topicsDecoder(r io.Reader) (Describe
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, res.partitionsDecoder)
 		if err != nil {
 			return describetopicpartitionsresponsetopic, err
 		}
-		describetopicpartitionsresponsetopic.Partitions = partitions
+		describetopicpartitionsresponsetopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, res.partitionsDecoder)
 		if err != nil {
@@ -373,6 +395,9 @@ func (res *DescribeTopicPartitionsResponse) partitionsEncoder(w io.Writer, value
 func (res *DescribeTopicPartitionsResponse) partitionsDecoder(r io.Reader) (DescribeTopicPartitionsResponseTopicPartition, error) {
 	describetopicpartitionsresponsetopicpartition := DescribeTopicPartitionsResponseTopicPartition{}
 
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	describetopicpartitionsresponsetopicpartition.LeaderEpoch = -1
+
 	// ErrorCode (versions: 0+)
 	errorcode, err := protocol.ReadInt16(r)
 	if err != nil {
@@ -403,11 +428,11 @@ func (res *DescribeTopicPartitionsResponse) partitionsDecoder(r io.Reader) (Desc
 
 	// ReplicaNodes (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		replicanodes, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		replicanodes, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return describetopicpartitionsresponsetopicpartition, err
 		}
-		describetopicpartitionsresponsetopicpartition.ReplicaNodes = replicanodes
+		describetopicpartitionsresponsetopicpartition.ReplicaNodes = &replicanodes
 	} else {
 		replicanodes, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {
@@ -418,11 +443,11 @@ func (res *DescribeTopicPartitionsResponse) partitionsDecoder(r io.Reader) (Desc
 
 	// IsrNodes (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		isrnodes, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		isrnodes, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return describetopicpartitionsresponsetopicpartition, err
 		}
-		describetopicpartitionsresponsetopicpartition.IsrNodes = isrnodes
+		describetopicpartitionsresponsetopicpartition.IsrNodes = &isrnodes
 	} else {
 		isrnodes, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {
@@ -463,11 +488,11 @@ func (res *DescribeTopicPartitionsResponse) partitionsDecoder(r io.Reader) (Desc
 
 	// OfflineReplicas (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		offlinereplicas, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		offlinereplicas, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return describetopicpartitionsresponsetopicpartition, err
 		}
-		describetopicpartitionsresponsetopicpartition.OfflineReplicas = offlinereplicas
+		describetopicpartitionsresponsetopicpartition.OfflineReplicas = &offlinereplicas
 	} else {
 		offlinereplicas, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {

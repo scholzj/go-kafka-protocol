@@ -74,6 +74,8 @@ func (res *OffsetForLeaderEpochResponse) Read(response *protocol.Response) error
 		return fmt.Errorf("OffsetForLeaderEpochResponse.Read: response or its body is nil")
 	}
 
+	*res = OffsetForLeaderEpochResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -88,11 +90,11 @@ func (res *OffsetForLeaderEpochResponse) Read(response *protocol.Response) error
 
 	// Topics (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, res.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, res.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		res.Topics = topics
+		res.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, res.topicsDecoder)
 		if err != nil {
@@ -176,11 +178,11 @@ func (res *OffsetForLeaderEpochResponse) topicsDecoder(r io.Reader) (OffsetForLe
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, res.partitionsDecoder)
 		if err != nil {
 			return offsetforleaderepochresponsetopic, err
 		}
-		offsetforleaderepochresponsetopic.Partitions = partitions
+		offsetforleaderepochresponsetopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, res.partitionsDecoder)
 		if err != nil {
@@ -240,6 +242,10 @@ func (res *OffsetForLeaderEpochResponse) partitionsEncoder(w io.Writer, value Of
 
 func (res *OffsetForLeaderEpochResponse) partitionsDecoder(r io.Reader) (OffsetForLeaderEpochResponseTopicPartition, error) {
 	offsetforleaderepochresponsetopicpartition := OffsetForLeaderEpochResponseTopicPartition{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	offsetforleaderepochresponsetopicpartition.LeaderEpoch = -1
+	offsetforleaderepochresponsetopicpartition.EndOffset = -1
 
 	// ErrorCode (versions: 0+)
 	errorcode, err := protocol.ReadInt16(r)

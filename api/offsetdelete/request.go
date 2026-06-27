@@ -51,6 +51,8 @@ func (req *OffsetDeleteRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("OffsetDeleteRequest.Read: request or its body is nil")
 	}
 
+	*req = OffsetDeleteRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 

@@ -87,16 +87,21 @@ func (req *CreateTopicsRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("CreateTopicsRequest.Read: request or its body is nil")
 	}
 
+	*req = CreateTopicsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	req.TimeoutMs = 60000
+
 	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Topics = topics
+		req.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, req.topicsDecoder)
 		if err != nil {
@@ -234,11 +239,11 @@ func (req *CreateTopicsRequest) topicsDecoder(r io.Reader) (CreateTopicsRequestT
 
 	// Assignments (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		assignments, err := protocol.ReadNullableCompactArray(r, req.assignmentsDecoder)
+		assignments, err := protocol.ReadCompactArray(r, req.assignmentsDecoder)
 		if err != nil {
 			return createtopicsrequesttopic, err
 		}
-		createtopicsrequesttopic.Assignments = assignments
+		createtopicsrequesttopic.Assignments = &assignments
 	} else {
 		assignments, err := protocol.ReadArray(r, req.assignmentsDecoder)
 		if err != nil {
@@ -249,11 +254,11 @@ func (req *CreateTopicsRequest) topicsDecoder(r io.Reader) (CreateTopicsRequestT
 
 	// Configs (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		configs, err := protocol.ReadNullableCompactArray(r, req.configsDecoder)
+		configs, err := protocol.ReadCompactArray(r, req.configsDecoder)
 		if err != nil {
 			return createtopicsrequesttopic, err
 		}
-		createtopicsrequesttopic.Configs = configs
+		createtopicsrequesttopic.Configs = &configs
 	} else {
 		configs, err := protocol.ReadArray(r, req.configsDecoder)
 		if err != nil {
@@ -320,11 +325,11 @@ func (req *CreateTopicsRequest) assignmentsDecoder(r io.Reader) (CreateTopicsReq
 
 	// BrokerIds (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		brokerids, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		brokerids, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return createtopicsrequesttopicassignment, err
 		}
-		createtopicsrequesttopicassignment.BrokerIds = brokerids
+		createtopicsrequesttopicassignment.BrokerIds = &brokerids
 	} else {
 		brokerids, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {

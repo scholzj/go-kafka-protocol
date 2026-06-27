@@ -102,16 +102,21 @@ func (res *ProduceResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("ProduceResponse.Read: response or its body is nil")
 	}
 
+	*res = ProduceResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	res.NodeEndpoints = &[]ProduceResponseNodeEndpoint{}
+
 	// Responses (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		responses, err := protocol.ReadNullableCompactArray(r, res.responsesDecoder)
+		responses, err := protocol.ReadCompactArray(r, res.responsesDecoder)
 		if err != nil {
 			return err
 		}
-		res.Responses = responses
+		res.Responses = &responses
 	} else {
 		responses, err := protocol.ReadArray(r, res.responsesDecoder)
 		if err != nil {
@@ -222,11 +227,11 @@ func (res *ProduceResponse) responsesDecoder(r io.Reader) (ProduceResponseRespon
 
 	// PartitionResponses (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitionresponses, err := protocol.ReadNullableCompactArray(r, res.partitionResponsesDecoder)
+		partitionresponses, err := protocol.ReadCompactArray(r, res.partitionResponsesDecoder)
 		if err != nil {
 			return produceresponseresponse, err
 		}
-		produceresponseresponse.PartitionResponses = partitionresponses
+		produceresponseresponse.PartitionResponses = &partitionresponses
 	} else {
 		partitionresponses, err := protocol.ReadArray(r, res.partitionResponsesDecoder)
 		if err != nil {
@@ -336,6 +341,11 @@ func (res *ProduceResponse) partitionResponsesEncoder(w io.Writer, value Produce
 func (res *ProduceResponse) partitionResponsesDecoder(r io.Reader) (ProduceResponseResponsePartitionResponse, error) {
 	produceresponseresponsepartitionresponse := ProduceResponseResponsePartitionResponse{}
 
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	produceresponseresponsepartitionresponse.LogAppendTimeMs = -1
+	produceresponseresponsepartitionresponse.LogStartOffset = -1
+	produceresponseresponsepartitionresponse.CurrentLeader = &ProduceResponseResponsePartitionResponseCurrentLeader{LeaderId: -1, LeaderEpoch: -1}
+
 	// Index (versions: 0+)
 	index, err := protocol.ReadInt32(r)
 	if err != nil {
@@ -378,11 +388,11 @@ func (res *ProduceResponse) partitionResponsesDecoder(r io.Reader) (ProduceRespo
 	// RecordErrors (versions: 8+)
 	if res.ApiVersion >= 8 {
 		if isResponseFlexible(res.ApiVersion) {
-			recorderrors, err := protocol.ReadNullableCompactArray(r, res.recordErrorsDecoder)
+			recorderrors, err := protocol.ReadCompactArray(r, res.recordErrorsDecoder)
 			if err != nil {
 				return produceresponseresponsepartitionresponse, err
 			}
-			produceresponseresponsepartitionresponse.RecordErrors = recorderrors
+			produceresponseresponsepartitionresponse.RecordErrors = &recorderrors
 		} else {
 			recorderrors, err := protocol.ReadArray(r, res.recordErrorsDecoder)
 			if err != nil {
@@ -442,7 +452,7 @@ func (res *ProduceResponse) taggedFieldsEncoderPartitionResponses(value ProduceR
 	buf := bytes.NewBuffer(make([]byte, 0))
 
 	// Tag 0
-	if value.CurrentLeader != nil {
+	if res.ApiVersion >= 10 && value.CurrentLeader != nil && (value.CurrentLeader.LeaderId != -1 || value.CurrentLeader.LeaderEpoch != -1 || (value.CurrentLeader.rawTaggedFields != nil && len(*value.CurrentLeader.rawTaggedFields) > 0)) {
 		buf = bytes.NewBuffer(make([]byte, 0))
 		if err := res.currentLeaderEncoder(buf, *value.CurrentLeader); err != nil {
 			return taggedFields, err
@@ -460,27 +470,33 @@ func (res *ProduceResponse) taggedFieldsEncoderPartitionResponses(value ProduceR
 }
 
 func (res *ProduceResponse) taggedFieldsDecoderPartitionResponses(r io.Reader, tag uint64, tagLength uint64, value *ProduceResponseResponsePartitionResponse) error {
-	rawTaggedFields := make([]protocol.TaggedField, 0)
+	known := false
 
 	switch tag {
 	case 0:
 		// CurrentLeader
-		currentleaderVal, err := res.currentLeaderDecoder(r)
-		if err != nil {
-			return err
+		if res.ApiVersion >= 10 {
+			known = true
+			currentleaderVal, err := res.currentLeaderDecoder(r)
+			if err != nil {
+				return err
+			}
+			value.CurrentLeader = &currentleaderVal
 		}
-		value.CurrentLeader = &currentleaderVal
-	default:
-		// Unknown tag - keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
+	}
+
+	if !known {
+		// Keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
 		field, err := io.ReadAll(r)
 		if err != nil {
 			return err
 		}
-		rawTaggedFields = append(rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
+		if value.rawTaggedFields == nil {
+			rawTaggedFields := make([]protocol.TaggedField, 0)
+			value.rawTaggedFields = &rawTaggedFields
+		}
+		*value.rawTaggedFields = append(*value.rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
 	}
-
-	// Set the raw tagged fields
-	value.rawTaggedFields = &rawTaggedFields
 
 	return nil
 }
@@ -592,6 +608,10 @@ func (res *ProduceResponse) currentLeaderEncoder(w io.Writer, value ProduceRespo
 
 func (res *ProduceResponse) currentLeaderDecoder(r io.Reader) (ProduceResponseResponsePartitionResponseCurrentLeader, error) {
 	produceresponseresponsepartitionresponsecurrentleader := ProduceResponseResponsePartitionResponseCurrentLeader{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	produceresponseresponsepartitionresponsecurrentleader.LeaderId = -1
+	produceresponseresponsepartitionresponsecurrentleader.LeaderEpoch = -1
 
 	// LeaderId (versions: 10+)
 	if res.ApiVersion >= 10 {
@@ -758,7 +778,7 @@ func (res *ProduceResponse) taggedFieldsEncoder() ([]protocol.TaggedField, error
 	buf := bytes.NewBuffer(make([]byte, 0))
 
 	// Tag 0
-	if res.NodeEndpoints != nil {
+	if res.ApiVersion >= 10 && res.NodeEndpoints != nil && len(*res.NodeEndpoints) > 0 {
 		buf = bytes.NewBuffer(make([]byte, 0))
 		if err := protocol.WriteNullableCompactArray(buf, res.nodeEndpointsEncoder, res.NodeEndpoints); err != nil {
 			return taggedFields, err
@@ -776,27 +796,33 @@ func (res *ProduceResponse) taggedFieldsEncoder() ([]protocol.TaggedField, error
 }
 
 func (res *ProduceResponse) taggedFieldsDecoder(r io.Reader, tag uint64, tagLength uint64) error {
-	rawTaggedFields := make([]protocol.TaggedField, 0)
+	known := false
 
 	switch tag {
 	case 0:
 		// NodeEndpoints
-		nodeendpoints, err := protocol.ReadNullableCompactArray(r, res.nodeEndpointsDecoder)
-		if err != nil {
-			return err
+		if res.ApiVersion >= 10 {
+			known = true
+			nodeendpoints, err := protocol.ReadCompactArray(r, res.nodeEndpointsDecoder)
+			if err != nil {
+				return err
+			}
+			res.NodeEndpoints = &nodeendpoints
 		}
-		res.NodeEndpoints = nodeendpoints
-	default:
-		// Unknown tag - keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
+	}
+
+	if !known {
+		// Keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
 		field, err := io.ReadAll(r)
 		if err != nil {
 			return err
 		}
-		rawTaggedFields = append(rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
+		if res.rawTaggedFields == nil {
+			rawTaggedFields := make([]protocol.TaggedField, 0)
+			res.rawTaggedFields = &rawTaggedFields
+		}
+		*res.rawTaggedFields = append(*res.rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
 	}
-
-	// Set the raw tagged fields
-	res.rawTaggedFields = &rawTaggedFields
 
 	return nil
 }

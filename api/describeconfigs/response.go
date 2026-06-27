@@ -86,6 +86,8 @@ func (res *DescribeConfigsResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("DescribeConfigsResponse.Read: response or its body is nil")
 	}
 
+	*res = DescribeConfigsResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -98,11 +100,11 @@ func (res *DescribeConfigsResponse) Read(response *protocol.Response) error {
 
 	// Results (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		results, err := protocol.ReadNullableCompactArray(r, res.resultsDecoder)
+		results, err := protocol.ReadCompactArray(r, res.resultsDecoder)
 		if err != nil {
 			return err
 		}
-		res.Results = results
+		res.Results = &results
 	} else {
 		results, err := protocol.ReadArray(r, res.resultsDecoder)
 		if err != nil {
@@ -236,11 +238,11 @@ func (res *DescribeConfigsResponse) resultsDecoder(r io.Reader) (DescribeConfigs
 
 	// Configs (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		configs, err := protocol.ReadNullableCompactArray(r, res.configsDecoder)
+		configs, err := protocol.ReadCompactArray(r, res.configsDecoder)
 		if err != nil {
 			return describeconfigsresponseresult, err
 		}
-		describeconfigsresponseresult.Configs = configs
+		describeconfigsresponseresult.Configs = &configs
 	} else {
 		configs, err := protocol.ReadArray(r, res.configsDecoder)
 		if err != nil {
@@ -357,6 +359,9 @@ func (res *DescribeConfigsResponse) configsEncoder(w io.Writer, value DescribeCo
 func (res *DescribeConfigsResponse) configsDecoder(r io.Reader) (DescribeConfigsResponseResultConfig, error) {
 	describeconfigsresponseresultconfig := DescribeConfigsResponseResultConfig{}
 
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	describeconfigsresponseresultconfig.ConfigSource = -1
+
 	// Name (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
 		name, err := protocol.ReadCompactString(r)
@@ -413,11 +418,11 @@ func (res *DescribeConfigsResponse) configsDecoder(r io.Reader) (DescribeConfigs
 	// Synonyms (versions: 1+)
 	if res.ApiVersion >= 1 {
 		if isResponseFlexible(res.ApiVersion) {
-			synonyms, err := protocol.ReadNullableCompactArray(r, res.synonymsDecoder)
+			synonyms, err := protocol.ReadCompactArray(r, res.synonymsDecoder)
 			if err != nil {
 				return describeconfigsresponseresultconfig, err
 			}
-			describeconfigsresponseresultconfig.Synonyms = synonyms
+			describeconfigsresponseresultconfig.Synonyms = &synonyms
 		} else {
 			synonyms, err := protocol.ReadArray(r, res.synonymsDecoder)
 			if err != nil {

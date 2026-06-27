@@ -107,32 +107,133 @@ func TestStreamsGroupDescribeResponseRoundTrip(t *testing.T) {
 		}},
 	}
 
+	// A second instance with every always-nullable field set to nil. The fully-populated
+	// instance never encodes a null, so this is what actually exercises the null-marker
+	// write/read paths (nullable single structs, nullable arrays, nullable strings/bytes).
+	inNulls := &StreamsGroupDescribeResponse{
+		ThrottleTimeMs: 1,
+		Groups: &[]StreamsGroupDescribeResponseGroup{StreamsGroupDescribeResponseGroup{
+			ErrorCode:       1,
+			ErrorMessage:    nil,
+			GroupId:         resPtr("x"),
+			GroupState:      resPtr("x"),
+			GroupEpoch:      1,
+			AssignmentEpoch: 1,
+			Topology:        nil,
+			Members: &[]StreamsGroupDescribeResponseGroupMember{StreamsGroupDescribeResponseGroupMember{
+				MemberId:      resPtr("x"),
+				MemberEpoch:   1,
+				InstanceId:    nil,
+				RackId:        nil,
+				ClientId:      resPtr("x"),
+				ClientHost:    resPtr("x"),
+				TopologyEpoch: 1,
+				ProcessId:     resPtr("x"),
+				UserEndpoint:  nil,
+				ClientTags: &[]StreamsGroupDescribeResponseGroupMemberClientTag{StreamsGroupDescribeResponseGroupMemberClientTag{
+					Key:   resPtr("x"),
+					Value: resPtr("x"),
+				}},
+				TaskOffsets: &[]StreamsGroupDescribeResponseGroupMemberTaskOffset{StreamsGroupDescribeResponseGroupMemberTaskOffset{
+					SubtopologyId: resPtr("x"),
+					Partition:     1,
+					Offset:        1,
+				}},
+				TaskEndOffsets: &[]StreamsGroupDescribeResponseGroupMemberTaskEndOffset{StreamsGroupDescribeResponseGroupMemberTaskEndOffset{
+					SubtopologyId: resPtr("x"),
+					Partition:     1,
+					Offset:        1,
+				}},
+				Assignment: &StreamsGroupDescribeResponseGroupMemberAssignment{
+					ActiveTasks: &[]StreamsGroupDescribeResponseGroupMemberAssignmentActiveTask{StreamsGroupDescribeResponseGroupMemberAssignmentActiveTask{
+						SubtopologyId: resPtr("x"),
+						Partitions:    &[]int32{1},
+					}},
+					StandbyTasks: &[]StreamsGroupDescribeResponseGroupMemberAssignmentStandbyTask{StreamsGroupDescribeResponseGroupMemberAssignmentStandbyTask{
+						SubtopologyId: resPtr("x"),
+						Partitions:    &[]int32{1},
+					}},
+					WarmupTasks: &[]StreamsGroupDescribeResponseGroupMemberAssignmentWarmupTask{StreamsGroupDescribeResponseGroupMemberAssignmentWarmupTask{
+						SubtopologyId: resPtr("x"),
+						Partitions:    &[]int32{1},
+					}},
+				},
+				TargetAssignment: &StreamsGroupDescribeResponseGroupMemberTargetAssignment{
+					ActiveTasks: &[]StreamsGroupDescribeResponseGroupMemberTargetAssignmentActiveTask{StreamsGroupDescribeResponseGroupMemberTargetAssignmentActiveTask{
+						SubtopologyId: resPtr("x"),
+						Partitions:    &[]int32{1},
+					}},
+					StandbyTasks: &[]StreamsGroupDescribeResponseGroupMemberTargetAssignmentStandbyTask{StreamsGroupDescribeResponseGroupMemberTargetAssignmentStandbyTask{
+						SubtopologyId: resPtr("x"),
+						Partitions:    &[]int32{1},
+					}},
+					WarmupTasks: &[]StreamsGroupDescribeResponseGroupMemberTargetAssignmentWarmupTask{StreamsGroupDescribeResponseGroupMemberTargetAssignmentWarmupTask{
+						SubtopologyId: resPtr("x"),
+						Partitions:    &[]int32{1},
+					}},
+				},
+				IsClassic: true,
+			}},
+			AuthorizedOperations: 1,
+		}},
+	}
+
 	for v := int16(0); v <= 0; v++ {
-		in.ApiVersion = v
+		{
+			in.ApiVersion = v
 
-		var buf bytes.Buffer
-		if err := in.Write(&buf); err != nil {
-			t.Fatalf("v%d: write: %v", v, err)
-		}
-		encoded := buf.Bytes()
+			var buf bytes.Buffer
+			if err := in.Write(&buf); err != nil {
+				t.Fatalf("v%d: populated write: %v", v, err)
+			}
+			encoded := buf.Bytes()
 
-		out := &StreamsGroupDescribeResponse{}
-		response := &protocol.Response{Body: bytes.NewBuffer(encoded)}
-		response.ApiVersion = v
-		if err := out.Read(response); err != nil {
-			t.Fatalf("v%d: read: %v", v, err)
+			out := &StreamsGroupDescribeResponse{}
+			response := &protocol.Response{Body: bytes.NewBuffer(encoded)}
+			response.ApiVersion = v
+			if err := out.Read(response); err != nil {
+				t.Fatalf("v%d: populated read: %v", v, err)
+			}
+
+			var reencoded bytes.Buffer
+			if err := out.Write(&reencoded); err != nil {
+				t.Fatalf("v%d: populated re-write: %v", v, err)
+			}
+			if !bytes.Equal(encoded, reencoded.Bytes()) {
+				t.Errorf("v%d: populated round-trip mismatch:\n  encoded:   %x\n  reencoded: %x", v, encoded, reencoded.Bytes())
+			}
+
+			_ = in.PrettyPrint()
 		}
 
-		var reencoded bytes.Buffer
-		if err := out.Write(&reencoded); err != nil {
-			t.Fatalf("v%d: re-write: %v", v, err)
-		}
-		if !bytes.Equal(encoded, reencoded.Bytes()) {
-			t.Errorf("v%d: round-trip mismatch:\n  encoded:   %x\n  reencoded: %x", v, encoded, reencoded.Bytes())
+		{
+			inNulls.ApiVersion = v
+
+			var buf bytes.Buffer
+			if err := inNulls.Write(&buf); err != nil {
+				t.Fatalf("v%d: nulls write: %v", v, err)
+			}
+			encoded := buf.Bytes()
+
+			out := &StreamsGroupDescribeResponse{}
+			response := &protocol.Response{Body: bytes.NewBuffer(encoded)}
+			response.ApiVersion = v
+			if err := out.Read(response); err != nil {
+				t.Fatalf("v%d: nulls read: %v", v, err)
+			}
+
+			var reencoded bytes.Buffer
+			if err := out.Write(&reencoded); err != nil {
+				t.Fatalf("v%d: nulls re-write: %v", v, err)
+			}
+			if !bytes.Equal(encoded, reencoded.Bytes()) {
+				t.Errorf("v%d: nulls round-trip mismatch:\n  encoded:   %x\n  reencoded: %x", v, encoded, reencoded.Bytes())
+			}
+
+			_ = inNulls.PrettyPrint()
 		}
 
-		// PrettyPrint must not panic, for the populated and the zero value alike.
-		_ = in.PrettyPrint()
+		// PrettyPrint must not panic on the zero value either.
 		_ = (&StreamsGroupDescribeResponse{}).PrettyPrint()
 	}
 }

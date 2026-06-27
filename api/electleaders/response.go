@@ -79,6 +79,8 @@ func (res *ElectLeadersResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("ElectLeadersResponse.Read: response or its body is nil")
 	}
 
+	*res = ElectLeadersResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -100,11 +102,11 @@ func (res *ElectLeadersResponse) Read(response *protocol.Response) error {
 
 	// ReplicaElectionResults (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		replicaelectionresults, err := protocol.ReadNullableCompactArray(r, res.replicaElectionResultsDecoder)
+		replicaelectionresults, err := protocol.ReadCompactArray(r, res.replicaElectionResultsDecoder)
 		if err != nil {
 			return err
 		}
-		res.ReplicaElectionResults = replicaelectionresults
+		res.ReplicaElectionResults = &replicaelectionresults
 	} else {
 		replicaelectionresults, err := protocol.ReadArray(r, res.replicaElectionResultsDecoder)
 		if err != nil {
@@ -188,11 +190,11 @@ func (res *ElectLeadersResponse) replicaElectionResultsDecoder(r io.Reader) (Ele
 
 	// PartitionResult (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitionresult, err := protocol.ReadNullableCompactArray(r, res.partitionResultDecoder)
+		partitionresult, err := protocol.ReadCompactArray(r, res.partitionResultDecoder)
 		if err != nil {
 			return electleadersresponsereplicaelectionresult, err
 		}
-		electleadersresponsereplicaelectionresult.PartitionResult = partitionresult
+		electleadersresponsereplicaelectionresult.PartitionResult = &partitionresult
 	} else {
 		partitionresult, err := protocol.ReadArray(r, res.partitionResultDecoder)
 		if err != nil {

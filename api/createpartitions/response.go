@@ -65,6 +65,8 @@ func (res *CreatePartitionsResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("CreatePartitionsResponse.Read: response or its body is nil")
 	}
 
+	*res = CreatePartitionsResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -77,11 +79,11 @@ func (res *CreatePartitionsResponse) Read(response *protocol.Response) error {
 
 	// Results (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		results, err := protocol.ReadNullableCompactArray(r, res.resultsDecoder)
+		results, err := protocol.ReadCompactArray(r, res.resultsDecoder)
 		if err != nil {
 			return err
 		}
-		res.Results = results
+		res.Results = &results
 	} else {
 		results, err := protocol.ReadArray(r, res.resultsDecoder)
 		if err != nil {

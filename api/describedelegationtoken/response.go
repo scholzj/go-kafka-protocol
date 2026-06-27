@@ -84,6 +84,8 @@ func (res *DescribeDelegationTokenResponse) Read(response *protocol.Response) er
 		return fmt.Errorf("DescribeDelegationTokenResponse.Read: response or its body is nil")
 	}
 
+	*res = DescribeDelegationTokenResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -96,11 +98,11 @@ func (res *DescribeDelegationTokenResponse) Read(response *protocol.Response) er
 
 	// Tokens (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		tokens, err := protocol.ReadNullableCompactArray(r, res.tokensDecoder)
+		tokens, err := protocol.ReadCompactArray(r, res.tokensDecoder)
 		if err != nil {
 			return err
 		}
-		res.Tokens = tokens
+		res.Tokens = &tokens
 	} else {
 		tokens, err := protocol.ReadArray(r, res.tokensDecoder)
 		if err != nil {
@@ -380,11 +382,11 @@ func (res *DescribeDelegationTokenResponse) tokensDecoder(r io.Reader) (Describe
 
 	// Renewers (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		renewers, err := protocol.ReadNullableCompactArray(r, res.renewersDecoder)
+		renewers, err := protocol.ReadCompactArray(r, res.renewersDecoder)
 		if err != nil {
 			return describedelegationtokenresponsetoken, err
 		}
-		describedelegationtokenresponsetoken.Renewers = renewers
+		describedelegationtokenresponsetoken.Renewers = &renewers
 	} else {
 		renewers, err := protocol.ReadArray(r, res.renewersDecoder)
 		if err != nil {

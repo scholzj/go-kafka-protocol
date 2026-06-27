@@ -110,6 +110,8 @@ func (req *EndQuorumEpochRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("EndQuorumEpochRequest.Read: request or its body is nil")
 	}
 
+	*req = EndQuorumEpochRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
@@ -130,11 +132,11 @@ func (req *EndQuorumEpochRequest) Read(request *protocol.Request) error {
 
 	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Topics = topics
+		req.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, req.topicsDecoder)
 		if err != nil {
@@ -146,11 +148,11 @@ func (req *EndQuorumEpochRequest) Read(request *protocol.Request) error {
 	// LeaderEndpoints (versions: 1+)
 	if req.ApiVersion >= 1 {
 		if isRequestFlexible(req.ApiVersion) {
-			leaderendpoints, err := protocol.ReadNullableCompactArray(r, req.leaderEndpointsDecoder)
+			leaderendpoints, err := protocol.ReadCompactArray(r, req.leaderEndpointsDecoder)
 			if err != nil {
 				return err
 			}
-			req.LeaderEndpoints = leaderendpoints
+			req.LeaderEndpoints = &leaderendpoints
 		} else {
 			leaderendpoints, err := protocol.ReadArray(r, req.leaderEndpointsDecoder)
 			if err != nil {
@@ -235,11 +237,11 @@ func (req *EndQuorumEpochRequest) topicsDecoder(r io.Reader) (EndQuorumEpochRequ
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, req.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, req.partitionsDecoder)
 		if err != nil {
 			return endquorumepochrequesttopic, err
 		}
-		endquorumepochrequesttopic.Partitions = partitions
+		endquorumepochrequesttopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, req.partitionsDecoder)
 		if err != nil {
@@ -349,11 +351,11 @@ func (req *EndQuorumEpochRequest) partitionsDecoder(r io.Reader) (EndQuorumEpoch
 	// PreferredSuccessors (versions: 0)
 	if req.ApiVersion == 0 {
 		if isRequestFlexible(req.ApiVersion) {
-			preferredsuccessors, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+			preferredsuccessors, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 			if err != nil {
 				return endquorumepochrequesttopicpartition, err
 			}
-			endquorumepochrequesttopicpartition.PreferredSuccessors = preferredsuccessors
+			endquorumepochrequesttopicpartition.PreferredSuccessors = &preferredsuccessors
 		} else {
 			preferredsuccessors, err := protocol.ReadArray(r, protocol.ReadInt32)
 			if err != nil {
@@ -366,11 +368,11 @@ func (req *EndQuorumEpochRequest) partitionsDecoder(r io.Reader) (EndQuorumEpoch
 	// PreferredCandidates (versions: 1+)
 	if req.ApiVersion >= 1 {
 		if isRequestFlexible(req.ApiVersion) {
-			preferredcandidates, err := protocol.ReadNullableCompactArray(r, req.preferredCandidatesDecoder)
+			preferredcandidates, err := protocol.ReadCompactArray(r, req.preferredCandidatesDecoder)
 			if err != nil {
 				return endquorumepochrequesttopicpartition, err
 			}
-			endquorumepochrequesttopicpartition.PreferredCandidates = preferredcandidates
+			endquorumepochrequesttopicpartition.PreferredCandidates = &preferredcandidates
 		} else {
 			preferredcandidates, err := protocol.ReadArray(r, req.preferredCandidatesDecoder)
 			if err != nil {

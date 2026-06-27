@@ -61,6 +61,8 @@ func (res *RemoveRaftVoterResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("RemoveRaftVoterResponse.Read: response or its body is nil")
 	}
 
+	*res = RemoveRaftVoterResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 

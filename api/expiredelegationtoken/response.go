@@ -55,6 +55,8 @@ func (res *ExpireDelegationTokenResponse) Read(response *protocol.Response) erro
 		return fmt.Errorf("ExpireDelegationTokenResponse.Read: response or its body is nil")
 	}
 
+	*res = ExpireDelegationTokenResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 

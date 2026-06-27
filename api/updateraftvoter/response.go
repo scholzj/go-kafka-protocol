@@ -59,6 +59,8 @@ func (res *UpdateRaftVoterResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("UpdateRaftVoterResponse.Read: response or its body is nil")
 	}
 
+	*res = UpdateRaftVoterResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -132,6 +134,10 @@ func (res *UpdateRaftVoterResponse) currentLeaderEncoder(w io.Writer, value Upda
 
 func (res *UpdateRaftVoterResponse) currentLeaderDecoder(r io.Reader) (UpdateRaftVoterResponseCurrentLeader, error) {
 	updateraftvoterresponsecurrentleader := UpdateRaftVoterResponseCurrentLeader{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	updateraftvoterresponsecurrentleader.LeaderId = -1
+	updateraftvoterresponsecurrentleader.LeaderEpoch = -1
 
 	// LeaderId (versions: 0+)
 	leaderid, err := protocol.ReadInt32(r)
@@ -209,27 +215,31 @@ func (res *UpdateRaftVoterResponse) taggedFieldsEncoder() ([]protocol.TaggedFiel
 }
 
 func (res *UpdateRaftVoterResponse) taggedFieldsDecoder(r io.Reader, tag uint64, tagLength uint64) error {
-	rawTaggedFields := make([]protocol.TaggedField, 0)
+	known := false
 
 	switch tag {
 	case 0:
 		// CurrentLeader
+		known = true
 		currentleaderVal, err := res.currentLeaderDecoder(r)
 		if err != nil {
 			return err
 		}
 		res.CurrentLeader = &currentleaderVal
-	default:
-		// Unknown tag - keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
+	}
+
+	if !known {
+		// Keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
 		field, err := io.ReadAll(r)
 		if err != nil {
 			return err
 		}
-		rawTaggedFields = append(rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
+		if res.rawTaggedFields == nil {
+			rawTaggedFields := make([]protocol.TaggedField, 0)
+			res.rawTaggedFields = &rawTaggedFields
+		}
+		*res.rawTaggedFields = append(*res.rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
 	}
-
-	// Set the raw tagged fields
-	res.rawTaggedFields = &rawTaggedFields
 
 	return nil
 }

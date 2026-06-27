@@ -52,16 +52,18 @@ func (req *DeleteGroupsRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("DeleteGroupsRequest.Read: request or its body is nil")
 	}
 
+	*req = DeleteGroupsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
 	// GroupsNames (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		groupsnames, err := protocol.ReadNullableCompactArray(r, protocol.ReadCompactString)
+		groupsnames, err := protocol.ReadCompactArray(r, protocol.ReadCompactString)
 		if err != nil {
 			return err
 		}
-		req.GroupsNames = groupsnames
+		req.GroupsNames = &groupsnames
 	} else {
 		groupsnames, err := protocol.ReadArray(r, protocol.ReadString)
 		if err != nil {

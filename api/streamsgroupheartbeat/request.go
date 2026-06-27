@@ -196,8 +196,17 @@ func (req *StreamsGroupHeartbeatRequest) Write(w io.Writer) error {
 	}
 
 	// Topology (versions: 0+)
-	if err := req.topologyEncoder(w, *req.Topology); err != nil {
-		return err
+	if req.Topology == nil {
+		if err := protocol.WriteInt8(w, -1); err != nil {
+			return err
+		}
+	} else {
+		if err := protocol.WriteInt8(w, 1); err != nil {
+			return err
+		}
+		if err := req.topologyEncoder(w, *req.Topology); err != nil {
+			return err
+		}
 	}
 
 	// ActiveTasks (versions: 0+)
@@ -245,8 +254,17 @@ func (req *StreamsGroupHeartbeatRequest) Write(w io.Writer) error {
 	}
 
 	// UserEndpoint (versions: 0+)
-	if err := req.userEndpointEncoder(w, *req.UserEndpoint); err != nil {
-		return err
+	if req.UserEndpoint == nil {
+		if err := protocol.WriteInt8(w, -1); err != nil {
+			return err
+		}
+	} else {
+		if err := protocol.WriteInt8(w, 1); err != nil {
+			return err
+		}
+		if err := req.userEndpointEncoder(w, *req.UserEndpoint); err != nil {
+			return err
+		}
 	}
 
 	// ClientTags (versions: 0+)
@@ -307,8 +325,13 @@ func (req *StreamsGroupHeartbeatRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("StreamsGroupHeartbeatRequest.Read: request or its body is nil")
 	}
 
+	*req = StreamsGroupHeartbeatRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	req.RebalanceTimeoutMs = -1
 
 	// GroupId (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
@@ -392,11 +415,19 @@ func (req *StreamsGroupHeartbeatRequest) Read(request *protocol.Request) error {
 	req.RebalanceTimeoutMs = rebalancetimeoutms
 
 	// Topology (versions: 0+)
-	topology, err := req.topologyDecoder(r)
+	topologyFlag, err := protocol.ReadInt8(r)
 	if err != nil {
 		return err
 	}
-	req.Topology = &topology
+	if topologyFlag >= 0 {
+		topology, err := req.topologyDecoder(r)
+		if err != nil {
+			return err
+		}
+		req.Topology = &topology
+	} else {
+		req.Topology = nil
+	}
 
 	// ActiveTasks (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
@@ -459,11 +490,19 @@ func (req *StreamsGroupHeartbeatRequest) Read(request *protocol.Request) error {
 	}
 
 	// UserEndpoint (versions: 0+)
-	userendpoint, err := req.userEndpointDecoder(r)
+	userendpointFlag, err := protocol.ReadInt8(r)
 	if err != nil {
 		return err
 	}
-	req.UserEndpoint = &userendpoint
+	if userendpointFlag >= 0 {
+		userendpoint, err := req.userEndpointDecoder(r)
+		if err != nil {
+			return err
+		}
+		req.UserEndpoint = &userendpoint
+	} else {
+		req.UserEndpoint = nil
+	}
 
 	// ClientTags (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
@@ -575,11 +614,11 @@ func (req *StreamsGroupHeartbeatRequest) topologyDecoder(r io.Reader) (StreamsGr
 
 	// Subtopologies (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		subtopologies, err := protocol.ReadNullableCompactArray(r, req.subtopologiesDecoder)
+		subtopologies, err := protocol.ReadCompactArray(r, req.subtopologiesDecoder)
 		if err != nil {
 			return streamsgroupheartbeatrequesttopology, err
 		}
-		streamsgroupheartbeatrequesttopology.Subtopologies = subtopologies
+		streamsgroupheartbeatrequesttopology.Subtopologies = &subtopologies
 	} else {
 		subtopologies, err := protocol.ReadArray(r, req.subtopologiesDecoder)
 		if err != nil {
@@ -733,11 +772,11 @@ func (req *StreamsGroupHeartbeatRequest) subtopologiesDecoder(r io.Reader) (Stre
 
 	// SourceTopics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		sourcetopics, err := protocol.ReadNullableCompactArray(r, protocol.ReadCompactString)
+		sourcetopics, err := protocol.ReadCompactArray(r, protocol.ReadCompactString)
 		if err != nil {
 			return streamsgroupheartbeatrequesttopologysubtopologie, err
 		}
-		streamsgroupheartbeatrequesttopologysubtopologie.SourceTopics = sourcetopics
+		streamsgroupheartbeatrequesttopologysubtopologie.SourceTopics = &sourcetopics
 	} else {
 		sourcetopics, err := protocol.ReadArray(r, protocol.ReadString)
 		if err != nil {
@@ -748,11 +787,11 @@ func (req *StreamsGroupHeartbeatRequest) subtopologiesDecoder(r io.Reader) (Stre
 
 	// SourceTopicRegex (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		sourcetopicregex, err := protocol.ReadNullableCompactArray(r, protocol.ReadCompactString)
+		sourcetopicregex, err := protocol.ReadCompactArray(r, protocol.ReadCompactString)
 		if err != nil {
 			return streamsgroupheartbeatrequesttopologysubtopologie, err
 		}
-		streamsgroupheartbeatrequesttopologysubtopologie.SourceTopicRegex = sourcetopicregex
+		streamsgroupheartbeatrequesttopologysubtopologie.SourceTopicRegex = &sourcetopicregex
 	} else {
 		sourcetopicregex, err := protocol.ReadArray(r, protocol.ReadString)
 		if err != nil {
@@ -763,11 +802,11 @@ func (req *StreamsGroupHeartbeatRequest) subtopologiesDecoder(r io.Reader) (Stre
 
 	// StateChangelogTopics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		statechangelogtopics, err := protocol.ReadNullableCompactArray(r, req.stateChangelogTopicsDecoder)
+		statechangelogtopics, err := protocol.ReadCompactArray(r, req.stateChangelogTopicsDecoder)
 		if err != nil {
 			return streamsgroupheartbeatrequesttopologysubtopologie, err
 		}
-		streamsgroupheartbeatrequesttopologysubtopologie.StateChangelogTopics = statechangelogtopics
+		streamsgroupheartbeatrequesttopologysubtopologie.StateChangelogTopics = &statechangelogtopics
 	} else {
 		statechangelogtopics, err := protocol.ReadArray(r, req.stateChangelogTopicsDecoder)
 		if err != nil {
@@ -778,11 +817,11 @@ func (req *StreamsGroupHeartbeatRequest) subtopologiesDecoder(r io.Reader) (Stre
 
 	// RepartitionSinkTopics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		repartitionsinktopics, err := protocol.ReadNullableCompactArray(r, protocol.ReadCompactString)
+		repartitionsinktopics, err := protocol.ReadCompactArray(r, protocol.ReadCompactString)
 		if err != nil {
 			return streamsgroupheartbeatrequesttopologysubtopologie, err
 		}
-		streamsgroupheartbeatrequesttopologysubtopologie.RepartitionSinkTopics = repartitionsinktopics
+		streamsgroupheartbeatrequesttopologysubtopologie.RepartitionSinkTopics = &repartitionsinktopics
 	} else {
 		repartitionsinktopics, err := protocol.ReadArray(r, protocol.ReadString)
 		if err != nil {
@@ -793,11 +832,11 @@ func (req *StreamsGroupHeartbeatRequest) subtopologiesDecoder(r io.Reader) (Stre
 
 	// RepartitionSourceTopics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		repartitionsourcetopics, err := protocol.ReadNullableCompactArray(r, req.repartitionSourceTopicsDecoder)
+		repartitionsourcetopics, err := protocol.ReadCompactArray(r, req.repartitionSourceTopicsDecoder)
 		if err != nil {
 			return streamsgroupheartbeatrequesttopologysubtopologie, err
 		}
-		streamsgroupheartbeatrequesttopologysubtopologie.RepartitionSourceTopics = repartitionsourcetopics
+		streamsgroupheartbeatrequesttopologysubtopologie.RepartitionSourceTopics = &repartitionsourcetopics
 	} else {
 		repartitionsourcetopics, err := protocol.ReadArray(r, req.repartitionSourceTopicsDecoder)
 		if err != nil {
@@ -808,11 +847,11 @@ func (req *StreamsGroupHeartbeatRequest) subtopologiesDecoder(r io.Reader) (Stre
 
 	// CopartitionGroups (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		copartitiongroups, err := protocol.ReadNullableCompactArray(r, req.copartitionGroupsDecoder)
+		copartitiongroups, err := protocol.ReadCompactArray(r, req.copartitionGroupsDecoder)
 		if err != nil {
 			return streamsgroupheartbeatrequesttopologysubtopologie, err
 		}
-		streamsgroupheartbeatrequesttopologysubtopologie.CopartitionGroups = copartitiongroups
+		streamsgroupheartbeatrequesttopologysubtopologie.CopartitionGroups = &copartitiongroups
 	} else {
 		copartitiongroups, err := protocol.ReadArray(r, req.copartitionGroupsDecoder)
 		if err != nil {
@@ -920,11 +959,11 @@ func (req *StreamsGroupHeartbeatRequest) stateChangelogTopicsDecoder(r io.Reader
 
 	// TopicConfigs (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topicconfigs, err := protocol.ReadNullableCompactArray(r, req.topicConfigsDecoder)
+		topicconfigs, err := protocol.ReadCompactArray(r, req.topicConfigsDecoder)
 		if err != nil {
 			return streamsgroupheartbeatrequesttopologysubtopologiestatechangelogtopic, err
 		}
-		streamsgroupheartbeatrequesttopologysubtopologiestatechangelogtopic.TopicConfigs = topicconfigs
+		streamsgroupheartbeatrequesttopologysubtopologiestatechangelogtopic.TopicConfigs = &topicconfigs
 	} else {
 		topicconfigs, err := protocol.ReadArray(r, req.topicConfigsDecoder)
 		if err != nil {
@@ -1120,11 +1159,11 @@ func (req *StreamsGroupHeartbeatRequest) repartitionSourceTopicsDecoder(r io.Rea
 
 	// TopicConfigs (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topicconfigs, err := protocol.ReadNullableCompactArray(r, req.streamsGroupHeartbeatRequestTopologySubtopologieRepartitionSourceTopicTopicConfigDecoder)
+		topicconfigs, err := protocol.ReadCompactArray(r, req.streamsGroupHeartbeatRequestTopologySubtopologieRepartitionSourceTopicTopicConfigDecoder)
 		if err != nil {
 			return streamsgroupheartbeatrequesttopologysubtopologierepartitionsourcetopic, err
 		}
-		streamsgroupheartbeatrequesttopologysubtopologierepartitionsourcetopic.TopicConfigs = topicconfigs
+		streamsgroupheartbeatrequesttopologysubtopologierepartitionsourcetopic.TopicConfigs = &topicconfigs
 	} else {
 		topicconfigs, err := protocol.ReadArray(r, req.streamsGroupHeartbeatRequestTopologySubtopologieRepartitionSourceTopicTopicConfigDecoder)
 		if err != nil {
@@ -1295,11 +1334,11 @@ func (req *StreamsGroupHeartbeatRequest) copartitionGroupsDecoder(r io.Reader) (
 
 	// SourceTopics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		sourcetopics, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt16)
+		sourcetopics, err := protocol.ReadCompactArray(r, protocol.ReadInt16)
 		if err != nil {
 			return streamsgroupheartbeatrequesttopologysubtopologiecopartitiongroup, err
 		}
-		streamsgroupheartbeatrequesttopologysubtopologiecopartitiongroup.SourceTopics = sourcetopics
+		streamsgroupheartbeatrequesttopologysubtopologiecopartitiongroup.SourceTopics = &sourcetopics
 	} else {
 		sourcetopics, err := protocol.ReadArray(r, protocol.ReadInt16)
 		if err != nil {
@@ -1310,11 +1349,11 @@ func (req *StreamsGroupHeartbeatRequest) copartitionGroupsDecoder(r io.Reader) (
 
 	// SourceTopicRegex (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		sourcetopicregex, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt16)
+		sourcetopicregex, err := protocol.ReadCompactArray(r, protocol.ReadInt16)
 		if err != nil {
 			return streamsgroupheartbeatrequesttopologysubtopologiecopartitiongroup, err
 		}
-		streamsgroupheartbeatrequesttopologysubtopologiecopartitiongroup.SourceTopicRegex = sourcetopicregex
+		streamsgroupheartbeatrequesttopologysubtopologiecopartitiongroup.SourceTopicRegex = &sourcetopicregex
 	} else {
 		sourcetopicregex, err := protocol.ReadArray(r, protocol.ReadInt16)
 		if err != nil {
@@ -1325,11 +1364,11 @@ func (req *StreamsGroupHeartbeatRequest) copartitionGroupsDecoder(r io.Reader) (
 
 	// RepartitionSourceTopics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		repartitionsourcetopics, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt16)
+		repartitionsourcetopics, err := protocol.ReadCompactArray(r, protocol.ReadInt16)
 		if err != nil {
 			return streamsgroupheartbeatrequesttopologysubtopologiecopartitiongroup, err
 		}
-		streamsgroupheartbeatrequesttopologysubtopologiecopartitiongroup.RepartitionSourceTopics = repartitionsourcetopics
+		streamsgroupheartbeatrequesttopologysubtopologiecopartitiongroup.RepartitionSourceTopics = &repartitionsourcetopics
 	} else {
 		repartitionsourcetopics, err := protocol.ReadArray(r, protocol.ReadInt16)
 		if err != nil {
@@ -1413,11 +1452,11 @@ func (req *StreamsGroupHeartbeatRequest) activeTasksDecoder(r io.Reader) (Stream
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return streamsgroupheartbeatrequestactivetask, err
 		}
-		streamsgroupheartbeatrequestactivetask.Partitions = partitions
+		streamsgroupheartbeatrequestactivetask.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {
@@ -1501,11 +1540,11 @@ func (req *StreamsGroupHeartbeatRequest) standbyTasksDecoder(r io.Reader) (Strea
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return streamsgroupheartbeatrequeststandbytask, err
 		}
-		streamsgroupheartbeatrequeststandbytask.Partitions = partitions
+		streamsgroupheartbeatrequeststandbytask.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {
@@ -1589,11 +1628,11 @@ func (req *StreamsGroupHeartbeatRequest) warmupTasksDecoder(r io.Reader) (Stream
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return streamsgroupheartbeatrequestwarmuptask, err
 		}
-		streamsgroupheartbeatrequestwarmuptask.Partitions = partitions
+		streamsgroupheartbeatrequestwarmuptask.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {

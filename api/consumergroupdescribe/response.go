@@ -111,6 +111,8 @@ func (res *ConsumerGroupDescribeResponse) Read(response *protocol.Response) erro
 		return fmt.Errorf("ConsumerGroupDescribeResponse.Read: response or its body is nil")
 	}
 
+	*res = ConsumerGroupDescribeResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -123,11 +125,11 @@ func (res *ConsumerGroupDescribeResponse) Read(response *protocol.Response) erro
 
 	// Groups (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		groups, err := protocol.ReadNullableCompactArray(r, res.groupsDecoder)
+		groups, err := protocol.ReadCompactArray(r, res.groupsDecoder)
 		if err != nil {
 			return err
 		}
-		res.Groups = groups
+		res.Groups = &groups
 	} else {
 		groups, err := protocol.ReadArray(r, res.groupsDecoder)
 		if err != nil {
@@ -253,6 +255,9 @@ func (res *ConsumerGroupDescribeResponse) groupsEncoder(w io.Writer, value Consu
 func (res *ConsumerGroupDescribeResponse) groupsDecoder(r io.Reader) (ConsumerGroupDescribeResponseGroup, error) {
 	consumergroupdescriberesponsegroup := ConsumerGroupDescribeResponseGroup{}
 
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	consumergroupdescriberesponsegroup.AuthorizedOperations = -2147483648
+
 	// ErrorCode (versions: 0+)
 	errorcode, err := protocol.ReadInt16(r)
 	if err != nil {
@@ -336,11 +341,11 @@ func (res *ConsumerGroupDescribeResponse) groupsDecoder(r io.Reader) (ConsumerGr
 
 	// Members (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		members, err := protocol.ReadNullableCompactArray(r, res.membersDecoder)
+		members, err := protocol.ReadCompactArray(r, res.membersDecoder)
 		if err != nil {
 			return consumergroupdescriberesponsegroup, err
 		}
-		consumergroupdescriberesponsegroup.Members = members
+		consumergroupdescriberesponsegroup.Members = &members
 	} else {
 		members, err := protocol.ReadArray(r, res.membersDecoder)
 		if err != nil {
@@ -503,6 +508,9 @@ func (res *ConsumerGroupDescribeResponse) membersEncoder(w io.Writer, value Cons
 func (res *ConsumerGroupDescribeResponse) membersDecoder(r io.Reader) (ConsumerGroupDescribeResponseGroupMember, error) {
 	consumergroupdescriberesponsegroupmember := ConsumerGroupDescribeResponseGroupMember{}
 
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	consumergroupdescriberesponsegroupmember.MemberType = -1
+
 	// MemberId (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
 		memberid, err := protocol.ReadCompactString(r)
@@ -587,11 +595,11 @@ func (res *ConsumerGroupDescribeResponse) membersDecoder(r io.Reader) (ConsumerG
 
 	// SubscribedTopicNames (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		subscribedtopicnames, err := protocol.ReadNullableCompactArray(r, protocol.ReadCompactString)
+		subscribedtopicnames, err := protocol.ReadCompactArray(r, protocol.ReadCompactString)
 		if err != nil {
 			return consumergroupdescriberesponsegroupmember, err
 		}
-		consumergroupdescriberesponsegroupmember.SubscribedTopicNames = subscribedtopicnames
+		consumergroupdescriberesponsegroupmember.SubscribedTopicNames = &subscribedtopicnames
 	} else {
 		subscribedtopicnames, err := protocol.ReadArray(r, protocol.ReadString)
 		if err != nil {
@@ -684,11 +692,11 @@ func (res *ConsumerGroupDescribeResponse) assignmentDecoder(r io.Reader) (Consum
 
 	// TopicPartitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		topicpartitions, err := protocol.ReadNullableCompactArray(r, res.topicPartitionsDecoder)
+		topicpartitions, err := protocol.ReadCompactArray(r, res.topicPartitionsDecoder)
 		if err != nil {
 			return consumergroupdescriberesponsegroupmemberassignment, err
 		}
-		consumergroupdescriberesponsegroupmemberassignment.TopicPartitions = topicpartitions
+		consumergroupdescriberesponsegroupmemberassignment.TopicPartitions = &topicpartitions
 	} else {
 		topicpartitions, err := protocol.ReadArray(r, res.topicPartitionsDecoder)
 		if err != nil {
@@ -784,11 +792,11 @@ func (res *ConsumerGroupDescribeResponse) topicPartitionsDecoder(r io.Reader) (C
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return consumergroupdescriberesponsegroupmemberassignmenttopicpartition, err
 		}
-		consumergroupdescriberesponsegroupmemberassignmenttopicpartition.Partitions = partitions
+		consumergroupdescriberesponsegroupmemberassignmenttopicpartition.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {
@@ -843,11 +851,11 @@ func (res *ConsumerGroupDescribeResponse) targetAssignmentDecoder(r io.Reader) (
 
 	// TopicPartitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		topicpartitions, err := protocol.ReadNullableCompactArray(r, res.consumerGroupDescribeResponseGroupMemberTargetAssignmentTopicPartitionDecoder)
+		topicpartitions, err := protocol.ReadCompactArray(r, res.consumerGroupDescribeResponseGroupMemberTargetAssignmentTopicPartitionDecoder)
 		if err != nil {
 			return consumergroupdescriberesponsegroupmembertargetassignment, err
 		}
-		consumergroupdescriberesponsegroupmembertargetassignment.TopicPartitions = topicpartitions
+		consumergroupdescriberesponsegroupmembertargetassignment.TopicPartitions = &topicpartitions
 	} else {
 		topicpartitions, err := protocol.ReadArray(r, res.consumerGroupDescribeResponseGroupMemberTargetAssignmentTopicPartitionDecoder)
 		if err != nil {
@@ -943,11 +951,11 @@ func (res *ConsumerGroupDescribeResponse) consumerGroupDescribeResponseGroupMemb
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return consumergroupdescriberesponsegroupmembertargetassignmenttopicpartition, err
 		}
-		consumergroupdescriberesponsegroupmembertargetassignmenttopicpartition.Partitions = partitions
+		consumergroupdescriberesponsegroupmembertargetassignmenttopicpartition.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {

@@ -91,6 +91,8 @@ func (res *DescribeClientQuotasResponse) Read(response *protocol.Response) error
 		return fmt.Errorf("DescribeClientQuotasResponse.Read: response or its body is nil")
 	}
 
+	*res = DescribeClientQuotasResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -198,11 +200,11 @@ func (res *DescribeClientQuotasResponse) entriesDecoder(r io.Reader) (DescribeCl
 
 	// Entity (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		entity, err := protocol.ReadNullableCompactArray(r, res.entityDecoder)
+		entity, err := protocol.ReadCompactArray(r, res.entityDecoder)
 		if err != nil {
 			return describeclientquotasresponseentrie, err
 		}
-		describeclientquotasresponseentrie.Entity = entity
+		describeclientquotasresponseentrie.Entity = &entity
 	} else {
 		entity, err := protocol.ReadArray(r, res.entityDecoder)
 		if err != nil {
@@ -213,11 +215,11 @@ func (res *DescribeClientQuotasResponse) entriesDecoder(r io.Reader) (DescribeCl
 
 	// Values (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		values, err := protocol.ReadNullableCompactArray(r, res.valuesDecoder)
+		values, err := protocol.ReadCompactArray(r, res.valuesDecoder)
 		if err != nil {
 			return describeclientquotasresponseentrie, err
 		}
-		describeclientquotasresponseentrie.Values = values
+		describeclientquotasresponseentrie.Values = &values
 	} else {
 		values, err := protocol.ReadArray(r, res.valuesDecoder)
 		if err != nil {

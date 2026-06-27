@@ -66,16 +66,18 @@ func (res *DeleteShareGroupStateResponse) Read(response *protocol.Response) erro
 		return fmt.Errorf("DeleteShareGroupStateResponse.Read: response or its body is nil")
 	}
 
+	*res = DeleteShareGroupStateResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
 	// Results (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		results, err := protocol.ReadNullableCompactArray(r, res.resultsDecoder)
+		results, err := protocol.ReadCompactArray(r, res.resultsDecoder)
 		if err != nil {
 			return err
 		}
-		res.Results = results
+		res.Results = &results
 	} else {
 		results, err := protocol.ReadArray(r, res.resultsDecoder)
 		if err != nil {
@@ -142,11 +144,11 @@ func (res *DeleteShareGroupStateResponse) resultsDecoder(r io.Reader) (DeleteSha
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, res.partitionsDecoder)
 		if err != nil {
 			return deletesharegroupstateresponseresult, err
 		}
-		deletesharegroupstateresponseresult.Partitions = partitions
+		deletesharegroupstateresponseresult.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, res.partitionsDecoder)
 		if err != nil {

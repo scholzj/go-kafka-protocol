@@ -2,6 +2,8 @@ package protocol
 
 import (
 	"bytes"
+	"io"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -728,4 +730,95 @@ func byteSlicePtr(b []byte) *[]byte {
 
 func int32SlicePtr(i []int32) *[]int32 {
 	return &i
+}
+
+// #9: a non-nullable compact array must reject a wire null (length 0) rather than accept it as empty.
+func TestReadCompactArrayRejectsNull(t *testing.T) {
+	var buf bytes.Buffer
+	if err := WriteUvarint(&buf, 0); err != nil { // 0 is the null marker
+		t.Fatal(err)
+	}
+	if _, err := ReadCompactArray(&buf, ReadInt8); err == nil {
+		t.Fatal("expected an error decoding a null into a non-nullable compact array")
+	}
+}
+
+// #9: an empty (non-null) compact array still decodes to an empty slice.
+func TestReadCompactArrayEmpty(t *testing.T) {
+	var buf bytes.Buffer
+	if err := WriteUvarint(&buf, 1); err != nil { // length 1 -> 0 elements
+		t.Fatal(err)
+	}
+	got, err := ReadCompactArray(&buf, ReadInt8)
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	if len(got) != 0 {
+		t.Fatalf("expected empty slice, got %v", got)
+	}
+}
+
+// #9: the non-nullable plain array reader must reject a negative (null) length too.
+func TestReadArrayRejectsNull(t *testing.T) {
+	var buf bytes.Buffer
+	if err := WriteInt32(&buf, -1); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ReadArray(&buf, ReadInt8); err == nil {
+		t.Fatal("expected an error decoding a null length into a non-nullable array")
+	}
+}
+
+// #11: oversized strings overflow their length prefix and must be rejected on write.
+func TestWriteStringRejectsOversized(t *testing.T) {
+	big := strings.Repeat("a", maxStringLen+1)
+	if err := WriteString(io.Discard, big); err == nil {
+		t.Fatal("WriteString accepted an oversized string")
+	}
+	if err := WriteCompactString(io.Discard, big); err == nil {
+		t.Fatal("WriteCompactString accepted an oversized string")
+	}
+	bigPtr := big
+	if err := WriteNullableString(io.Discard, &bigPtr); err == nil {
+		t.Fatal("WriteNullableString accepted an oversized string")
+	}
+}
+
+// #6: compact string/bytes readers must reject a declared length beyond the Kafka maximum, before
+// attempting to read that many bytes.
+func TestReadCompactStringRejectsOversized(t *testing.T) {
+	var buf bytes.Buffer
+	// Encoded length is (content length + 1); pick one that decodes to maxStringLen+1.
+	if err := WriteUvarint(&buf, uint64(maxStringLen)+2); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ReadCompactString(&buf); err == nil {
+		t.Fatal("ReadCompactString accepted an oversized length")
+	}
+
+	var nbuf bytes.Buffer
+	if err := WriteUvarint(&nbuf, uint64(maxStringLen)+2); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ReadNullableCompactString(&nbuf); err == nil {
+		t.Fatal("ReadNullableCompactString accepted an oversized length")
+	}
+}
+
+func TestReadCompactBytesRejectsOversized(t *testing.T) {
+	var buf bytes.Buffer
+	if err := WriteUvarint(&buf, uint64(maxBytesLen)+2); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ReadCompactBytes(&buf); err == nil {
+		t.Fatal("ReadCompactBytes accepted an oversized length")
+	}
+
+	var nbuf bytes.Buffer
+	if err := WriteUvarint(&nbuf, uint64(maxBytesLen)+2); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ReadNullableCompactBytes(&nbuf); err == nil {
+		t.Fatal("ReadNullableCompactBytes accepted an oversized length")
+	}
 }

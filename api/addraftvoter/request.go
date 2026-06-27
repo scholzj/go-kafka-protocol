@@ -98,8 +98,13 @@ func (req *AddRaftVoterRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("AddRaftVoterRequest.Read: request or its body is nil")
 	}
 
+	*req = AddRaftVoterRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	req.AckWhenCommitted = true
 
 	// ClusterId (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
@@ -139,11 +144,11 @@ func (req *AddRaftVoterRequest) Read(request *protocol.Request) error {
 
 	// Listeners (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		listeners, err := protocol.ReadNullableCompactArray(r, req.listenersDecoder)
+		listeners, err := protocol.ReadCompactArray(r, req.listenersDecoder)
 		if err != nil {
 			return err
 		}
-		req.Listeners = listeners
+		req.Listeners = &listeners
 	} else {
 		listeners, err := protocol.ReadArray(r, req.listenersDecoder)
 		if err != nil {

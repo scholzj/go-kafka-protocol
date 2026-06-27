@@ -72,16 +72,18 @@ func (req *IncrementalAlterConfigsRequest) Read(request *protocol.Request) error
 		return fmt.Errorf("IncrementalAlterConfigsRequest.Read: request or its body is nil")
 	}
 
+	*req = IncrementalAlterConfigsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
 	// Resources (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		resources, err := protocol.ReadNullableCompactArray(r, req.resourcesDecoder)
+		resources, err := protocol.ReadCompactArray(r, req.resourcesDecoder)
 		if err != nil {
 			return err
 		}
-		req.Resources = resources
+		req.Resources = &resources
 	} else {
 		resources, err := protocol.ReadArray(r, req.resourcesDecoder)
 		if err != nil {
@@ -184,11 +186,11 @@ func (req *IncrementalAlterConfigsRequest) resourcesDecoder(r io.Reader) (Increm
 
 	// Configs (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		configs, err := protocol.ReadNullableCompactArray(r, req.configsDecoder)
+		configs, err := protocol.ReadCompactArray(r, req.configsDecoder)
 		if err != nil {
 			return incrementalalterconfigsrequestresource, err
 		}
-		incrementalalterconfigsrequestresource.Configs = configs
+		incrementalalterconfigsrequestresource.Configs = &configs
 	} else {
 		configs, err := protocol.ReadArray(r, req.configsDecoder)
 		if err != nil {

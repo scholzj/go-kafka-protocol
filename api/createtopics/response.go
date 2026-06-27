@@ -82,6 +82,8 @@ func (res *CreateTopicsResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("CreateTopicsResponse.Read: response or its body is nil")
 	}
 
+	*res = CreateTopicsResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -96,11 +98,11 @@ func (res *CreateTopicsResponse) Read(response *protocol.Response) error {
 
 	// Topics (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, res.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, res.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		res.Topics = topics
+		res.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, res.topicsDecoder)
 		if err != nil {
@@ -214,6 +216,10 @@ func (res *CreateTopicsResponse) topicsEncoder(w io.Writer, value CreateTopicsRe
 
 func (res *CreateTopicsResponse) topicsDecoder(r io.Reader) (CreateTopicsResponseTopic, error) {
 	createtopicsresponsetopic := CreateTopicsResponseTopic{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	createtopicsresponsetopic.NumPartitions = -1
+	createtopicsresponsetopic.ReplicationFactor = -1
 
 	// Name (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
@@ -331,12 +337,14 @@ func (res *CreateTopicsResponse) taggedFieldsEncoderTopics(value CreateTopicsRes
 	buf := bytes.NewBuffer(make([]byte, 0))
 
 	// Tag 0
-	buf = bytes.NewBuffer(make([]byte, 0))
-	if err := protocol.WriteInt16(buf, value.TopicConfigErrorCode); err != nil {
-		return taggedFields, err
-	}
+	if res.ApiVersion >= 5 && value.TopicConfigErrorCode != 0 {
+		buf = bytes.NewBuffer(make([]byte, 0))
+		if err := protocol.WriteInt16(buf, value.TopicConfigErrorCode); err != nil {
+			return taggedFields, err
+		}
 
-	taggedFields = append(taggedFields, protocol.TaggedField{Tag: 0, Field: buf.Bytes()})
+		taggedFields = append(taggedFields, protocol.TaggedField{Tag: 0, Field: buf.Bytes()})
+	}
 
 	// We append any raw tagged fields to the end of the array
 	if value.rawTaggedFields != nil {
@@ -347,27 +355,33 @@ func (res *CreateTopicsResponse) taggedFieldsEncoderTopics(value CreateTopicsRes
 }
 
 func (res *CreateTopicsResponse) taggedFieldsDecoderTopics(r io.Reader, tag uint64, tagLength uint64, value *CreateTopicsResponseTopic) error {
-	rawTaggedFields := make([]protocol.TaggedField, 0)
+	known := false
 
 	switch tag {
 	case 0:
 		// TopicConfigErrorCode
-		topicconfigerrorcode, err := protocol.ReadInt16(r)
-		if err != nil {
-			return err
+		if res.ApiVersion >= 5 {
+			known = true
+			topicconfigerrorcode, err := protocol.ReadInt16(r)
+			if err != nil {
+				return err
+			}
+			value.TopicConfigErrorCode = topicconfigerrorcode
 		}
-		value.TopicConfigErrorCode = topicconfigerrorcode
-	default:
-		// Unknown tag - keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
+	}
+
+	if !known {
+		// Keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
 		field, err := io.ReadAll(r)
 		if err != nil {
 			return err
 		}
-		rawTaggedFields = append(rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
+		if value.rawTaggedFields == nil {
+			rawTaggedFields := make([]protocol.TaggedField, 0)
+			value.rawTaggedFields = &rawTaggedFields
+		}
+		*value.rawTaggedFields = append(*value.rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
 	}
-
-	// Set the raw tagged fields
-	value.rawTaggedFields = &rawTaggedFields
 
 	return nil
 }
@@ -439,6 +453,9 @@ func (res *CreateTopicsResponse) configsEncoder(w io.Writer, value CreateTopicsR
 
 func (res *CreateTopicsResponse) configsDecoder(r io.Reader) (CreateTopicsResponseTopicConfig, error) {
 	createtopicsresponsetopicconfig := CreateTopicsResponseTopicConfig{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	createtopicsresponsetopicconfig.ConfigSource = -1
 
 	// Name (versions: 5+)
 	if res.ApiVersion >= 5 {

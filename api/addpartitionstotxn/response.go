@@ -115,6 +115,8 @@ func (res *AddPartitionsToTxnResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("AddPartitionsToTxnResponse.Read: response or its body is nil")
 	}
 
+	*res = AddPartitionsToTxnResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -137,11 +139,11 @@ func (res *AddPartitionsToTxnResponse) Read(response *protocol.Response) error {
 	// ResultsByTransaction (versions: 4+)
 	if res.ApiVersion >= 4 {
 		if isResponseFlexible(res.ApiVersion) {
-			resultsbytransaction, err := protocol.ReadNullableCompactArray(r, res.resultsByTransactionDecoder)
+			resultsbytransaction, err := protocol.ReadCompactArray(r, res.resultsByTransactionDecoder)
 			if err != nil {
 				return err
 			}
-			res.ResultsByTransaction = resultsbytransaction
+			res.ResultsByTransaction = &resultsbytransaction
 		} else {
 			resultsbytransaction, err := protocol.ReadArray(r, res.resultsByTransactionDecoder)
 			if err != nil {
@@ -154,11 +156,11 @@ func (res *AddPartitionsToTxnResponse) Read(response *protocol.Response) error {
 	// ResultsByTopicV3AndBelow (versions: 0-3)
 	if res.ApiVersion <= 3 {
 		if isResponseFlexible(res.ApiVersion) {
-			resultsbytopicv3andbelow, err := protocol.ReadNullableCompactArray(r, res.resultsByTopicV3AndBelowDecoder)
+			resultsbytopicv3andbelow, err := protocol.ReadCompactArray(r, res.resultsByTopicV3AndBelowDecoder)
 			if err != nil {
 				return err
 			}
-			res.ResultsByTopicV3AndBelow = resultsbytopicv3andbelow
+			res.ResultsByTopicV3AndBelow = &resultsbytopicv3andbelow
 		} else {
 			resultsbytopicv3andbelow, err := protocol.ReadArray(r, res.resultsByTopicV3AndBelowDecoder)
 			if err != nil {
@@ -250,11 +252,11 @@ func (res *AddPartitionsToTxnResponse) resultsByTransactionDecoder(r io.Reader) 
 	// TopicResults (versions: 4+)
 	if res.ApiVersion >= 4 {
 		if isResponseFlexible(res.ApiVersion) {
-			topicresults, err := protocol.ReadNullableCompactArray(r, res.topicResultsDecoder)
+			topicresults, err := protocol.ReadCompactArray(r, res.topicResultsDecoder)
 			if err != nil {
 				return addpartitionstotxnresponseresultsbytransaction, err
 			}
-			addpartitionstotxnresponseresultsbytransaction.TopicResults = topicresults
+			addpartitionstotxnresponseresultsbytransaction.TopicResults = &topicresults
 		} else {
 			topicresults, err := protocol.ReadArray(r, res.topicResultsDecoder)
 			if err != nil {
@@ -339,11 +341,11 @@ func (res *AddPartitionsToTxnResponse) topicResultsDecoder(r io.Reader) (AddPart
 
 	// ResultsByPartition (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		resultsbypartition, err := protocol.ReadNullableCompactArray(r, res.resultsByPartitionDecoder)
+		resultsbypartition, err := protocol.ReadCompactArray(r, res.resultsByPartitionDecoder)
 		if err != nil {
 			return addpartitionstotxnresponseresultsbytransactiontopicresult, err
 		}
-		addpartitionstotxnresponseresultsbytransactiontopicresult.ResultsByPartition = resultsbypartition
+		addpartitionstotxnresponseresultsbytransactiontopicresult.ResultsByPartition = &resultsbypartition
 	} else {
 		resultsbypartition, err := protocol.ReadArray(r, res.resultsByPartitionDecoder)
 		if err != nil {
@@ -481,11 +483,11 @@ func (res *AddPartitionsToTxnResponse) resultsByTopicV3AndBelowDecoder(r io.Read
 
 	// ResultsByPartition (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		resultsbypartition, err := protocol.ReadNullableCompactArray(r, res.addPartitionsToTxnResponseResultsByTopicV3AndBelowResultsByPartitionDecoder)
+		resultsbypartition, err := protocol.ReadCompactArray(r, res.addPartitionsToTxnResponseResultsByTopicV3AndBelowResultsByPartitionDecoder)
 		if err != nil {
 			return addpartitionstotxnresponseresultsbytopicv3andbelow, err
 		}
-		addpartitionstotxnresponseresultsbytopicv3andbelow.ResultsByPartition = resultsbypartition
+		addpartitionstotxnresponseresultsbytopicv3andbelow.ResultsByPartition = &resultsbypartition
 	} else {
 		resultsbypartition, err := protocol.ReadArray(r, res.addPartitionsToTxnResponseResultsByTopicV3AndBelowResultsByPartitionDecoder)
 		if err != nil {

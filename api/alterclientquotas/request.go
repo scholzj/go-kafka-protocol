@@ -77,16 +77,18 @@ func (req *AlterClientQuotasRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("AlterClientQuotasRequest.Read: request or its body is nil")
 	}
 
+	*req = AlterClientQuotasRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
 	// Entries (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		entries, err := protocol.ReadNullableCompactArray(r, req.entriesDecoder)
+		entries, err := protocol.ReadCompactArray(r, req.entriesDecoder)
 		if err != nil {
 			return err
 		}
-		req.Entries = entries
+		req.Entries = &entries
 	} else {
 		entries, err := protocol.ReadArray(r, req.entriesDecoder)
 		if err != nil {
@@ -162,11 +164,11 @@ func (req *AlterClientQuotasRequest) entriesDecoder(r io.Reader) (AlterClientQuo
 
 	// Entity (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		entity, err := protocol.ReadNullableCompactArray(r, req.entityDecoder)
+		entity, err := protocol.ReadCompactArray(r, req.entityDecoder)
 		if err != nil {
 			return alterclientquotasrequestentrie, err
 		}
-		alterclientquotasrequestentrie.Entity = entity
+		alterclientquotasrequestentrie.Entity = &entity
 	} else {
 		entity, err := protocol.ReadArray(r, req.entityDecoder)
 		if err != nil {
@@ -177,11 +179,11 @@ func (req *AlterClientQuotasRequest) entriesDecoder(r io.Reader) (AlterClientQuo
 
 	// Ops (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		ops, err := protocol.ReadNullableCompactArray(r, req.opsDecoder)
+		ops, err := protocol.ReadCompactArray(r, req.opsDecoder)
 		if err != nil {
 			return alterclientquotasrequestentrie, err
 		}
-		alterclientquotasrequestentrie.Ops = ops
+		alterclientquotasrequestentrie.Ops = &ops
 	} else {
 		ops, err := protocol.ReadArray(r, req.opsDecoder)
 		if err != nil {

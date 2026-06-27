@@ -92,6 +92,8 @@ func (req *WriteShareGroupStateRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("WriteShareGroupStateRequest.Read: request or its body is nil")
 	}
 
+	*req = WriteShareGroupStateRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
@@ -112,11 +114,11 @@ func (req *WriteShareGroupStateRequest) Read(request *protocol.Request) error {
 
 	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Topics = topics
+		req.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, req.topicsDecoder)
 		if err != nil {
@@ -183,11 +185,11 @@ func (req *WriteShareGroupStateRequest) topicsDecoder(r io.Reader) (WriteShareGr
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, req.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, req.partitionsDecoder)
 		if err != nil {
 			return writesharegroupstaterequesttopic, err
 		}
-		writesharegroupstaterequesttopic.Partitions = partitions
+		writesharegroupstaterequesttopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, req.partitionsDecoder)
 		if err != nil {
@@ -267,6 +269,9 @@ func (req *WriteShareGroupStateRequest) partitionsEncoder(w io.Writer, value Wri
 func (req *WriteShareGroupStateRequest) partitionsDecoder(r io.Reader) (WriteShareGroupStateRequestTopicPartition, error) {
 	writesharegroupstaterequesttopicpartition := WriteShareGroupStateRequestTopicPartition{}
 
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	writesharegroupstaterequesttopicpartition.DeliveryCompleteCount = -1
+
 	// Partition (versions: 0+)
 	partition, err := protocol.ReadInt32(r)
 	if err != nil {
@@ -306,11 +311,11 @@ func (req *WriteShareGroupStateRequest) partitionsDecoder(r io.Reader) (WriteSha
 
 	// StateBatches (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		statebatches, err := protocol.ReadNullableCompactArray(r, req.stateBatchesDecoder)
+		statebatches, err := protocol.ReadCompactArray(r, req.stateBatchesDecoder)
 		if err != nil {
 			return writesharegroupstaterequesttopicpartition, err
 		}
-		writesharegroupstaterequesttopicpartition.StateBatches = statebatches
+		writesharegroupstaterequesttopicpartition.StateBatches = &statebatches
 	} else {
 		statebatches, err := protocol.ReadArray(r, req.stateBatchesDecoder)
 		if err != nil {

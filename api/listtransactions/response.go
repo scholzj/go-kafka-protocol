@@ -86,6 +86,8 @@ func (res *ListTransactionsResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("ListTransactionsResponse.Read: response or its body is nil")
 	}
 
+	*res = ListTransactionsResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -105,11 +107,11 @@ func (res *ListTransactionsResponse) Read(response *protocol.Response) error {
 
 	// UnknownStateFilters (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		unknownstatefilters, err := protocol.ReadNullableCompactArray(r, protocol.ReadCompactString)
+		unknownstatefilters, err := protocol.ReadCompactArray(r, protocol.ReadCompactString)
 		if err != nil {
 			return err
 		}
-		res.UnknownStateFilters = unknownstatefilters
+		res.UnknownStateFilters = &unknownstatefilters
 	} else {
 		unknownstatefilters, err := protocol.ReadArray(r, protocol.ReadString)
 		if err != nil {
@@ -120,11 +122,11 @@ func (res *ListTransactionsResponse) Read(response *protocol.Response) error {
 
 	// TransactionStates (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		transactionstates, err := protocol.ReadNullableCompactArray(r, res.transactionStatesDecoder)
+		transactionstates, err := protocol.ReadCompactArray(r, res.transactionStatesDecoder)
 		if err != nil {
 			return err
 		}
-		res.TransactionStates = transactionstates
+		res.TransactionStates = &transactionstates
 	} else {
 		transactionstates, err := protocol.ReadArray(r, res.transactionStatesDecoder)
 		if err != nil {

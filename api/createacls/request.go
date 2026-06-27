@@ -63,16 +63,18 @@ func (req *CreateAclsRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("CreateAclsRequest.Read: request or its body is nil")
 	}
 
+	*req = CreateAclsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
 	// Creations (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		creations, err := protocol.ReadNullableCompactArray(r, req.creationsDecoder)
+		creations, err := protocol.ReadCompactArray(r, req.creationsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Creations = creations
+		req.Creations = &creations
 	} else {
 		creations, err := protocol.ReadArray(r, req.creationsDecoder)
 		if err != nil {
@@ -174,6 +176,9 @@ func (req *CreateAclsRequest) creationsEncoder(w io.Writer, value CreateAclsRequ
 
 func (req *CreateAclsRequest) creationsDecoder(r io.Reader) (CreateAclsRequestCreation, error) {
 	createaclsrequestcreation := CreateAclsRequestCreation{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	createaclsrequestcreation.ResourcePatternType = 3
 
 	// ResourceType (versions: 0+)
 	resourcetype, err := protocol.ReadInt8(r)

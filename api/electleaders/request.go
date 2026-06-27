@@ -69,8 +69,13 @@ func (req *ElectLeadersRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("ElectLeadersRequest.Read: request or its body is nil")
 	}
 
+	*req = ElectLeadersRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	req.TimeoutMs = 60000
 
 	// ElectionType (versions: 1+)
 	if req.ApiVersion >= 1 {
@@ -178,11 +183,11 @@ func (req *ElectLeadersRequest) topicPartitionsDecoder(r io.Reader) (ElectLeader
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return electleadersrequesttopicpartition, err
 		}
-		electleadersrequesttopicpartition.Partitions = partitions
+		electleadersrequesttopicpartition.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {

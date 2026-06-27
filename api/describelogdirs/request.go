@@ -55,6 +55,8 @@ func (req *DescribeLogDirsRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("DescribeLogDirsRequest.Read: request or its body is nil")
 	}
 
+	*req = DescribeLogDirsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
@@ -148,11 +150,11 @@ func (req *DescribeLogDirsRequest) topicsDecoder(r io.Reader) (DescribeLogDirsRe
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return describelogdirsrequesttopic, err
 		}
-		describelogdirsrequesttopic.Partitions = partitions
+		describelogdirsrequesttopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {

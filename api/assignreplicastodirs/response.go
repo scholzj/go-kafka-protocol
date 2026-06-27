@@ -83,6 +83,8 @@ func (res *AssignReplicasToDirsResponse) Read(response *protocol.Response) error
 		return fmt.Errorf("AssignReplicasToDirsResponse.Read: response or its body is nil")
 	}
 
+	*res = AssignReplicasToDirsResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -102,11 +104,11 @@ func (res *AssignReplicasToDirsResponse) Read(response *protocol.Response) error
 
 	// Directories (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		directories, err := protocol.ReadNullableCompactArray(r, res.directoriesDecoder)
+		directories, err := protocol.ReadCompactArray(r, res.directoriesDecoder)
 		if err != nil {
 			return err
 		}
-		res.Directories = directories
+		res.Directories = &directories
 	} else {
 		directories, err := protocol.ReadArray(r, res.directoriesDecoder)
 		if err != nil {
@@ -173,11 +175,11 @@ func (res *AssignReplicasToDirsResponse) directoriesDecoder(r io.Reader) (Assign
 
 	// Topics (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, res.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, res.topicsDecoder)
 		if err != nil {
 			return assignreplicastodirsresponsedirectorie, err
 		}
-		assignreplicastodirsresponsedirectorie.Topics = topics
+		assignreplicastodirsresponsedirectorie.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, res.topicsDecoder)
 		if err != nil {
@@ -244,11 +246,11 @@ func (res *AssignReplicasToDirsResponse) topicsDecoder(r io.Reader) (AssignRepli
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, res.partitionsDecoder)
 		if err != nil {
 			return assignreplicastodirsresponsedirectorietopic, err
 		}
-		assignreplicastodirsresponsedirectorietopic.Partitions = partitions
+		assignreplicastodirsresponsedirectorietopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, res.partitionsDecoder)
 		if err != nil {

@@ -94,6 +94,8 @@ func (res *SyncGroupResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("SyncGroupResponse.Read: response or its body is nil")
 	}
 
+	*res = SyncGroupResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 

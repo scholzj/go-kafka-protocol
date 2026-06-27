@@ -82,16 +82,18 @@ func (req *AlterUserScramCredentialsRequest) Read(request *protocol.Request) err
 		return fmt.Errorf("AlterUserScramCredentialsRequest.Read: request or its body is nil")
 	}
 
+	*req = AlterUserScramCredentialsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
 	// Deletions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		deletions, err := protocol.ReadNullableCompactArray(r, req.deletionsDecoder)
+		deletions, err := protocol.ReadCompactArray(r, req.deletionsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Deletions = deletions
+		req.Deletions = &deletions
 	} else {
 		deletions, err := protocol.ReadArray(r, req.deletionsDecoder)
 		if err != nil {
@@ -102,11 +104,11 @@ func (req *AlterUserScramCredentialsRequest) Read(request *protocol.Request) err
 
 	// Upsertions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		upsertions, err := protocol.ReadNullableCompactArray(r, req.upsertionsDecoder)
+		upsertions, err := protocol.ReadCompactArray(r, req.upsertionsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Upsertions = upsertions
+		req.Upsertions = &upsertions
 	} else {
 		upsertions, err := protocol.ReadArray(r, req.upsertionsDecoder)
 		if err != nil {

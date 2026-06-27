@@ -74,6 +74,8 @@ func (res *OffsetCommitResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("OffsetCommitResponse.Read: response or its body is nil")
 	}
 
+	*res = OffsetCommitResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -88,11 +90,11 @@ func (res *OffsetCommitResponse) Read(response *protocol.Response) error {
 
 	// Topics (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, res.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, res.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		res.Topics = topics
+		res.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, res.topicsDecoder)
 		if err != nil {
@@ -196,11 +198,11 @@ func (res *OffsetCommitResponse) topicsDecoder(r io.Reader) (OffsetCommitRespons
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, res.partitionsDecoder)
 		if err != nil {
 			return offsetcommitresponsetopic, err
 		}
-		offsetcommitresponsetopic.Partitions = partitions
+		offsetcommitresponsetopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, res.partitionsDecoder)
 		if err != nil {

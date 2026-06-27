@@ -58,6 +58,8 @@ func (req *RenewDelegationTokenRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("RenewDelegationTokenRequest.Read: request or its body is nil")
 	}
 
+	*req = RenewDelegationTokenRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 

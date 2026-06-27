@@ -75,6 +75,8 @@ func (res *LeaveGroupResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("LeaveGroupResponse.Read: response or its body is nil")
 	}
 
+	*res = LeaveGroupResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -97,11 +99,11 @@ func (res *LeaveGroupResponse) Read(response *protocol.Response) error {
 	// Members (versions: 3+)
 	if res.ApiVersion >= 3 {
 		if isResponseFlexible(res.ApiVersion) {
-			members, err := protocol.ReadNullableCompactArray(r, res.membersDecoder)
+			members, err := protocol.ReadCompactArray(r, res.membersDecoder)
 			if err != nil {
 				return err
 			}
-			res.Members = members
+			res.Members = &members
 		} else {
 			members, err := protocol.ReadArray(r, res.membersDecoder)
 			if err != nil {

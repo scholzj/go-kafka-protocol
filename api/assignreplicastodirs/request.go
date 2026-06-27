@@ -82,8 +82,13 @@ func (req *AssignReplicasToDirsRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("AssignReplicasToDirsRequest.Read: request or its body is nil")
 	}
 
+	*req = AssignReplicasToDirsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	req.BrokerEpoch = -1
 
 	// BrokerId (versions: 0+)
 	brokerid, err := protocol.ReadInt32(r)
@@ -101,11 +106,11 @@ func (req *AssignReplicasToDirsRequest) Read(request *protocol.Request) error {
 
 	// Directories (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		directories, err := protocol.ReadNullableCompactArray(r, req.directoriesDecoder)
+		directories, err := protocol.ReadCompactArray(r, req.directoriesDecoder)
 		if err != nil {
 			return err
 		}
-		req.Directories = directories
+		req.Directories = &directories
 	} else {
 		directories, err := protocol.ReadArray(r, req.directoriesDecoder)
 		if err != nil {
@@ -172,11 +177,11 @@ func (req *AssignReplicasToDirsRequest) directoriesDecoder(r io.Reader) (AssignR
 
 	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
 		if err != nil {
 			return assignreplicastodirsrequestdirectorie, err
 		}
-		assignreplicastodirsrequestdirectorie.Topics = topics
+		assignreplicastodirsrequestdirectorie.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, req.topicsDecoder)
 		if err != nil {
@@ -243,11 +248,11 @@ func (req *AssignReplicasToDirsRequest) topicsDecoder(r io.Reader) (AssignReplic
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, req.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, req.partitionsDecoder)
 		if err != nil {
 			return assignreplicastodirsrequestdirectorietopic, err
 		}
-		assignreplicastodirsrequestdirectorietopic.Partitions = partitions
+		assignreplicastodirsrequestdirectorietopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, req.partitionsDecoder)
 		if err != nil {

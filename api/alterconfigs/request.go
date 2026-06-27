@@ -71,16 +71,18 @@ func (req *AlterConfigsRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("AlterConfigsRequest.Read: request or its body is nil")
 	}
 
+	*req = AlterConfigsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
 	// Resources (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		resources, err := protocol.ReadNullableCompactArray(r, req.resourcesDecoder)
+		resources, err := protocol.ReadCompactArray(r, req.resourcesDecoder)
 		if err != nil {
 			return err
 		}
-		req.Resources = resources
+		req.Resources = &resources
 	} else {
 		resources, err := protocol.ReadArray(r, req.resourcesDecoder)
 		if err != nil {
@@ -183,11 +185,11 @@ func (req *AlterConfigsRequest) resourcesDecoder(r io.Reader) (AlterConfigsReque
 
 	// Configs (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		configs, err := protocol.ReadNullableCompactArray(r, req.configsDecoder)
+		configs, err := protocol.ReadCompactArray(r, req.configsDecoder)
 		if err != nil {
 			return alterconfigsrequestresource, err
 		}
-		alterconfigsrequestresource.Configs = configs
+		alterconfigsrequestresource.Configs = &configs
 	} else {
 		configs, err := protocol.ReadArray(r, req.configsDecoder)
 		if err != nil {

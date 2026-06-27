@@ -87,6 +87,8 @@ func (req *ListOffsetsRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("ListOffsetsRequest.Read: request or its body is nil")
 	}
 
+	*req = ListOffsetsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
@@ -108,11 +110,11 @@ func (req *ListOffsetsRequest) Read(request *protocol.Request) error {
 
 	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Topics = topics
+		req.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, req.topicsDecoder)
 		if err != nil {
@@ -205,11 +207,11 @@ func (req *ListOffsetsRequest) topicsDecoder(r io.Reader) (ListOffsetsRequestTop
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, req.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, req.partitionsDecoder)
 		if err != nil {
 			return listoffsetsrequesttopic, err
 		}
-		listoffsetsrequesttopic.Partitions = partitions
+		listoffsetsrequesttopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, req.partitionsDecoder)
 		if err != nil {
@@ -264,6 +266,9 @@ func (req *ListOffsetsRequest) partitionsEncoder(w io.Writer, value ListOffsetsR
 
 func (req *ListOffsetsRequest) partitionsDecoder(r io.Reader) (ListOffsetsRequestTopicPartition, error) {
 	listoffsetsrequesttopicpartition := ListOffsetsRequestTopicPartition{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	listoffsetsrequesttopicpartition.CurrentLeaderEpoch = -1
 
 	// PartitionIndex (versions: 0+)
 	partitionindex, err := protocol.ReadInt32(r)

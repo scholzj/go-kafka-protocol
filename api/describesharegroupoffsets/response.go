@@ -84,6 +84,8 @@ func (res *DescribeShareGroupOffsetsResponse) Read(response *protocol.Response) 
 		return fmt.Errorf("DescribeShareGroupOffsetsResponse.Read: response or its body is nil")
 	}
 
+	*res = DescribeShareGroupOffsetsResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -96,11 +98,11 @@ func (res *DescribeShareGroupOffsetsResponse) Read(response *protocol.Response) 
 
 	// Groups (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		groups, err := protocol.ReadNullableCompactArray(r, res.groupsDecoder)
+		groups, err := protocol.ReadCompactArray(r, res.groupsDecoder)
 		if err != nil {
 			return err
 		}
-		res.Groups = groups
+		res.Groups = &groups
 	} else {
 		groups, err := protocol.ReadArray(r, res.groupsDecoder)
 		if err != nil {
@@ -200,11 +202,11 @@ func (res *DescribeShareGroupOffsetsResponse) groupsDecoder(r io.Reader) (Descri
 
 	// Topics (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, res.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, res.topicsDecoder)
 		if err != nil {
 			return describesharegroupoffsetsresponsegroup, err
 		}
-		describesharegroupoffsetsresponsegroup.Topics = topics
+		describesharegroupoffsetsresponsegroup.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, res.topicsDecoder)
 		if err != nil {
@@ -322,11 +324,11 @@ func (res *DescribeShareGroupOffsetsResponse) topicsDecoder(r io.Reader) (Descri
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, res.partitionsDecoder)
 		if err != nil {
 			return describesharegroupoffsetsresponsegrouptopic, err
 		}
-		describesharegroupoffsetsresponsegrouptopic.Partitions = partitions
+		describesharegroupoffsetsresponsegrouptopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, res.partitionsDecoder)
 		if err != nil {
@@ -402,6 +404,9 @@ func (res *DescribeShareGroupOffsetsResponse) partitionsEncoder(w io.Writer, val
 
 func (res *DescribeShareGroupOffsetsResponse) partitionsDecoder(r io.Reader) (DescribeShareGroupOffsetsResponseGroupTopicPartition, error) {
 	describesharegroupoffsetsresponsegrouptopicpartition := DescribeShareGroupOffsetsResponseGroupTopicPartition{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	describesharegroupoffsetsresponsegrouptopicpartition.Lag = -1
 
 	// PartitionIndex (versions: 0+)
 	partitionindex, err := protocol.ReadInt32(r)

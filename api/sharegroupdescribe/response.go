@@ -95,6 +95,8 @@ func (res *ShareGroupDescribeResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("ShareGroupDescribeResponse.Read: response or its body is nil")
 	}
 
+	*res = ShareGroupDescribeResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -107,11 +109,11 @@ func (res *ShareGroupDescribeResponse) Read(response *protocol.Response) error {
 
 	// Groups (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		groups, err := protocol.ReadNullableCompactArray(r, res.groupsDecoder)
+		groups, err := protocol.ReadCompactArray(r, res.groupsDecoder)
 		if err != nil {
 			return err
 		}
-		res.Groups = groups
+		res.Groups = &groups
 	} else {
 		groups, err := protocol.ReadArray(r, res.groupsDecoder)
 		if err != nil {
@@ -237,6 +239,9 @@ func (res *ShareGroupDescribeResponse) groupsEncoder(w io.Writer, value ShareGro
 func (res *ShareGroupDescribeResponse) groupsDecoder(r io.Reader) (ShareGroupDescribeResponseGroup, error) {
 	sharegroupdescriberesponsegroup := ShareGroupDescribeResponseGroup{}
 
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	sharegroupdescriberesponsegroup.AuthorizedOperations = -2147483648
+
 	// ErrorCode (versions: 0+)
 	errorcode, err := protocol.ReadInt16(r)
 	if err != nil {
@@ -320,11 +325,11 @@ func (res *ShareGroupDescribeResponse) groupsDecoder(r io.Reader) (ShareGroupDes
 
 	// Members (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		members, err := protocol.ReadNullableCompactArray(r, res.membersDecoder)
+		members, err := protocol.ReadCompactArray(r, res.membersDecoder)
 		if err != nil {
 			return sharegroupdescriberesponsegroup, err
 		}
-		sharegroupdescriberesponsegroup.Members = members
+		sharegroupdescriberesponsegroup.Members = &members
 	} else {
 		members, err := protocol.ReadArray(r, res.membersDecoder)
 		if err != nil {
@@ -519,11 +524,11 @@ func (res *ShareGroupDescribeResponse) membersDecoder(r io.Reader) (ShareGroupDe
 
 	// SubscribedTopicNames (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		subscribedtopicnames, err := protocol.ReadNullableCompactArray(r, protocol.ReadCompactString)
+		subscribedtopicnames, err := protocol.ReadCompactArray(r, protocol.ReadCompactString)
 		if err != nil {
 			return sharegroupdescriberesponsegroupmember, err
 		}
-		sharegroupdescriberesponsegroupmember.SubscribedTopicNames = subscribedtopicnames
+		sharegroupdescriberesponsegroupmember.SubscribedTopicNames = &subscribedtopicnames
 	} else {
 		subscribedtopicnames, err := protocol.ReadArray(r, protocol.ReadString)
 		if err != nil {
@@ -585,11 +590,11 @@ func (res *ShareGroupDescribeResponse) assignmentDecoder(r io.Reader) (ShareGrou
 
 	// TopicPartitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		topicpartitions, err := protocol.ReadNullableCompactArray(r, res.topicPartitionsDecoder)
+		topicpartitions, err := protocol.ReadCompactArray(r, res.topicPartitionsDecoder)
 		if err != nil {
 			return sharegroupdescriberesponsegroupmemberassignment, err
 		}
-		sharegroupdescriberesponsegroupmemberassignment.TopicPartitions = topicpartitions
+		sharegroupdescriberesponsegroupmemberassignment.TopicPartitions = &topicpartitions
 	} else {
 		topicpartitions, err := protocol.ReadArray(r, res.topicPartitionsDecoder)
 		if err != nil {
@@ -685,11 +690,11 @@ func (res *ShareGroupDescribeResponse) topicPartitionsDecoder(r io.Reader) (Shar
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return sharegroupdescriberesponsegroupmemberassignmenttopicpartition, err
 		}
-		sharegroupdescriberesponsegroupmemberassignmenttopicpartition.Partitions = partitions
+		sharegroupdescriberesponsegroupmemberassignmenttopicpartition.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {

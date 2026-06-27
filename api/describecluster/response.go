@@ -120,8 +120,15 @@ func (res *DescribeClusterResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("DescribeClusterResponse.Read: response or its body is nil")
 	}
 
+	*res = DescribeClusterResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	res.EndpointType = 1
+	res.ControllerId = -1
+	res.ClusterAuthorizedOperations = -2147483648
 
 	// ThrottleTimeMs (versions: 0+)
 	throttletimems, err := protocol.ReadInt32(r)
@@ -185,11 +192,11 @@ func (res *DescribeClusterResponse) Read(response *protocol.Response) error {
 
 	// Brokers (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		brokers, err := protocol.ReadNullableCompactArray(r, res.brokersDecoder)
+		brokers, err := protocol.ReadCompactArray(r, res.brokersDecoder)
 		if err != nil {
 			return err
 		}
-		res.Brokers = brokers
+		res.Brokers = &brokers
 	} else {
 		brokers, err := protocol.ReadArray(r, res.brokersDecoder)
 		if err != nil {

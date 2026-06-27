@@ -81,8 +81,13 @@ func (res *EndQuorumEpochResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("EndQuorumEpochResponse.Read: response or its body is nil")
 	}
 
+	*res = EndQuorumEpochResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	res.NodeEndpoints = &[]EndQuorumEpochResponseNodeEndpoint{}
 
 	// ErrorCode (versions: 0+)
 	errorcode, err := protocol.ReadInt16(r)
@@ -93,11 +98,11 @@ func (res *EndQuorumEpochResponse) Read(response *protocol.Response) error {
 
 	// Topics (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, res.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, res.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		res.Topics = topics
+		res.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, res.topicsDecoder)
 		if err != nil {
@@ -179,11 +184,11 @@ func (res *EndQuorumEpochResponse) topicsDecoder(r io.Reader) (EndQuorumEpochRes
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, res.partitionsDecoder)
 		if err != nil {
 			return endquorumepochresponsetopic, err
 		}
-		endquorumepochresponsetopic.Partitions = partitions
+		endquorumepochresponsetopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, res.partitionsDecoder)
 		if err != nil {
@@ -387,7 +392,7 @@ func (res *EndQuorumEpochResponse) taggedFieldsEncoder() ([]protocol.TaggedField
 	buf := bytes.NewBuffer(make([]byte, 0))
 
 	// Tag 0
-	if res.NodeEndpoints != nil {
+	if res.ApiVersion >= 1 && res.NodeEndpoints != nil && len(*res.NodeEndpoints) > 0 {
 		buf = bytes.NewBuffer(make([]byte, 0))
 		if err := protocol.WriteNullableCompactArray(buf, res.nodeEndpointsEncoder, res.NodeEndpoints); err != nil {
 			return taggedFields, err
@@ -405,27 +410,33 @@ func (res *EndQuorumEpochResponse) taggedFieldsEncoder() ([]protocol.TaggedField
 }
 
 func (res *EndQuorumEpochResponse) taggedFieldsDecoder(r io.Reader, tag uint64, tagLength uint64) error {
-	rawTaggedFields := make([]protocol.TaggedField, 0)
+	known := false
 
 	switch tag {
 	case 0:
 		// NodeEndpoints
-		nodeendpoints, err := protocol.ReadNullableCompactArray(r, res.nodeEndpointsDecoder)
-		if err != nil {
-			return err
+		if res.ApiVersion >= 1 {
+			known = true
+			nodeendpoints, err := protocol.ReadCompactArray(r, res.nodeEndpointsDecoder)
+			if err != nil {
+				return err
+			}
+			res.NodeEndpoints = &nodeendpoints
 		}
-		res.NodeEndpoints = nodeendpoints
-	default:
-		// Unknown tag - keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
+	}
+
+	if !known {
+		// Keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
 		field, err := io.ReadAll(r)
 		if err != nil {
 			return err
 		}
-		rawTaggedFields = append(rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
+		if res.rawTaggedFields == nil {
+			rawTaggedFields := make([]protocol.TaggedField, 0)
+			res.rawTaggedFields = &rawTaggedFields
+		}
+		*res.rawTaggedFields = append(*res.rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
 	}
-
-	// Set the raw tagged fields
-	res.rawTaggedFields = &rawTaggedFields
 
 	return nil
 }

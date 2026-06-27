@@ -62,6 +62,8 @@ func (req *RemoveRaftVoterRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("RemoveRaftVoterRequest.Read: request or its body is nil")
 	}
 
+	*req = RemoveRaftVoterRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 

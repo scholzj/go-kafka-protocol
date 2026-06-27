@@ -70,6 +70,8 @@ func (res *ListConfigResourcesResponse) Read(response *protocol.Response) error 
 		return fmt.Errorf("ListConfigResourcesResponse.Read: response or its body is nil")
 	}
 
+	*res = ListConfigResourcesResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -89,11 +91,11 @@ func (res *ListConfigResourcesResponse) Read(response *protocol.Response) error 
 
 	// ConfigResources (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		configresources, err := protocol.ReadNullableCompactArray(r, res.configResourcesDecoder)
+		configresources, err := protocol.ReadCompactArray(r, res.configResourcesDecoder)
 		if err != nil {
 			return err
 		}
-		res.ConfigResources = configresources
+		res.ConfigResources = &configresources
 	} else {
 		configresources, err := protocol.ReadArray(r, res.configResourcesDecoder)
 		if err != nil {
@@ -152,6 +154,9 @@ func (res *ListConfigResourcesResponse) configResourcesEncoder(w io.Writer, valu
 
 func (res *ListConfigResourcesResponse) configResourcesDecoder(r io.Reader) (ListConfigResourcesResponseConfigResource, error) {
 	listconfigresourcesresponseconfigresource := ListConfigResourcesResponseConfigResource{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	listconfigresourcesresponseconfigresource.ResourceType = 16
 
 	// ResourceName (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {

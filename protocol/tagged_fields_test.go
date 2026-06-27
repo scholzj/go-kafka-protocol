@@ -229,3 +229,100 @@ func TestReadTaggedFieldsDecoderError(t *testing.T) {
 		t.Errorf("ReadTaggedFields should return decoder error, got: %v", err)
 	}
 }
+
+// #10: WriteRawTaggedFields must emit tags in ascending order, on a copy (caller slice untouched).
+func TestWriteRawTaggedFieldsSortsWithoutMutating(t *testing.T) {
+	fields := []TaggedField{{Tag: 5, Field: []byte{0x05}}, {Tag: 1, Field: []byte{0x01}}}
+
+	var buf bytes.Buffer
+	if err := WriteRawTaggedFields(&buf, fields); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	if fields[0].Tag != 5 {
+		t.Fatalf("caller slice was reordered: %+v", fields)
+	}
+
+	got, err := ReadRawTaggedFields(&buf)
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	if len(got) != 2 || got[0].Tag != 1 || got[1].Tag != 5 {
+		t.Fatalf("tags not written in ascending order: %+v", got)
+	}
+}
+
+// #10: duplicate tags are invalid and must be rejected.
+func TestWriteRawTaggedFieldsRejectsDuplicates(t *testing.T) {
+	var buf bytes.Buffer
+	if err := WriteRawTaggedFields(&buf, []TaggedField{{Tag: 1}, {Tag: 1}}); err == nil {
+		t.Fatal("expected an error for duplicate tagged field tags")
+	}
+}
+
+// #7: tagged fields must arrive in strictly ascending order with no duplicates; the readers reject
+// anything else rather than tolerating malformed wire data.
+func TestReadRawTaggedFieldsRejectsOutOfOrder(t *testing.T) {
+	var buf bytes.Buffer
+	mustU(t, &buf, 2) // two tags
+	mustU(t, &buf, 5) // tag 5 ...
+	mustU(t, &buf, 0)
+	mustU(t, &buf, 1) // ... then tag 1 (descending)
+	mustU(t, &buf, 0)
+	if _, err := ReadRawTaggedFields(&buf); err == nil {
+		t.Fatal("ReadRawTaggedFields accepted out-of-order tags")
+	}
+}
+
+func TestReadRawTaggedFieldsRejectsDuplicate(t *testing.T) {
+	var buf bytes.Buffer
+	mustU(t, &buf, 2)
+	mustU(t, &buf, 3)
+	mustU(t, &buf, 0)
+	mustU(t, &buf, 3) // duplicate tag
+	mustU(t, &buf, 0)
+	if _, err := ReadRawTaggedFields(&buf); err == nil {
+		t.Fatal("ReadRawTaggedFields accepted a duplicate tag")
+	}
+}
+
+func TestReadTaggedFieldsRejectsOutOfOrder(t *testing.T) {
+	var buf bytes.Buffer
+	mustU(t, &buf, 2)
+	mustU(t, &buf, 7)
+	mustU(t, &buf, 0)
+	mustU(t, &buf, 2) // descending
+	mustU(t, &buf, 0)
+	noop := func(io.Reader, uint64, uint64) error { return nil }
+	if err := ReadTaggedFields(&buf, noop); err == nil {
+		t.Fatal("ReadTaggedFields accepted out-of-order tags")
+	}
+}
+
+func mustU(t *testing.T, buf *bytes.Buffer, v uint64) {
+	t.Helper()
+	if err := WriteUvarint(buf, v); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// #6: a tagged-fields count near the uint64 max must not be truncated by an int conversion (which
+// would overflow on a 32-bit build); the readers loop on the uint64 directly and simply fail fast
+// when the claimed tags are not actually present.
+func TestReadTaggedFieldsHugeCountFailsFast(t *testing.T) {
+	var buf bytes.Buffer
+	if err := WriteUvarint(&buf, 1<<33); err != nil { // a count that overflows a 32-bit int
+		t.Fatal(err)
+	}
+	noop := func(io.Reader, uint64, uint64) error { return nil }
+	if err := ReadTaggedFields(&buf, noop); err == nil {
+		t.Fatal("expected an error for an over-claimed tagged-fields count")
+	}
+
+	var rbuf bytes.Buffer
+	if err := WriteUvarint(&rbuf, 1<<33); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ReadRawTaggedFields(&rbuf); err == nil {
+		t.Fatal("expected an error for an over-claimed raw tagged-fields count")
+	}
+}

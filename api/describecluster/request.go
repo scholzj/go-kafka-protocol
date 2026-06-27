@@ -59,8 +59,13 @@ func (req *DescribeClusterRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("DescribeClusterRequest.Read: request or its body is nil")
 	}
 
+	*req = DescribeClusterRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	req.EndpointType = 1
 
 	// IncludeClusterAuthorizedOperations (versions: 0+)
 	includeclusterauthorizedoperations, err := protocol.ReadBool(r)

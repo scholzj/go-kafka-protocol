@@ -71,6 +71,8 @@ func (req *ApiVersionsRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("ApiVersionsRequest.Read: request or its body is nil")
 	}
 
+	*req = ApiVersionsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 

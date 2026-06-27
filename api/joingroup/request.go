@@ -145,8 +145,13 @@ func (req *JoinGroupRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("JoinGroupRequest.Read: request or its body is nil")
 	}
 
+	*req = JoinGroupRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	req.RebalanceTimeoutMs = -1
 
 	// GroupId (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
@@ -228,11 +233,11 @@ func (req *JoinGroupRequest) Read(request *protocol.Request) error {
 
 	// Protocols (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		protocols, err := protocol.ReadNullableCompactArray(r, req.protocolsDecoder)
+		protocols, err := protocol.ReadCompactArray(r, req.protocolsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Protocols = protocols
+		req.Protocols = &protocols
 	} else {
 		protocols, err := protocol.ReadArray(r, req.protocolsDecoder)
 		if err != nil {

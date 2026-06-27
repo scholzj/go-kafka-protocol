@@ -87,6 +87,8 @@ func (req *HeartbeatRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("HeartbeatRequest.Read: request or its body is nil")
 	}
 
+	*req = HeartbeatRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 

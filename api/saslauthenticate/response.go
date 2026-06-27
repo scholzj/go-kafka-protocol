@@ -78,6 +78,8 @@ func (res *SaslAuthenticateResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("SaslAuthenticateResponse.Read: response or its body is nil")
 	}
 
+	*res = SaslAuthenticateResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 

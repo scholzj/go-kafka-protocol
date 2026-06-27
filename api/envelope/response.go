@@ -55,6 +55,8 @@ func (res *EnvelopeResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("EnvelopeResponse.Read: response or its body is nil")
 	}
 
+	*res = EnvelopeResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 

@@ -87,8 +87,13 @@ func (req *AlterPartitionRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("AlterPartitionRequest.Read: request or its body is nil")
 	}
 
+	*req = AlterPartitionRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	req.BrokerEpoch = -1
 
 	// BrokerId (versions: 0+)
 	brokerid, err := protocol.ReadInt32(r)
@@ -106,11 +111,11 @@ func (req *AlterPartitionRequest) Read(request *protocol.Request) error {
 
 	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Topics = topics
+		req.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, req.topicsDecoder)
 		if err != nil {
@@ -181,11 +186,11 @@ func (req *AlterPartitionRequest) topicsDecoder(r io.Reader) (AlterPartitionRequ
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, req.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, req.partitionsDecoder)
 		if err != nil {
 			return alterpartitionrequesttopic, err
 		}
-		alterpartitionrequesttopic.Partitions = partitions
+		alterpartitionrequesttopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, req.partitionsDecoder)
 		if err != nil {
@@ -295,11 +300,11 @@ func (req *AlterPartitionRequest) partitionsDecoder(r io.Reader) (AlterPartition
 	// NewIsr (versions: 0-2)
 	if req.ApiVersion <= 2 {
 		if isRequestFlexible(req.ApiVersion) {
-			newisr, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+			newisr, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 			if err != nil {
 				return alterpartitionrequesttopicpartition, err
 			}
-			alterpartitionrequesttopicpartition.NewIsr = newisr
+			alterpartitionrequesttopicpartition.NewIsr = &newisr
 		} else {
 			newisr, err := protocol.ReadArray(r, protocol.ReadInt32)
 			if err != nil {
@@ -312,11 +317,11 @@ func (req *AlterPartitionRequest) partitionsDecoder(r io.Reader) (AlterPartition
 	// NewIsrWithEpochs (versions: 3+)
 	if req.ApiVersion >= 3 {
 		if isRequestFlexible(req.ApiVersion) {
-			newisrwithepochs, err := protocol.ReadNullableCompactArray(r, req.newIsrWithEpochsDecoder)
+			newisrwithepochs, err := protocol.ReadCompactArray(r, req.newIsrWithEpochsDecoder)
 			if err != nil {
 				return alterpartitionrequesttopicpartition, err
 			}
-			alterpartitionrequesttopicpartition.NewIsrWithEpochs = newisrwithepochs
+			alterpartitionrequesttopicpartition.NewIsrWithEpochs = &newisrwithepochs
 		} else {
 			newisrwithepochs, err := protocol.ReadArray(r, req.newIsrWithEpochsDecoder)
 			if err != nil {
@@ -385,6 +390,9 @@ func (req *AlterPartitionRequest) newIsrWithEpochsEncoder(w io.Writer, value Alt
 
 func (req *AlterPartitionRequest) newIsrWithEpochsDecoder(r io.Reader) (AlterPartitionRequestTopicPartitionNewIsrWithEpoch, error) {
 	alterpartitionrequesttopicpartitionnewisrwithepoch := AlterPartitionRequestTopicPartitionNewIsrWithEpoch{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	alterpartitionrequesttopicpartitionnewisrwithepoch.BrokerEpoch = -1
 
 	// BrokerId (versions: 3+)
 	if req.ApiVersion >= 3 {

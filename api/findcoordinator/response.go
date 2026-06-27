@@ -127,6 +127,8 @@ func (res *FindCoordinatorResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("FindCoordinatorResponse.Read: response or its body is nil")
 	}
 
+	*res = FindCoordinatorResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -203,11 +205,11 @@ func (res *FindCoordinatorResponse) Read(response *protocol.Response) error {
 	// Coordinators (versions: 4+)
 	if res.ApiVersion >= 4 {
 		if isResponseFlexible(res.ApiVersion) {
-			coordinators, err := protocol.ReadNullableCompactArray(r, res.coordinatorsDecoder)
+			coordinators, err := protocol.ReadCompactArray(r, res.coordinatorsDecoder)
 			if err != nil {
 				return err
 			}
-			res.Coordinators = coordinators
+			res.Coordinators = &coordinators
 		} else {
 			coordinators, err := protocol.ReadArray(r, res.coordinatorsDecoder)
 			if err != nil {

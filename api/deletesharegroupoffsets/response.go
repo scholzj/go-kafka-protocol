@@ -85,6 +85,8 @@ func (res *DeleteShareGroupOffsetsResponse) Read(response *protocol.Response) er
 		return fmt.Errorf("DeleteShareGroupOffsetsResponse.Read: response or its body is nil")
 	}
 
+	*res = DeleteShareGroupOffsetsResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -119,11 +121,11 @@ func (res *DeleteShareGroupOffsetsResponse) Read(response *protocol.Response) er
 
 	// Responses (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		responses, err := protocol.ReadNullableCompactArray(r, res.responsesDecoder)
+		responses, err := protocol.ReadCompactArray(r, res.responsesDecoder)
 		if err != nil {
 			return err
 		}
-		res.Responses = responses
+		res.Responses = &responses
 	} else {
 		responses, err := protocol.ReadArray(r, res.responsesDecoder)
 		if err != nil {

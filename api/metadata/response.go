@@ -143,8 +143,14 @@ func (res *MetadataResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("MetadataResponse.Read: response or its body is nil")
 	}
 
+	*res = MetadataResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	res.ControllerId = -1
+	res.ClusterAuthorizedOperations = -2147483648
 
 	// ThrottleTimeMs (versions: 3+)
 	if res.ApiVersion >= 3 {
@@ -157,11 +163,11 @@ func (res *MetadataResponse) Read(response *protocol.Response) error {
 
 	// Brokers (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		brokers, err := protocol.ReadNullableCompactArray(r, res.brokersDecoder)
+		brokers, err := protocol.ReadCompactArray(r, res.brokersDecoder)
 		if err != nil {
 			return err
 		}
-		res.Brokers = brokers
+		res.Brokers = &brokers
 	} else {
 		brokers, err := protocol.ReadArray(r, res.brokersDecoder)
 		if err != nil {
@@ -198,11 +204,11 @@ func (res *MetadataResponse) Read(response *protocol.Response) error {
 
 	// Topics (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, res.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, res.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		res.Topics = topics
+		res.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, res.topicsDecoder)
 		if err != nil {
@@ -426,6 +432,9 @@ func (res *MetadataResponse) topicsEncoder(w io.Writer, value MetadataResponseTo
 func (res *MetadataResponse) topicsDecoder(r io.Reader) (MetadataResponseTopic, error) {
 	metadataresponsetopic := MetadataResponseTopic{}
 
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	metadataresponsetopic.TopicAuthorizedOperations = -2147483648
+
 	// ErrorCode (versions: 0+)
 	errorcode, err := protocol.ReadInt16(r)
 	if err != nil {
@@ -435,17 +444,33 @@ func (res *MetadataResponse) topicsDecoder(r io.Reader) (MetadataResponseTopic, 
 
 	// Name (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		name, err := protocol.ReadNullableCompactString(r)
-		if err != nil {
-			return metadataresponsetopic, err
+		if res.ApiVersion >= 12 {
+			name, err := protocol.ReadNullableCompactString(r)
+			if err != nil {
+				return metadataresponsetopic, err
+			}
+			metadataresponsetopic.Name = name
+		} else {
+			name, err := protocol.ReadCompactString(r)
+			if err != nil {
+				return metadataresponsetopic, err
+			}
+			metadataresponsetopic.Name = &name
 		}
-		metadataresponsetopic.Name = name
 	} else {
-		name, err := protocol.ReadNullableString(r)
-		if err != nil {
-			return metadataresponsetopic, err
+		if res.ApiVersion >= 12 {
+			name, err := protocol.ReadNullableString(r)
+			if err != nil {
+				return metadataresponsetopic, err
+			}
+			metadataresponsetopic.Name = name
+		} else {
+			name, err := protocol.ReadString(r)
+			if err != nil {
+				return metadataresponsetopic, err
+			}
+			metadataresponsetopic.Name = &name
 		}
-		metadataresponsetopic.Name = name
 	}
 
 	// TopicId (versions: 10+)
@@ -468,11 +493,11 @@ func (res *MetadataResponse) topicsDecoder(r io.Reader) (MetadataResponseTopic, 
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, res.partitionsDecoder)
 		if err != nil {
 			return metadataresponsetopic, err
 		}
-		metadataresponsetopic.Partitions = partitions
+		metadataresponsetopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, res.partitionsDecoder)
 		if err != nil {
@@ -586,6 +611,9 @@ func (res *MetadataResponse) partitionsEncoder(w io.Writer, value MetadataRespon
 func (res *MetadataResponse) partitionsDecoder(r io.Reader) (MetadataResponseTopicPartition, error) {
 	metadataresponsetopicpartition := MetadataResponseTopicPartition{}
 
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	metadataresponsetopicpartition.LeaderEpoch = -1
+
 	// ErrorCode (versions: 0+)
 	errorcode, err := protocol.ReadInt16(r)
 	if err != nil {
@@ -618,11 +646,11 @@ func (res *MetadataResponse) partitionsDecoder(r io.Reader) (MetadataResponseTop
 
 	// ReplicaNodes (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		replicanodes, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		replicanodes, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return metadataresponsetopicpartition, err
 		}
-		metadataresponsetopicpartition.ReplicaNodes = replicanodes
+		metadataresponsetopicpartition.ReplicaNodes = &replicanodes
 	} else {
 		replicanodes, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {
@@ -633,11 +661,11 @@ func (res *MetadataResponse) partitionsDecoder(r io.Reader) (MetadataResponseTop
 
 	// IsrNodes (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		isrnodes, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		isrnodes, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return metadataresponsetopicpartition, err
 		}
-		metadataresponsetopicpartition.IsrNodes = isrnodes
+		metadataresponsetopicpartition.IsrNodes = &isrnodes
 	} else {
 		isrnodes, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {
@@ -649,11 +677,11 @@ func (res *MetadataResponse) partitionsDecoder(r io.Reader) (MetadataResponseTop
 	// OfflineReplicas (versions: 5+)
 	if res.ApiVersion >= 5 {
 		if isResponseFlexible(res.ApiVersion) {
-			offlinereplicas, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+			offlinereplicas, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 			if err != nil {
 				return metadataresponsetopicpartition, err
 			}
-			metadataresponsetopicpartition.OfflineReplicas = offlinereplicas
+			metadataresponsetopicpartition.OfflineReplicas = &offlinereplicas
 		} else {
 			offlinereplicas, err := protocol.ReadArray(r, protocol.ReadInt32)
 			if err != nil {

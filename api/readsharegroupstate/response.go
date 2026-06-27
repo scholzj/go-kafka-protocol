@@ -77,16 +77,18 @@ func (res *ReadShareGroupStateResponse) Read(response *protocol.Response) error 
 		return fmt.Errorf("ReadShareGroupStateResponse.Read: response or its body is nil")
 	}
 
+	*res = ReadShareGroupStateResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
 	// Results (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		results, err := protocol.ReadNullableCompactArray(r, res.resultsDecoder)
+		results, err := protocol.ReadCompactArray(r, res.resultsDecoder)
 		if err != nil {
 			return err
 		}
-		res.Results = results
+		res.Results = &results
 	} else {
 		results, err := protocol.ReadArray(r, res.resultsDecoder)
 		if err != nil {
@@ -153,11 +155,11 @@ func (res *ReadShareGroupStateResponse) resultsDecoder(r io.Reader) (ReadShareGr
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, res.partitionsDecoder)
 		if err != nil {
 			return readsharegroupstateresponseresult, err
 		}
-		readsharegroupstateresponseresult.Partitions = partitions
+		readsharegroupstateresponseresult.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, res.partitionsDecoder)
 		if err != nil {
@@ -286,11 +288,11 @@ func (res *ReadShareGroupStateResponse) partitionsDecoder(r io.Reader) (ReadShar
 
 	// StateBatches (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		statebatches, err := protocol.ReadNullableCompactArray(r, res.stateBatchesDecoder)
+		statebatches, err := protocol.ReadCompactArray(r, res.stateBatchesDecoder)
 		if err != nil {
 			return readsharegroupstateresponseresultpartition, err
 		}
-		readsharegroupstateresponseresultpartition.StateBatches = statebatches
+		readsharegroupstateresponseresultpartition.StateBatches = &statebatches
 	} else {
 		statebatches, err := protocol.ReadArray(r, res.stateBatchesDecoder)
 		if err != nil {

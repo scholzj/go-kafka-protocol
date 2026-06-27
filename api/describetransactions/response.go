@@ -76,6 +76,8 @@ func (res *DescribeTransactionsResponse) Read(response *protocol.Response) error
 		return fmt.Errorf("DescribeTransactionsResponse.Read: response or its body is nil")
 	}
 
+	*res = DescribeTransactionsResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -88,11 +90,11 @@ func (res *DescribeTransactionsResponse) Read(response *protocol.Response) error
 
 	// TransactionStates (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		transactionstates, err := protocol.ReadNullableCompactArray(r, res.transactionStatesDecoder)
+		transactionstates, err := protocol.ReadCompactArray(r, res.transactionStatesDecoder)
 		if err != nil {
 			return err
 		}
-		res.TransactionStates = transactionstates
+		res.TransactionStates = &transactionstates
 	} else {
 		transactionstates, err := protocol.ReadArray(r, res.transactionStatesDecoder)
 		if err != nil {
@@ -265,11 +267,11 @@ func (res *DescribeTransactionsResponse) transactionStatesDecoder(r io.Reader) (
 
 	// Topics (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, res.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, res.topicsDecoder)
 		if err != nil {
 			return describetransactionsresponsetransactionstate, err
 		}
-		describetransactionsresponsetransactionstate.Topics = topics
+		describetransactionsresponsetransactionstate.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, res.topicsDecoder)
 		if err != nil {
@@ -353,11 +355,11 @@ func (res *DescribeTransactionsResponse) topicsDecoder(r io.Reader) (DescribeTra
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return describetransactionsresponsetransactionstatetopic, err
 		}
-		describetransactionsresponsetransactionstatetopic.Partitions = partitions
+		describetransactionsresponsetransactionstatetopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {

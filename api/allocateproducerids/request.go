@@ -49,8 +49,13 @@ func (req *AllocateProducerIdsRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("AllocateProducerIdsRequest.Read: request or its body is nil")
 	}
 
+	*req = AllocateProducerIdsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	req.BrokerEpoch = -1
 
 	// BrokerId (versions: 0+)
 	brokerid, err := protocol.ReadInt32(r)

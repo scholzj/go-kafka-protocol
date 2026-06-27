@@ -49,6 +49,8 @@ func (res *AddOffsetsToTxnResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("AddOffsetsToTxnResponse.Read: response or its body is nil")
 	}
 
+	*res = AddOffsetsToTxnResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 

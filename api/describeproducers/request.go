@@ -58,16 +58,18 @@ func (req *DescribeProducersRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("DescribeProducersRequest.Read: request or its body is nil")
 	}
 
+	*req = DescribeProducersRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
 	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Topics = topics
+		req.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, req.topicsDecoder)
 		if err != nil {
@@ -151,11 +153,11 @@ func (req *DescribeProducersRequest) topicsDecoder(r io.Reader) (DescribeProduce
 
 	// PartitionIndexes (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitionindexes, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitionindexes, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return describeproducersrequesttopic, err
 		}
-		describeproducersrequesttopic.PartitionIndexes = partitionindexes
+		describeproducersrequesttopic.PartitionIndexes = &partitionindexes
 	} else {
 		partitionindexes, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {

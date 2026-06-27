@@ -126,6 +126,8 @@ func (res *OffsetFetchResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("OffsetFetchResponse.Read: response or its body is nil")
 	}
 
+	*res = OffsetFetchResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -141,11 +143,11 @@ func (res *OffsetFetchResponse) Read(response *protocol.Response) error {
 	// Topics (versions: 0-7)
 	if res.ApiVersion <= 7 {
 		if isResponseFlexible(res.ApiVersion) {
-			topics, err := protocol.ReadNullableCompactArray(r, res.topicsDecoder)
+			topics, err := protocol.ReadCompactArray(r, res.topicsDecoder)
 			if err != nil {
 				return err
 			}
-			res.Topics = topics
+			res.Topics = &topics
 		} else {
 			topics, err := protocol.ReadArray(r, res.topicsDecoder)
 			if err != nil {
@@ -167,11 +169,11 @@ func (res *OffsetFetchResponse) Read(response *protocol.Response) error {
 	// Groups (versions: 8+)
 	if res.ApiVersion >= 8 {
 		if isResponseFlexible(res.ApiVersion) {
-			groups, err := protocol.ReadNullableCompactArray(r, res.groupsDecoder)
+			groups, err := protocol.ReadCompactArray(r, res.groupsDecoder)
 			if err != nil {
 				return err
 			}
-			res.Groups = groups
+			res.Groups = &groups
 		} else {
 			groups, err := protocol.ReadArray(r, res.groupsDecoder)
 			if err != nil {
@@ -263,11 +265,11 @@ func (res *OffsetFetchResponse) topicsDecoder(r io.Reader) (OffsetFetchResponseT
 	// Partitions (versions: 0-7)
 	if res.ApiVersion <= 7 {
 		if isResponseFlexible(res.ApiVersion) {
-			partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
+			partitions, err := protocol.ReadCompactArray(r, res.partitionsDecoder)
 			if err != nil {
 				return offsetfetchresponsetopic, err
 			}
-			offsetfetchresponsetopic.Partitions = partitions
+			offsetfetchresponsetopic.Partitions = &partitions
 		} else {
 			partitions, err := protocol.ReadArray(r, res.partitionsDecoder)
 			if err != nil {
@@ -347,6 +349,9 @@ func (res *OffsetFetchResponse) partitionsEncoder(w io.Writer, value OffsetFetch
 
 func (res *OffsetFetchResponse) partitionsDecoder(r io.Reader) (OffsetFetchResponseTopicPartition, error) {
 	offsetfetchresponsetopicpartition := OffsetFetchResponseTopicPartition{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	offsetfetchresponsetopicpartition.CommittedLeaderEpoch = -1
 
 	// PartitionIndex (versions: 0-7)
 	if res.ApiVersion <= 7 {
@@ -490,11 +495,11 @@ func (res *OffsetFetchResponse) groupsDecoder(r io.Reader) (OffsetFetchResponseG
 	// Topics (versions: 8+)
 	if res.ApiVersion >= 8 {
 		if isResponseFlexible(res.ApiVersion) {
-			topics, err := protocol.ReadNullableCompactArray(r, res.offsetFetchResponseGroupTopicDecoder)
+			topics, err := protocol.ReadCompactArray(r, res.offsetFetchResponseGroupTopicDecoder)
 			if err != nil {
 				return offsetfetchresponsegroup, err
 			}
-			offsetfetchresponsegroup.Topics = topics
+			offsetfetchresponsegroup.Topics = &topics
 		} else {
 			topics, err := protocol.ReadArray(r, res.offsetFetchResponseGroupTopicDecoder)
 			if err != nil {
@@ -611,11 +616,11 @@ func (res *OffsetFetchResponse) offsetFetchResponseGroupTopicDecoder(r io.Reader
 	// Partitions (versions: 8+)
 	if res.ApiVersion >= 8 {
 		if isResponseFlexible(res.ApiVersion) {
-			partitions, err := protocol.ReadNullableCompactArray(r, res.offsetFetchResponseGroupTopicPartitionDecoder)
+			partitions, err := protocol.ReadCompactArray(r, res.offsetFetchResponseGroupTopicPartitionDecoder)
 			if err != nil {
 				return offsetfetchresponsegrouptopic, err
 			}
-			offsetfetchresponsegrouptopic.Partitions = partitions
+			offsetfetchresponsegrouptopic.Partitions = &partitions
 		} else {
 			partitions, err := protocol.ReadArray(r, res.offsetFetchResponseGroupTopicPartitionDecoder)
 			if err != nil {
@@ -695,6 +700,9 @@ func (res *OffsetFetchResponse) offsetFetchResponseGroupTopicPartitionEncoder(w 
 
 func (res *OffsetFetchResponse) offsetFetchResponseGroupTopicPartitionDecoder(r io.Reader) (OffsetFetchResponseGroupTopicPartition, error) {
 	offsetfetchresponsegrouptopicpartition := OffsetFetchResponseGroupTopicPartition{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	offsetfetchresponsegrouptopicpartition.CommittedLeaderEpoch = -1
 
 	// PartitionIndex (versions: 8+)
 	if res.ApiVersion >= 8 {

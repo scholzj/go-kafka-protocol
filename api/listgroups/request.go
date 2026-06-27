@@ -71,17 +71,19 @@ func (req *ListGroupsRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("ListGroupsRequest.Read: request or its body is nil")
 	}
 
+	*req = ListGroupsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
 	// StatesFilter (versions: 4+)
 	if req.ApiVersion >= 4 {
 		if isRequestFlexible(req.ApiVersion) {
-			statesfilter, err := protocol.ReadNullableCompactArray(r, protocol.ReadCompactString)
+			statesfilter, err := protocol.ReadCompactArray(r, protocol.ReadCompactString)
 			if err != nil {
 				return err
 			}
-			req.StatesFilter = statesfilter
+			req.StatesFilter = &statesfilter
 		} else {
 			statesfilter, err := protocol.ReadArray(r, protocol.ReadString)
 			if err != nil {
@@ -94,11 +96,11 @@ func (req *ListGroupsRequest) Read(request *protocol.Request) error {
 	// TypesFilter (versions: 5+)
 	if req.ApiVersion >= 5 {
 		if isRequestFlexible(req.ApiVersion) {
-			typesfilter, err := protocol.ReadNullableCompactArray(r, protocol.ReadCompactString)
+			typesfilter, err := protocol.ReadCompactArray(r, protocol.ReadCompactString)
 			if err != nil {
 				return err
 			}
-			req.TypesFilter = typesfilter
+			req.TypesFilter = &typesfilter
 		} else {
 			typesfilter, err := protocol.ReadArray(r, protocol.ReadString)
 			if err != nil {

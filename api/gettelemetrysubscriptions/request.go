@@ -44,6 +44,8 @@ func (req *GetTelemetrySubscriptionsRequest) Read(request *protocol.Request) err
 		return fmt.Errorf("GetTelemetrySubscriptionsRequest.Read: request or its body is nil")
 	}
 
+	*req = GetTelemetrySubscriptionsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 

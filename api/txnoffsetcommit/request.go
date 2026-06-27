@@ -147,8 +147,13 @@ func (req *TxnOffsetCommitRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("TxnOffsetCommitRequest.Read: request or its body is nil")
 	}
 
+	*req = TxnOffsetCommitRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	req.GenerationId = -1
 
 	// TransactionalId (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
@@ -239,11 +244,11 @@ func (req *TxnOffsetCommitRequest) Read(request *protocol.Request) error {
 
 	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Topics = topics
+		req.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, req.topicsDecoder)
 		if err != nil {
@@ -327,11 +332,11 @@ func (req *TxnOffsetCommitRequest) topicsDecoder(r io.Reader) (TxnOffsetCommitRe
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, req.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, req.partitionsDecoder)
 		if err != nil {
 			return txnoffsetcommitrequesttopic, err
 		}
-		txnoffsetcommitrequesttopic.Partitions = partitions
+		txnoffsetcommitrequesttopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, req.partitionsDecoder)
 		if err != nil {
@@ -397,6 +402,9 @@ func (req *TxnOffsetCommitRequest) partitionsEncoder(w io.Writer, value TxnOffse
 
 func (req *TxnOffsetCommitRequest) partitionsDecoder(r io.Reader) (TxnOffsetCommitRequestTopicPartition, error) {
 	txnoffsetcommitrequesttopicpartition := TxnOffsetCommitRequestTopicPartition{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	txnoffsetcommitrequesttopicpartition.CommittedLeaderEpoch = -1
 
 	// PartitionIndex (versions: 0+)
 	partitionindex, err := protocol.ReadInt32(r)

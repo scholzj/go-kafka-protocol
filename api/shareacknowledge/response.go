@@ -128,6 +128,8 @@ func (res *ShareAcknowledgeResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("ShareAcknowledgeResponse.Read: response or its body is nil")
 	}
 
+	*res = ShareAcknowledgeResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -171,11 +173,11 @@ func (res *ShareAcknowledgeResponse) Read(response *protocol.Response) error {
 
 	// Responses (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		responses, err := protocol.ReadNullableCompactArray(r, res.responsesDecoder)
+		responses, err := protocol.ReadCompactArray(r, res.responsesDecoder)
 		if err != nil {
 			return err
 		}
-		res.Responses = responses
+		res.Responses = &responses
 	} else {
 		responses, err := protocol.ReadArray(r, res.responsesDecoder)
 		if err != nil {
@@ -186,11 +188,11 @@ func (res *ShareAcknowledgeResponse) Read(response *protocol.Response) error {
 
 	// NodeEndpoints (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		nodeendpoints, err := protocol.ReadNullableCompactArray(r, res.nodeEndpointsDecoder)
+		nodeendpoints, err := protocol.ReadCompactArray(r, res.nodeEndpointsDecoder)
 		if err != nil {
 			return err
 		}
-		res.NodeEndpoints = nodeendpoints
+		res.NodeEndpoints = &nodeendpoints
 	} else {
 		nodeendpoints, err := protocol.ReadArray(r, res.nodeEndpointsDecoder)
 		if err != nil {
@@ -257,11 +259,11 @@ func (res *ShareAcknowledgeResponse) responsesDecoder(r io.Reader) (ShareAcknowl
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, res.partitionsDecoder)
 		if err != nil {
 			return shareacknowledgeresponseresponse, err
 		}
-		shareacknowledgeresponseresponse.Partitions = partitions
+		shareacknowledgeresponseresponse.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, res.partitionsDecoder)
 		if err != nil {

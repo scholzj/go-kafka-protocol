@@ -97,8 +97,13 @@ func (res *AlterPartitionReassignmentsResponse) Read(response *protocol.Response
 		return fmt.Errorf("AlterPartitionReassignmentsResponse.Read: response or its body is nil")
 	}
 
+	*res = AlterPartitionReassignmentsResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	res.AllowReplicationFactorChange = true
 
 	// ThrottleTimeMs (versions: 0+)
 	throttletimems, err := protocol.ReadInt32(r)
@@ -140,11 +145,11 @@ func (res *AlterPartitionReassignmentsResponse) Read(response *protocol.Response
 
 	// Responses (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		responses, err := protocol.ReadNullableCompactArray(r, res.responsesDecoder)
+		responses, err := protocol.ReadCompactArray(r, res.responsesDecoder)
 		if err != nil {
 			return err
 		}
-		res.Responses = responses
+		res.Responses = &responses
 	} else {
 		responses, err := protocol.ReadArray(r, res.responsesDecoder)
 		if err != nil {
@@ -228,11 +233,11 @@ func (res *AlterPartitionReassignmentsResponse) responsesDecoder(r io.Reader) (A
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, res.partitionsDecoder)
 		if err != nil {
 			return alterpartitionreassignmentsresponseresponse, err
 		}
-		alterpartitionreassignmentsresponseresponse.Partitions = partitions
+		alterpartitionreassignmentsresponseresponse.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, res.partitionsDecoder)
 		if err != nil {

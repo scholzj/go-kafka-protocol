@@ -81,6 +81,8 @@ func (req *InitializeShareGroupStateRequest) Read(request *protocol.Request) err
 		return fmt.Errorf("InitializeShareGroupStateRequest.Read: request or its body is nil")
 	}
 
+	*req = InitializeShareGroupStateRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
@@ -101,11 +103,11 @@ func (req *InitializeShareGroupStateRequest) Read(request *protocol.Request) err
 
 	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Topics = topics
+		req.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, req.topicsDecoder)
 		if err != nil {
@@ -172,11 +174,11 @@ func (req *InitializeShareGroupStateRequest) topicsDecoder(r io.Reader) (Initial
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, req.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, req.partitionsDecoder)
 		if err != nil {
 			return initializesharegroupstaterequesttopic, err
 		}
-		initializesharegroupstaterequesttopic.Partitions = partitions
+		initializesharegroupstaterequesttopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, req.partitionsDecoder)
 		if err != nil {

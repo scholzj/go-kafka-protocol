@@ -17,6 +17,9 @@ type RequestHeader struct {
 	ApiVersion    int16
 	CorrelationId int32
 	ClientId      *string
+	// RawTaggedFields holds the header's flexible tagged fields verbatim (v2+ request headers).
+	// Preserving them lets a proxy forward header tags added by a newer peer instead of dropping them.
+	RawTaggedFields []TaggedField
 }
 
 type Request struct {
@@ -30,6 +33,9 @@ type ResponseHeader struct {
 	ApiVersion    int16
 	CorrelationId int32
 	ClientId      *string
+	// RawTaggedFields holds the header's flexible tagged fields verbatim (v1+ response headers).
+	// Preserving them lets a proxy forward header tags added by a newer peer instead of dropping them.
+	RawTaggedFields []TaggedField
 }
 
 type Response struct {
@@ -66,15 +72,19 @@ func (r *Request) Write(w io.Writer) error {
 	}
 
 	if apis.RequestHeaderVersion(r.ApiKey, r.ApiVersion) >= 2 {
-		err = WriteRawTaggedFields(buf, make([]TaggedField, 0))
+		err = WriteRawTaggedFields(buf, r.RawTaggedFields)
 		if err != nil {
 			return err
 		}
 	}
 
-	_, err = io.Copy(buf, r.Body)
-	if err != nil {
-		return err
+	// Use Bytes() (not io.Copy, which would consume r.Body) so the same request can be written more
+	// than once.
+	if r.Body != nil {
+		_, err = buf.Write(r.Body.Bytes())
+		if err != nil {
+			return err
+		}
 	}
 
 	err = WriteInt32(w, int32(buf.Len()))
@@ -132,7 +142,7 @@ func ReadRequest(r io.Reader) (Request, error) {
 
 	// Decode tagged fields
 	if apis.RequestHeaderVersion(request.ApiKey, request.ApiVersion) >= 2 {
-		_, err = ReadRawTaggedFields(requestReader)
+		request.RawTaggedFields, err = ReadRawTaggedFields(requestReader)
 		if err != nil {
 			return request, err
 		}
@@ -156,15 +166,19 @@ func (r *Response) Write(w io.Writer) error {
 	}
 
 	if apis.ResponseHeaderVersion(r.ApiKey, r.ApiVersion) >= 1 {
-		err = WriteRawTaggedFields(buf, make([]TaggedField, 0))
+		err = WriteRawTaggedFields(buf, r.RawTaggedFields)
 		if err != nil {
 			return err
 		}
 	}
 
-	_, err = buf.Write(r.Body.Bytes())
-	if err != nil {
-		return err
+	// Use Bytes() (not io.Copy, which would consume r.Body) so the same response can be written more
+	// than once, and tolerate a nil body.
+	if r.Body != nil {
+		_, err = buf.Write(r.Body.Bytes())
+		if err != nil {
+			return err
+		}
 	}
 
 	err = WriteInt32(w, int32(buf.Len()))
@@ -211,7 +225,7 @@ func ReadResponse(r io.Reader, correlations map[int32]RequestHeader) (Response, 
 
 	// Decode tagged fields
 	if apis.ResponseHeaderVersion(response.ApiKey, response.ApiVersion) >= 1 {
-		_, err := ReadRawTaggedFields(responseReader)
+		response.RawTaggedFields, err = ReadRawTaggedFields(responseReader)
 		if err != nil {
 			return response, err
 		}

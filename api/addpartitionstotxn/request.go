@@ -125,17 +125,19 @@ func (req *AddPartitionsToTxnRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("AddPartitionsToTxnRequest.Read: request or its body is nil")
 	}
 
+	*req = AddPartitionsToTxnRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
 	// Transactions (versions: 4+)
 	if req.ApiVersion >= 4 {
 		if isRequestFlexible(req.ApiVersion) {
-			transactions, err := protocol.ReadNullableCompactArray(r, req.transactionsDecoder)
+			transactions, err := protocol.ReadCompactArray(r, req.transactionsDecoder)
 			if err != nil {
 				return err
 			}
-			req.Transactions = transactions
+			req.Transactions = &transactions
 		} else {
 			transactions, err := protocol.ReadArray(r, req.transactionsDecoder)
 			if err != nil {
@@ -183,11 +185,11 @@ func (req *AddPartitionsToTxnRequest) Read(request *protocol.Request) error {
 	// V3AndBelowTopics (versions: 0-3)
 	if req.ApiVersion <= 3 {
 		if isRequestFlexible(req.ApiVersion) {
-			v3andbelowtopics, err := protocol.ReadNullableCompactArray(r, req.v3AndBelowTopicsDecoder)
+			v3andbelowtopics, err := protocol.ReadCompactArray(r, req.v3AndBelowTopicsDecoder)
 			if err != nil {
 				return err
 			}
-			req.V3AndBelowTopics = v3andbelowtopics
+			req.V3AndBelowTopics = &v3andbelowtopics
 		} else {
 			v3andbelowtopics, err := protocol.ReadArray(r, req.v3AndBelowTopicsDecoder)
 			if err != nil {
@@ -327,11 +329,11 @@ func (req *AddPartitionsToTxnRequest) transactionsDecoder(r io.Reader) (AddParti
 	// Topics (versions: 4+)
 	if req.ApiVersion >= 4 {
 		if isRequestFlexible(req.ApiVersion) {
-			topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+			topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
 			if err != nil {
 				return addpartitionstotxnrequesttransaction, err
 			}
-			addpartitionstotxnrequesttransaction.Topics = topics
+			addpartitionstotxnrequesttransaction.Topics = &topics
 		} else {
 			topics, err := protocol.ReadArray(r, req.topicsDecoder)
 			if err != nil {
@@ -416,11 +418,11 @@ func (req *AddPartitionsToTxnRequest) topicsDecoder(r io.Reader) (AddPartitionsT
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return addpartitionstotxnrequesttransactiontopic, err
 		}
-		addpartitionstotxnrequesttransactiontopic.Partitions = partitions
+		addpartitionstotxnrequesttransactiontopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {
@@ -504,11 +506,11 @@ func (req *AddPartitionsToTxnRequest) v3AndBelowTopicsDecoder(r io.Reader) (AddP
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return addpartitionstotxnrequestv3andbelowtopic, err
 		}
-		addpartitionstotxnrequestv3andbelowtopic.Partitions = partitions
+		addpartitionstotxnrequestv3andbelowtopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {

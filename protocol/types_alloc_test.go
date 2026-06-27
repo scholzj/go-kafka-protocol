@@ -68,3 +68,28 @@ func TestReadCompactBytesRoundTripStillWorks(t *testing.T) {
 		t.Errorf("round trip = %q, want %q", got, want)
 	}
 }
+
+// #5: a tagged-fields frame claiming an absurd tag count must fail fast instead of pre-allocating it.
+func TestReadRawTaggedFieldsBoundedAllocation(t *testing.T) {
+	var buf bytes.Buffer
+	if err := WriteUvarint(&buf, 1<<40); err != nil { // huge count, but no tags follow
+		t.Fatal(err)
+	}
+	if _, err := ReadRawTaggedFields(&buf); err == nil {
+		t.Fatal("expected an error reading a truncated, over-claimed tagged-fields section")
+	}
+}
+
+// #5: an individual tag claiming an absurd length must fail fast instead of pre-allocating it.
+func TestReadRawTaggedFieldBoundedAllocation(t *testing.T) {
+	var buf bytes.Buffer
+	if err := WriteUvarint(&buf, 1); err != nil { // tag number
+		t.Fatal(err)
+	}
+	if err := WriteUvarint(&buf, 1<<40); err != nil { // huge length, but no payload follows
+		t.Fatal(err)
+	}
+	if _, err := ReadRawTaggedField(&buf); err == nil {
+		t.Fatal("expected an error reading a truncated, over-claimed tag")
+	}
+}

@@ -61,8 +61,13 @@ func (req *ListPartitionReassignmentsRequest) Read(request *protocol.Request) er
 		return fmt.Errorf("ListPartitionReassignmentsRequest.Read: request or its body is nil")
 	}
 
+	*req = ListPartitionReassignmentsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	req.TimeoutMs = 60000
 
 	// TimeoutMs (versions: 0+)
 	timeoutms, err := protocol.ReadInt32(r)
@@ -161,11 +166,11 @@ func (req *ListPartitionReassignmentsRequest) topicsDecoder(r io.Reader) (ListPa
 
 	// PartitionIndexes (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitionindexes, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitionindexes, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return listpartitionreassignmentsrequesttopic, err
 		}
-		listpartitionreassignmentsrequesttopic.PartitionIndexes = partitionindexes
+		listpartitionreassignmentsrequesttopic.PartitionIndexes = &partitionindexes
 	} else {
 		partitionindexes, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {

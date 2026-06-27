@@ -70,16 +70,18 @@ func (req *DeleteRecordsRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("DeleteRecordsRequest.Read: request or its body is nil")
 	}
 
+	*req = DeleteRecordsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
 	// Topics (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, req.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, req.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Topics = topics
+		req.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, req.topicsDecoder)
 		if err != nil {
@@ -170,11 +172,11 @@ func (req *DeleteRecordsRequest) topicsDecoder(r io.Reader) (DeleteRecordsReques
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, req.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, req.partitionsDecoder)
 		if err != nil {
 			return deleterecordsrequesttopic, err
 		}
-		deleterecordsrequesttopic.Partitions = partitions
+		deleterecordsrequesttopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, req.partitionsDecoder)
 		if err != nil {

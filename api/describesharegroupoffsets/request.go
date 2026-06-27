@@ -64,16 +64,18 @@ func (req *DescribeShareGroupOffsetsRequest) Read(request *protocol.Request) err
 		return fmt.Errorf("DescribeShareGroupOffsetsRequest.Read: request or its body is nil")
 	}
 
+	*req = DescribeShareGroupOffsetsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
 	// Groups (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		groups, err := protocol.ReadNullableCompactArray(r, req.groupsDecoder)
+		groups, err := protocol.ReadCompactArray(r, req.groupsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Groups = groups
+		req.Groups = &groups
 	} else {
 		groups, err := protocol.ReadArray(r, req.groupsDecoder)
 		if err != nil {
@@ -242,11 +244,11 @@ func (req *DescribeShareGroupOffsetsRequest) topicsDecoder(r io.Reader) (Describ
 
 	// Partitions (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt32)
+		partitions, err := protocol.ReadCompactArray(r, protocol.ReadInt32)
 		if err != nil {
 			return describesharegroupoffsetsrequestgrouptopic, err
 		}
-		describesharegroupoffsetsrequestgrouptopic.Partitions = partitions
+		describesharegroupoffsetsrequestgrouptopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, protocol.ReadInt32)
 		if err != nil {

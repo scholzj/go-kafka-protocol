@@ -92,6 +92,8 @@ func (req *CreateDelegationTokenRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("CreateDelegationTokenRequest.Read: request or its body is nil")
 	}
 
+	*req = CreateDelegationTokenRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
@@ -131,11 +133,11 @@ func (req *CreateDelegationTokenRequest) Read(request *protocol.Request) error {
 
 	// Renewers (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		renewers, err := protocol.ReadNullableCompactArray(r, req.renewersDecoder)
+		renewers, err := protocol.ReadCompactArray(r, req.renewersDecoder)
 		if err != nil {
 			return err
 		}
-		req.Renewers = renewers
+		req.Renewers = &renewers
 	} else {
 		renewers, err := protocol.ReadArray(r, req.renewersDecoder)
 		if err != nil {

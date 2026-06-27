@@ -139,6 +139,8 @@ func (res *DescribeQuorumResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("DescribeQuorumResponse.Read: response or its body is nil")
 	}
 
+	*res = DescribeQuorumResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -168,11 +170,11 @@ func (res *DescribeQuorumResponse) Read(response *protocol.Response) error {
 
 	// Topics (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		topics, err := protocol.ReadNullableCompactArray(r, res.topicsDecoder)
+		topics, err := protocol.ReadCompactArray(r, res.topicsDecoder)
 		if err != nil {
 			return err
 		}
-		res.Topics = topics
+		res.Topics = &topics
 	} else {
 		topics, err := protocol.ReadArray(r, res.topicsDecoder)
 		if err != nil {
@@ -184,11 +186,11 @@ func (res *DescribeQuorumResponse) Read(response *protocol.Response) error {
 	// Nodes (versions: 2+)
 	if res.ApiVersion >= 2 {
 		if isResponseFlexible(res.ApiVersion) {
-			nodes, err := protocol.ReadNullableCompactArray(r, res.nodesDecoder)
+			nodes, err := protocol.ReadCompactArray(r, res.nodesDecoder)
 			if err != nil {
 				return err
 			}
-			res.Nodes = nodes
+			res.Nodes = &nodes
 		} else {
 			nodes, err := protocol.ReadArray(r, res.nodesDecoder)
 			if err != nil {
@@ -273,11 +275,11 @@ func (res *DescribeQuorumResponse) topicsDecoder(r io.Reader) (DescribeQuorumRes
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, res.partitionsDecoder)
 		if err != nil {
 			return describequorumresponsetopic, err
 		}
-		describequorumresponsetopic.Partitions = partitions
+		describequorumresponsetopic.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, res.partitionsDecoder)
 		if err != nil {
@@ -436,11 +438,11 @@ func (res *DescribeQuorumResponse) partitionsDecoder(r io.Reader) (DescribeQuoru
 
 	// CurrentVoters (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		currentvoters, err := protocol.ReadNullableCompactArray(r, res.currentVotersDecoder)
+		currentvoters, err := protocol.ReadCompactArray(r, res.currentVotersDecoder)
 		if err != nil {
 			return describequorumresponsetopicpartition, err
 		}
-		describequorumresponsetopicpartition.CurrentVoters = currentvoters
+		describequorumresponsetopicpartition.CurrentVoters = &currentvoters
 	} else {
 		currentvoters, err := protocol.ReadArray(r, res.currentVotersDecoder)
 		if err != nil {
@@ -451,11 +453,11 @@ func (res *DescribeQuorumResponse) partitionsDecoder(r io.Reader) (DescribeQuoru
 
 	// Observers (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		observers, err := protocol.ReadNullableCompactArray(r, res.observersDecoder)
+		observers, err := protocol.ReadCompactArray(r, res.observersDecoder)
 		if err != nil {
 			return describequorumresponsetopicpartition, err
 		}
-		describequorumresponsetopicpartition.Observers = observers
+		describequorumresponsetopicpartition.Observers = &observers
 	} else {
 		observers, err := protocol.ReadArray(r, res.observersDecoder)
 		if err != nil {
@@ -524,6 +526,10 @@ func (res *DescribeQuorumResponse) currentVotersEncoder(w io.Writer, value Descr
 
 func (res *DescribeQuorumResponse) currentVotersDecoder(r io.Reader) (DescribeQuorumResponseTopicPartitionCurrentVoter, error) {
 	describequorumresponsetopicpartitioncurrentvoter := DescribeQuorumResponseTopicPartitionCurrentVoter{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	describequorumresponsetopicpartitioncurrentvoter.LastFetchTimestamp = -1
+	describequorumresponsetopicpartitioncurrentvoter.LastCaughtUpTimestamp = -1
 
 	// ReplicaId (versions: 0+)
 	replicaid, err := protocol.ReadInt32(r)
@@ -626,6 +632,10 @@ func (res *DescribeQuorumResponse) observersEncoder(w io.Writer, value DescribeQ
 
 func (res *DescribeQuorumResponse) observersDecoder(r io.Reader) (DescribeQuorumResponseTopicPartitionObserver, error) {
 	describequorumresponsetopicpartitionobserver := DescribeQuorumResponseTopicPartitionObserver{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	describequorumresponsetopicpartitionobserver.LastFetchTimestamp = -1
+	describequorumresponsetopicpartitionobserver.LastCaughtUpTimestamp = -1
 
 	// ReplicaId (versions: 0+)
 	replicaid, err := protocol.ReadInt32(r)
@@ -733,11 +743,11 @@ func (res *DescribeQuorumResponse) nodesDecoder(r io.Reader) (DescribeQuorumResp
 	// Listeners (versions: 2+)
 	if res.ApiVersion >= 2 {
 		if isResponseFlexible(res.ApiVersion) {
-			listeners, err := protocol.ReadNullableCompactArray(r, res.listenersDecoder)
+			listeners, err := protocol.ReadCompactArray(r, res.listenersDecoder)
 			if err != nil {
 				return describequorumresponsenode, err
 			}
-			describequorumresponsenode.Listeners = listeners
+			describequorumresponsenode.Listeners = &listeners
 		} else {
 			listeners, err := protocol.ReadArray(r, res.listenersDecoder)
 			if err != nil {

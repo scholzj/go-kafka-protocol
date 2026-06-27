@@ -67,8 +67,13 @@ func (res *BrokerHeartbeatResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("BrokerHeartbeatResponse.Read: response or its body is nil")
 	}
 
+	*res = BrokerHeartbeatResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	res.IsFenced = true
 
 	// ThrottleTimeMs (versions: 0+)
 	throttletimems, err := protocol.ReadInt32(r)

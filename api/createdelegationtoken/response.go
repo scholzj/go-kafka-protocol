@@ -161,6 +161,8 @@ func (res *CreateDelegationTokenResponse) Read(response *protocol.Response) erro
 		return fmt.Errorf("CreateDelegationTokenResponse.Read: response or its body is nil")
 	}
 
+	*res = CreateDelegationTokenResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 

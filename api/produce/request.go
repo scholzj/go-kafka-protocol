@@ -92,6 +92,8 @@ func (req *ProduceRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("ProduceRequest.Read: request or its body is nil")
 	}
 
+	*req = ProduceRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
@@ -128,11 +130,11 @@ func (req *ProduceRequest) Read(request *protocol.Request) error {
 
 	// TopicData (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		topicdata, err := protocol.ReadNullableCompactArray(r, req.topicDataDecoder)
+		topicdata, err := protocol.ReadCompactArray(r, req.topicDataDecoder)
 		if err != nil {
 			return err
 		}
-		req.TopicData = topicdata
+		req.TopicData = &topicdata
 	} else {
 		topicdata, err := protocol.ReadArray(r, req.topicDataDecoder)
 		if err != nil {
@@ -236,11 +238,11 @@ func (req *ProduceRequest) topicDataDecoder(r io.Reader) (ProduceRequestTopicDat
 
 	// PartitionData (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		partitiondata, err := protocol.ReadNullableCompactArray(r, req.partitionDataDecoder)
+		partitiondata, err := protocol.ReadCompactArray(r, req.partitionDataDecoder)
 		if err != nil {
 			return producerequesttopicdata, err
 		}
-		producerequesttopicdata.PartitionData = partitiondata
+		producerequesttopicdata.PartitionData = &partitiondata
 	} else {
 		partitiondata, err := protocol.ReadArray(r, req.partitionDataDecoder)
 		if err != nil {

@@ -79,6 +79,8 @@ func (req *AddOffsetsToTxnRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("AddOffsetsToTxnRequest.Read: request or its body is nil")
 	}
 
+	*req = AddOffsetsToTxnRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 

@@ -54,17 +54,19 @@ func (req *ListConfigResourcesRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("ListConfigResourcesRequest.Read: request or its body is nil")
 	}
 
+	*req = ListConfigResourcesRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
 	// ResourceTypes (versions: 1+)
 	if req.ApiVersion >= 1 {
 		if isRequestFlexible(req.ApiVersion) {
-			resourcetypes, err := protocol.ReadNullableCompactArray(r, protocol.ReadInt8)
+			resourcetypes, err := protocol.ReadCompactArray(r, protocol.ReadInt8)
 			if err != nil {
 				return err
 			}
-			req.ResourceTypes = resourcetypes
+			req.ResourceTypes = &resourcetypes
 		} else {
 			resourcetypes, err := protocol.ReadArray(r, protocol.ReadInt8)
 			if err != nil {

@@ -65,16 +65,18 @@ func (req *DescribeClientQuotasRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("DescribeClientQuotasRequest.Read: request or its body is nil")
 	}
 
+	*req = DescribeClientQuotasRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
 	// Components (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		components, err := protocol.ReadNullableCompactArray(r, req.componentsDecoder)
+		components, err := protocol.ReadCompactArray(r, req.componentsDecoder)
 		if err != nil {
 			return err
 		}
-		req.Components = components
+		req.Components = &components
 	} else {
 		components, err := protocol.ReadArray(r, req.componentsDecoder)
 		if err != nil {

@@ -52,16 +52,18 @@ func (req *DescribeTransactionsRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("DescribeTransactionsRequest.Read: request or its body is nil")
 	}
 
+	*req = DescribeTransactionsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
 	// TransactionalIds (versions: 0+)
 	if isRequestFlexible(req.ApiVersion) {
-		transactionalids, err := protocol.ReadNullableCompactArray(r, protocol.ReadCompactString)
+		transactionalids, err := protocol.ReadCompactArray(r, protocol.ReadCompactString)
 		if err != nil {
 			return err
 		}
-		req.TransactionalIds = transactionalids
+		req.TransactionalIds = &transactionalids
 	} else {
 		transactionalids, err := protocol.ReadArray(r, protocol.ReadString)
 		if err != nil {

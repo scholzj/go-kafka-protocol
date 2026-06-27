@@ -93,6 +93,8 @@ func (req *LeaveGroupRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("LeaveGroupRequest.Read: request or its body is nil")
 	}
 
+	*req = LeaveGroupRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
 
@@ -131,11 +133,11 @@ func (req *LeaveGroupRequest) Read(request *protocol.Request) error {
 	// Members (versions: 3+)
 	if req.ApiVersion >= 3 {
 		if isRequestFlexible(req.ApiVersion) {
-			members, err := protocol.ReadNullableCompactArray(r, req.membersDecoder)
+			members, err := protocol.ReadCompactArray(r, req.membersDecoder)
 			if err != nil {
 				return err
 			}
-			req.Members = members
+			req.Members = &members
 		} else {
 			members, err := protocol.ReadArray(r, req.membersDecoder)
 			if err != nil {

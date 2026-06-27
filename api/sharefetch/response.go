@@ -139,6 +139,8 @@ func (res *ShareFetchResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("ShareFetchResponse.Read: response or its body is nil")
 	}
 
+	*res = ShareFetchResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
 
@@ -182,11 +184,11 @@ func (res *ShareFetchResponse) Read(response *protocol.Response) error {
 
 	// Responses (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		responses, err := protocol.ReadNullableCompactArray(r, res.responsesDecoder)
+		responses, err := protocol.ReadCompactArray(r, res.responsesDecoder)
 		if err != nil {
 			return err
 		}
-		res.Responses = responses
+		res.Responses = &responses
 	} else {
 		responses, err := protocol.ReadArray(r, res.responsesDecoder)
 		if err != nil {
@@ -197,11 +199,11 @@ func (res *ShareFetchResponse) Read(response *protocol.Response) error {
 
 	// NodeEndpoints (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		nodeendpoints, err := protocol.ReadNullableCompactArray(r, res.nodeEndpointsDecoder)
+		nodeendpoints, err := protocol.ReadCompactArray(r, res.nodeEndpointsDecoder)
 		if err != nil {
 			return err
 		}
-		res.NodeEndpoints = nodeendpoints
+		res.NodeEndpoints = &nodeendpoints
 	} else {
 		nodeendpoints, err := protocol.ReadArray(r, res.nodeEndpointsDecoder)
 		if err != nil {
@@ -268,11 +270,11 @@ func (res *ShareFetchResponse) responsesDecoder(r io.Reader) (ShareFetchResponse
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, res.partitionsDecoder)
 		if err != nil {
 			return sharefetchresponseresponse, err
 		}
-		sharefetchresponseresponse.Partitions = partitions
+		sharefetchresponseresponse.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, res.partitionsDecoder)
 		if err != nil {
@@ -444,26 +446,42 @@ func (res *ShareFetchResponse) partitionsDecoder(r io.Reader) (ShareFetchRespons
 
 	// Records (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		records, err := protocol.ReadCompactRecords(r)
-		if err != nil {
-			return sharefetchresponseresponsepartition, err
+		if res.ApiVersion <= 0 {
+			records, err := protocol.ReadCompactRecords(r)
+			if err != nil {
+				return sharefetchresponseresponsepartition, err
+			}
+			sharefetchresponseresponsepartition.Records = records
+		} else {
+			records, err := protocol.ReadCompactRecordsStrict(r)
+			if err != nil {
+				return sharefetchresponseresponsepartition, err
+			}
+			sharefetchresponseresponsepartition.Records = &records
 		}
-		sharefetchresponseresponsepartition.Records = records
 	} else {
-		records, err := protocol.ReadRecords(r)
-		if err != nil {
-			return sharefetchresponseresponsepartition, err
+		if res.ApiVersion <= 0 {
+			records, err := protocol.ReadRecords(r)
+			if err != nil {
+				return sharefetchresponseresponsepartition, err
+			}
+			sharefetchresponseresponsepartition.Records = records
+		} else {
+			records, err := protocol.ReadRecordsStrict(r)
+			if err != nil {
+				return sharefetchresponseresponsepartition, err
+			}
+			sharefetchresponseresponsepartition.Records = &records
 		}
-		sharefetchresponseresponsepartition.Records = records
 	}
 
 	// AcquiredRecords (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		acquiredrecords, err := protocol.ReadNullableCompactArray(r, res.acquiredRecordsDecoder)
+		acquiredrecords, err := protocol.ReadCompactArray(r, res.acquiredRecordsDecoder)
 		if err != nil {
 			return sharefetchresponseresponsepartition, err
 		}
-		sharefetchresponseresponsepartition.AcquiredRecords = acquiredrecords
+		sharefetchresponseresponsepartition.AcquiredRecords = &acquiredrecords
 	} else {
 		acquiredrecords, err := protocol.ReadArray(r, res.acquiredRecordsDecoder)
 		if err != nil {

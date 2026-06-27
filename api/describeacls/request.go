@@ -99,8 +99,13 @@ func (req *DescribeAclsRequest) Read(request *protocol.Request) error {
 		return fmt.Errorf("DescribeAclsRequest.Read: request or its body is nil")
 	}
 
+	*req = DescribeAclsRequest{}
+
 	r := bytes.NewBuffer(request.Body.Bytes())
 	req.ApiVersion = request.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	req.PatternTypeFilter = 3
 
 	// ResourceTypeFilter (versions: 0+)
 	resourcetypefilter, err := protocol.ReadInt8(r)

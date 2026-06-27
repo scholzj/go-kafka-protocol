@@ -133,8 +133,13 @@ func (res *FetchResponse) Read(response *protocol.Response) error {
 		return fmt.Errorf("FetchResponse.Read: response or its body is nil")
 	}
 
+	*res = FetchResponse{}
+
 	r := bytes.NewBuffer(response.Body.Bytes())
 	res.ApiVersion = response.ApiVersion
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	res.NodeEndpoints = &[]FetchResponseNodeEndpoint{}
 
 	// ThrottleTimeMs (versions: 1+)
 	if res.ApiVersion >= 1 {
@@ -165,11 +170,11 @@ func (res *FetchResponse) Read(response *protocol.Response) error {
 
 	// Responses (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		responses, err := protocol.ReadNullableCompactArray(r, res.responsesDecoder)
+		responses, err := protocol.ReadCompactArray(r, res.responsesDecoder)
 		if err != nil {
 			return err
 		}
-		res.Responses = responses
+		res.Responses = &responses
 	} else {
 		responses, err := protocol.ReadArray(r, res.responsesDecoder)
 		if err != nil {
@@ -271,11 +276,11 @@ func (res *FetchResponse) responsesDecoder(r io.Reader) (FetchResponseResponse, 
 
 	// Partitions (versions: 0+)
 	if isResponseFlexible(res.ApiVersion) {
-		partitions, err := protocol.ReadNullableCompactArray(r, res.partitionsDecoder)
+		partitions, err := protocol.ReadCompactArray(r, res.partitionsDecoder)
 		if err != nil {
 			return fetchresponseresponse, err
 		}
-		fetchresponseresponse.Partitions = partitions
+		fetchresponseresponse.Partitions = &partitions
 	} else {
 		partitions, err := protocol.ReadArray(r, res.partitionsDecoder)
 		if err != nil {
@@ -410,6 +415,14 @@ func (res *FetchResponse) partitionsEncoder(w io.Writer, value FetchResponseResp
 
 func (res *FetchResponse) partitionsDecoder(r io.Reader) (FetchResponseResponsePartition, error) {
 	fetchresponseresponsepartition := FetchResponseResponsePartition{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	fetchresponseresponsepartition.LastStableOffset = -1
+	fetchresponseresponsepartition.LogStartOffset = -1
+	fetchresponseresponsepartition.DivergingEpoch = &FetchResponseResponsePartitionDivergingEpoch{Epoch: -1, EndOffset: -1}
+	fetchresponseresponsepartition.CurrentLeader = &FetchResponseResponsePartitionCurrentLeader{LeaderId: -1, LeaderEpoch: -1}
+	fetchresponseresponsepartition.SnapshotId = &FetchResponseResponsePartitionSnapshotId{EndOffset: -1, Epoch: -1}
+	fetchresponseresponsepartition.PreferredReadReplica = -1
 
 	// PartitionIndex (versions: 0+)
 	partitionindex, err := protocol.ReadInt32(r)
@@ -546,7 +559,7 @@ func (res *FetchResponse) taggedFieldsEncoderPartitions(value FetchResponseRespo
 	buf := bytes.NewBuffer(make([]byte, 0))
 
 	// Tag 0
-	if value.DivergingEpoch != nil {
+	if res.ApiVersion >= 12 && value.DivergingEpoch != nil && (value.DivergingEpoch.Epoch != -1 || value.DivergingEpoch.EndOffset != -1 || (value.DivergingEpoch.rawTaggedFields != nil && len(*value.DivergingEpoch.rawTaggedFields) > 0)) {
 		buf = bytes.NewBuffer(make([]byte, 0))
 		if err := res.divergingEpochEncoder(buf, *value.DivergingEpoch); err != nil {
 			return taggedFields, err
@@ -556,7 +569,7 @@ func (res *FetchResponse) taggedFieldsEncoderPartitions(value FetchResponseRespo
 	}
 
 	// Tag 1
-	if value.CurrentLeader != nil {
+	if res.ApiVersion >= 12 && value.CurrentLeader != nil && (value.CurrentLeader.LeaderId != -1 || value.CurrentLeader.LeaderEpoch != -1 || (value.CurrentLeader.rawTaggedFields != nil && len(*value.CurrentLeader.rawTaggedFields) > 0)) {
 		buf = bytes.NewBuffer(make([]byte, 0))
 		if err := res.currentLeaderEncoder(buf, *value.CurrentLeader); err != nil {
 			return taggedFields, err
@@ -566,7 +579,7 @@ func (res *FetchResponse) taggedFieldsEncoderPartitions(value FetchResponseRespo
 	}
 
 	// Tag 2
-	if value.SnapshotId != nil {
+	if res.ApiVersion >= 12 && value.SnapshotId != nil && (value.SnapshotId.EndOffset != -1 || value.SnapshotId.Epoch != -1 || (value.SnapshotId.rawTaggedFields != nil && len(*value.SnapshotId.rawTaggedFields) > 0)) {
 		buf = bytes.NewBuffer(make([]byte, 0))
 		if err := res.snapshotIdEncoder(buf, *value.SnapshotId); err != nil {
 			return taggedFields, err
@@ -584,41 +597,53 @@ func (res *FetchResponse) taggedFieldsEncoderPartitions(value FetchResponseRespo
 }
 
 func (res *FetchResponse) taggedFieldsDecoderPartitions(r io.Reader, tag uint64, tagLength uint64, value *FetchResponseResponsePartition) error {
-	rawTaggedFields := make([]protocol.TaggedField, 0)
+	known := false
 
 	switch tag {
 	case 0:
 		// DivergingEpoch
-		divergingepochVal, err := res.divergingEpochDecoder(r)
-		if err != nil {
-			return err
+		if res.ApiVersion >= 12 {
+			known = true
+			divergingepochVal, err := res.divergingEpochDecoder(r)
+			if err != nil {
+				return err
+			}
+			value.DivergingEpoch = &divergingepochVal
 		}
-		value.DivergingEpoch = &divergingepochVal
 	case 1:
 		// CurrentLeader
-		currentleaderVal, err := res.currentLeaderDecoder(r)
-		if err != nil {
-			return err
+		if res.ApiVersion >= 12 {
+			known = true
+			currentleaderVal, err := res.currentLeaderDecoder(r)
+			if err != nil {
+				return err
+			}
+			value.CurrentLeader = &currentleaderVal
 		}
-		value.CurrentLeader = &currentleaderVal
 	case 2:
 		// SnapshotId
-		snapshotidVal, err := res.snapshotIdDecoder(r)
-		if err != nil {
-			return err
+		if res.ApiVersion >= 12 {
+			known = true
+			snapshotidVal, err := res.snapshotIdDecoder(r)
+			if err != nil {
+				return err
+			}
+			value.SnapshotId = &snapshotidVal
 		}
-		value.SnapshotId = &snapshotidVal
-	default:
-		// Unknown tag - keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
+	}
+
+	if !known {
+		// Keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
 		field, err := io.ReadAll(r)
 		if err != nil {
 			return err
 		}
-		rawTaggedFields = append(rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
+		if value.rawTaggedFields == nil {
+			rawTaggedFields := make([]protocol.TaggedField, 0)
+			value.rawTaggedFields = &rawTaggedFields
+		}
+		*value.rawTaggedFields = append(*value.rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
 	}
-
-	// Set the raw tagged fields
-	value.rawTaggedFields = &rawTaggedFields
 
 	return nil
 }
@@ -654,6 +679,10 @@ func (res *FetchResponse) divergingEpochEncoder(w io.Writer, value FetchResponse
 
 func (res *FetchResponse) divergingEpochDecoder(r io.Reader) (FetchResponseResponsePartitionDivergingEpoch, error) {
 	fetchresponseresponsepartitiondivergingepoch := FetchResponseResponsePartitionDivergingEpoch{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	fetchresponseresponsepartitiondivergingepoch.Epoch = -1
+	fetchresponseresponsepartitiondivergingepoch.EndOffset = -1
 
 	// Epoch (versions: 12+)
 	if res.ApiVersion >= 12 {
@@ -717,6 +746,10 @@ func (res *FetchResponse) currentLeaderEncoder(w io.Writer, value FetchResponseR
 func (res *FetchResponse) currentLeaderDecoder(r io.Reader) (FetchResponseResponsePartitionCurrentLeader, error) {
 	fetchresponseresponsepartitioncurrentleader := FetchResponseResponsePartitionCurrentLeader{}
 
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	fetchresponseresponsepartitioncurrentleader.LeaderId = -1
+	fetchresponseresponsepartitioncurrentleader.LeaderEpoch = -1
+
 	// LeaderId (versions: 12+)
 	if res.ApiVersion >= 12 {
 		leaderid, err := protocol.ReadInt32(r)
@@ -774,6 +807,10 @@ func (res *FetchResponse) snapshotIdEncoder(w io.Writer, value FetchResponseResp
 
 func (res *FetchResponse) snapshotIdDecoder(r io.Reader) (FetchResponseResponsePartitionSnapshotId, error) {
 	fetchresponseresponsepartitionsnapshotid := FetchResponseResponsePartitionSnapshotId{}
+
+	// Field defaults (applied before decode; a field absent from the wire keeps its default)
+	fetchresponseresponsepartitionsnapshotid.EndOffset = -1
+	fetchresponseresponsepartitionsnapshotid.Epoch = -1
 
 	// EndOffset (versions: 0+)
 	endoffset, err := protocol.ReadInt64(r)
@@ -998,7 +1035,7 @@ func (res *FetchResponse) taggedFieldsEncoder() ([]protocol.TaggedField, error) 
 	buf := bytes.NewBuffer(make([]byte, 0))
 
 	// Tag 0
-	if res.NodeEndpoints != nil {
+	if res.ApiVersion >= 16 && res.NodeEndpoints != nil && len(*res.NodeEndpoints) > 0 {
 		buf = bytes.NewBuffer(make([]byte, 0))
 		if err := protocol.WriteNullableCompactArray(buf, res.nodeEndpointsEncoder, res.NodeEndpoints); err != nil {
 			return taggedFields, err
@@ -1016,27 +1053,33 @@ func (res *FetchResponse) taggedFieldsEncoder() ([]protocol.TaggedField, error) 
 }
 
 func (res *FetchResponse) taggedFieldsDecoder(r io.Reader, tag uint64, tagLength uint64) error {
-	rawTaggedFields := make([]protocol.TaggedField, 0)
+	known := false
 
 	switch tag {
 	case 0:
 		// NodeEndpoints
-		nodeendpoints, err := protocol.ReadNullableCompactArray(r, res.nodeEndpointsDecoder)
-		if err != nil {
-			return err
+		if res.ApiVersion >= 16 {
+			known = true
+			nodeendpoints, err := protocol.ReadCompactArray(r, res.nodeEndpointsDecoder)
+			if err != nil {
+				return err
+			}
+			res.NodeEndpoints = &nodeendpoints
 		}
-		res.NodeEndpoints = nodeendpoints
-	default:
-		// Unknown tag - keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
+	}
+
+	if !known {
+		// Keep the raw bytes (r is bounded to this tag's length by ReadTaggedFields)
 		field, err := io.ReadAll(r)
 		if err != nil {
 			return err
 		}
-		rawTaggedFields = append(rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
+		if res.rawTaggedFields == nil {
+			rawTaggedFields := make([]protocol.TaggedField, 0)
+			res.rawTaggedFields = &rawTaggedFields
+		}
+		*res.rawTaggedFields = append(*res.rawTaggedFields, protocol.TaggedField{Tag: tag, Field: field})
 	}
-
-	// Set the raw tagged fields
-	res.rawTaggedFields = &rawTaggedFields
 
 	return nil
 }
