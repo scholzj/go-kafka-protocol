@@ -1,6 +1,7 @@
 package protocol
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -8,6 +9,38 @@ import (
 
 	"github.com/google/uuid"
 )
+
+// maxPrealloc caps how many bytes or array elements are pre-allocated for a length-prefixed field
+// before any of its data has been read. Wire lengths are attacker-controlled, so allocating
+// make([]T, length) up front lets a single corrupt or malicious length field trigger an enormous
+// allocation (a denial of service) - especially for arrays of structs. With this cap the field is
+// still decoded to its true length, but the storage grows as bytes actually arrive; a length larger
+// than the data available simply makes the underlying read fail with an unexpected-EOF error.
+const maxPrealloc = 4096
+
+// preallocLen returns a safe initial capacity for a field whose declared length is length.
+func preallocLen(length int) int {
+	if length < maxPrealloc {
+		return length
+	}
+	return maxPrealloc
+}
+
+// readBytesLimited reads exactly length bytes from r without pre-allocating the full length up
+// front, so a corrupt or huge length cannot cause a giant allocation before any data is read.
+func readBytesLimited(r io.Reader, length int) ([]byte, error) {
+	if length < 0 {
+		return nil, fmt.Errorf("invalid length %d", length)
+	}
+	if length == 0 {
+		return []byte{}, nil
+	}
+	buf := bytes.NewBuffer(make([]byte, 0, preallocLen(length)))
+	if _, err := io.CopyN(buf, r, int64(length)); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
 
 ////////////////////
 // Decoding and encoding methods for primitive types
@@ -271,13 +304,12 @@ func ReadString(r io.Reader) (string, error) {
 	} else if length == 0 {
 		return "", nil
 	} else {
-		var bytes = make([]byte, length)
-		_, err = io.ReadFull(r, bytes)
+		b, err := readBytesLimited(r, int(length))
 		if err != nil {
 			return "", err
 		}
 
-		return string(bytes), nil
+		return string(b), nil
 	}
 }
 
@@ -311,13 +343,12 @@ func ReadNullableString(r io.Reader) (*string, error) {
 		emptyString := ""
 		return &emptyString, nil
 	} else {
-		var bytes = make([]byte, length)
-		_, err = io.ReadFull(r, bytes)
+		b, err := readBytesLimited(r, int(length))
 		if err != nil {
 			return nil, err
 		}
 
-		str := string(bytes)
+		str := string(b)
 		return &str, nil
 	}
 }
@@ -352,13 +383,12 @@ func ReadCompactString(r io.Reader) (string, error) {
 		return "", nil
 	} else {
 		length-- // subtract 1 for the length byte based on the Kafka protocol spec
-		var bytes = make([]byte, length)
-		_, err = io.ReadFull(r, bytes)
+		b, err := readBytesLimited(r, int(length))
 		if err != nil {
 			return "", err
 		}
 
-		return string(bytes), nil
+		return string(b), nil
 	}
 }
 
@@ -395,13 +425,12 @@ func ReadNullableCompactString(r io.Reader) (*string, error) {
 		return &str, nil
 	} else {
 		length-- // subtract 1 for the length byte based on the Kafka protocol spec
-		var bytes = make([]byte, length)
-		_, err = io.ReadFull(r, bytes)
+		b, err := readBytesLimited(r, int(length))
 		if err != nil {
 			return nil, err
 		}
 
-		var str = string(bytes)
+		var str = string(b)
 		return &str, nil
 	}
 }
@@ -433,13 +462,7 @@ func ReadBytes(r io.Reader) ([]byte, error) {
 	} else if length == 0 {
 		return make([]byte, 0), nil
 	} else {
-		bytes := make([]byte, length)
-		_, err = io.ReadFull(r, bytes)
-		if err != nil {
-			return nil, err
-		}
-
-		return bytes, nil
+		return readBytesLimited(r, int(length))
 	}
 }
 
@@ -473,13 +496,7 @@ func ReadCompactBytes(r io.Reader) ([]byte, error) {
 		return make([]byte, 0), nil
 	} else {
 		length-- // subtract 1 for the length byte based on the Kafka protocol spec
-		bytes := make([]byte, length)
-		_, err = io.ReadFull(r, bytes)
-		if err != nil {
-			return nil, err
-		}
-
-		return bytes, nil
+		return readBytesLimited(r, int(length))
 	}
 }
 
@@ -515,13 +532,12 @@ func ReadNullableBytes(r io.Reader) (*[]byte, error) {
 		emptyBytes := make([]byte, 0)
 		return &emptyBytes, nil
 	} else {
-		bytes := make([]byte, length)
-		_, err = io.ReadFull(r, bytes)
+		b, err := readBytesLimited(r, int(length))
 		if err != nil {
 			return nil, err
 		}
 
-		return &bytes, nil
+		return &b, nil
 	}
 }
 
@@ -558,13 +574,12 @@ func ReadNullableCompactBytes(r io.Reader) (*[]byte, error) {
 		return &emptyBytes, nil
 	} else {
 		length-- // subtract 1 for the length byte based on the Kafka protocol spec
-		bytes := make([]byte, length)
-		_, err = io.ReadFull(r, bytes)
+		b, err := readBytesLimited(r, int(length))
 		if err != nil {
 			return nil, err
 		}
 
-		return &bytes, nil
+		return &b, nil
 	}
 }
 
@@ -612,12 +627,13 @@ func ReadArray[T interface{}](r io.Reader, decoder ArrayReaderDecoder[T]) ([]T, 
 	if length <= 0 {
 		return make([]T, 0), nil
 	} else {
-		array := make([]T, length)
+		array := make([]T, 0, preallocLen(int(length)))
 		for i := 0; i < int(length); i++ {
-			array[i], err = decoder(r)
+			v, err := decoder(r)
 			if err != nil {
 				return nil, err
 			}
+			array = append(array, v)
 		}
 
 		return array, nil
@@ -656,12 +672,13 @@ func ReadNullableArray[T interface{}](r io.Reader, decoder ArrayReaderDecoder[T]
 		array := make([]T, 0)
 		return &array, nil
 	} else {
-		array := make([]T, length)
+		array := make([]T, 0, preallocLen(int(length)))
 		for i := 0; i < int(length); i++ {
-			array[i], err = decoder(r)
+			v, err := decoder(r)
 			if err != nil {
 				return nil, err
 			}
+			array = append(array, v)
 		}
 
 		return &array, nil
@@ -699,12 +716,17 @@ func ReadNullableCompactArray[T interface{}](r io.Reader, decoder ArrayReaderDec
 	} else {
 		length-- // We remove one according to the Kafka spec
 
-		array := make([]T, length)
-		for i := 0; i < int(length); i++ {
-			array[i], err = decoder(r)
+		n := int(length)
+		if n < 0 {
+			return nil, fmt.Errorf("invalid compact array length %d", length)
+		}
+		array := make([]T, 0, preallocLen(n))
+		for i := 0; i < n; i++ {
+			v, err := decoder(r)
 			if err != nil {
 				return nil, err
 			}
+			array = append(array, v)
 		}
 
 		return &array, nil
